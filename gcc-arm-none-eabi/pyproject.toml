@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gcc-arm-none-eabi"
+version = "13.2.1"
+description = "ARM GCC toolchain for bare-metal targets"
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+include = ["gcc_arm_none_eabi*"]
+
+[tool.setuptools.package-data]
+gcc_arm_none_eabi = ["toolchain/**/*"]
