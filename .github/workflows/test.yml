@@ -32,6 +32,8 @@ jobs:
             runs-on: ubuntu-latest
           - image: opensuse/tumbleweed:latest
             runs-on: ubuntu-latest
+          - image: ghcr.io/void-linux/void-glibc:latest
+            runs-on: ubuntu-latest
           - image: debian:bookworm-slim
             runs-on: ubuntu-24.04-arm
     steps:
@@ -60,6 +62,8 @@ jobs:
               pacman -Sy --noconfirm python python-pip curl
             elif command -v zypper >/dev/null; then
               zypper install -y python3 python3-pip curl
+            elif command -v xbps-install >/dev/null; then
+              xbps-install -Sy python3 python3-pip curl
             fi
             bash ./test.sh
           '
