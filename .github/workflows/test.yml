@@ -1,4 +1,4 @@
-name: test
+name: ./test.sh
 
 on:
   push:
@@ -7,32 +7,19 @@ on:
 
 jobs:
   test:
-    name: ./test.sh
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            arch: x86_64
-          - os: ubuntu-latest
-            arch: aarch64
-          - os: macos-latest
-            arch: arm64
-    runs-on: ${{ matrix.arch == 'aarch64' && 'ubuntu-24.04-arm' || matrix.os }}
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.14"
-      - run: ./test.sh
-
-  test-docker:
-    name: docker - ${{ matrix.image }}
+    name: ${{ matrix.image || matrix.os }}
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
       matrix:
         include:
+          # native (no docker)
+          - os: macos-latest
+            runs-on: macos-latest
+
+          # the provided github actions runner images
+          # have tons of pre-installed packages. the
+          # goal here is to test across many vanilla setups
           - image: debian:bookworm-slim
             runs-on: ubuntu-latest
           - image: ubuntu:24.04
@@ -41,7 +28,7 @@ jobs:
             runs-on: ubuntu-latest
           - image: archlinux:latest
             runs-on: ubuntu-latest
-          - image: alpine:3.21
+          - image: alpine:3.21  # musl libc
             runs-on: ubuntu-latest
           - image: opensuse/tumbleweed:latest
             runs-on: ubuntu-latest
@@ -49,7 +36,18 @@ jobs:
             runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v6
-      - run: |
+
+      # native (macOS)
+      - if: ${{ !matrix.image }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - if: ${{ !matrix.image }}
+        run: ./test.sh
+
+      # docker (vanilla Linux)
+      - if: ${{ matrix.image }}
+        run: |
           docker run --rm -v "$PWD:/work" -w /work ${{ matrix.image }} sh -c '
             # install only python3 + pip + curl (the bare minimum)
             if command -v apk >/dev/null; then
