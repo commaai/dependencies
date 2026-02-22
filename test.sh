@@ -49,3 +49,12 @@ if [ ${#FAILED[@]} -ne 0 ]; then
 fi
 
 echo "All ${#PACKAGES[@]} package(s) passed."
+echo
+echo "Installed sizes:"
+for pkg in "${PACKAGES[@]}"; do
+  name="$(basename "$pkg")"
+  module="${name//-/_}"
+  mod_dir="$(python -c "import $module, os; print(os.path.dirname($module.__file__))")"
+  size="$(du -sh "$mod_dir" | cut -f1)"
+  echo "  $name: $size"
+done

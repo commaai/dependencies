@@ -1,4 +1,4 @@
-name: Test
+name: test
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
 
 jobs:
   test:
+    name: ./test.sh
     strategy:
       fail-fast: false
       matrix:
@@ -19,10 +20,10 @@ jobs:
             arch: arm64
     runs-on: ${{ matrix.arch == 'aarch64' && 'ubuntu-24.04-arm' || matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - run: bash test.sh
+      - run: ./test.sh
