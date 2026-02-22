@@ -25,3 +25,35 @@ jobs:
         with:
           python-version: "3.14"
       - run: ./test.sh
+
+  test-docker:
+    name: docker - ${{ matrix.image }}
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: debian:bookworm-slim
+            runs-on: ubuntu-latest
+          - image: ubuntu:24.04
+            runs-on: ubuntu-latest
+          - image: fedora:41
+            runs-on: ubuntu-latest
+          - image: archlinux:latest
+            runs-on: ubuntu-latest
+          - image: debian:bookworm-slim
+            runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v6
+      - run: |
+          docker run --rm -v "$PWD:/work" -w /work ${{ matrix.image }} bash -c '
+            # install only python3 + pip + curl (the bare minimum)
+            if command -v apt-get &>/dev/null; then
+              apt-get update && apt-get install -y --no-install-recommends python3 python3-pip python3-venv curl ca-certificates
+            elif command -v dnf &>/dev/null; then
+              dnf install -y python3 python3-pip curl
+            elif command -v pacman &>/dev/null; then
+              pacman -Sy --noconfirm python python-pip curl
+            fi
+            ./test.sh
+          '

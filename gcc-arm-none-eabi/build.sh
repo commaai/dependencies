@@ -37,9 +37,9 @@ URL="https://developer.arm.com/-/media/Files/downloads/gnu/${TOOLCHAIN_VERSION}/
 echo "Downloading $TARBALL ..."
 curl -fSL -o "$TARBALL" "$URL"
 
-# Extract
+# Extract (use Python's lzma to avoid requiring xz-utils on the host)
 echo "Extracting ..."
-tar xf "$TARBALL"
+python3 -c "import lzma, tarfile; tarfile.open(fileobj=lzma.open('$TARBALL')).extractall()"
 EXTRACT_DIR=$(ls -d arm-gnu-toolchain-*-${PLATFORM_SUFFIX}-arm-none-eabi)
 
 SRC="$DIR/$EXTRACT_DIR"
