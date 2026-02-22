@@ -1,0 +1,10 @@
+.git/
+repo/
+
+# build artifacts (applies to all packages)
+build/
+dist/
+*.egg-info/
+
+# downloaded toolchain binaries
+gcc-arm-none-eabi/gcc_arm_none_eabi/toolchain/
