@@ -1,16 +1,14 @@
 # dependencies
 
-an attempt for minimal packaging of openpilot dependencies
+a central repo for managing and vendoring third party dependencies for all comma projects.
 
-all of our projects are python projects, so each of these gets packaged as a pip project
+all of our projects are python projects, so each of these gets packaged as a pip project.
 
 this vendoring serves a few goals:
 - all dependencies are centrally managed here
+- we can slim them down to only what we need
 - all platforms get the same versions installed
-- tighter control of distribution for fast installs (e.g. Ubuntu's `apt-get` is super slow)
-- minimizing the install size. for example, gcc-arm-none-eabi ships with toolchains for ARM, however we only need the one for panda
-
----
+- tighter control of distribution for fast installs (e.g. Ubuntu's `apt-get` is slow)
 
 we target the following platforms:
 - Linux x86_64 (glibc)
