@@ -15,9 +15,18 @@ pip install --upgrade pip >/dev/null
 # Install all wheels from the given directory
 pip install "$WHEEL_DIR"/*.whl
 
-# Auto-discover and run per-package smoketests
-TESTS=("$REPO_DIR"/*/smoketest.sh)
-if [ ${#TESTS[@]} -eq 0 ]; then
+# Auto-discover packages with smoketest functions
+PACKAGES=()
+for toml in "$REPO_DIR"/*/pyproject.toml; do
+  [ -f "$toml" ] || continue
+  pkg="$(basename "$(dirname "$toml")")"
+  module="${pkg//-/_}"
+  if python3 -c "import $module; $module.smoketest" 2>/dev/null; then
+    PACKAGES+=("$module")
+  fi
+done
+
+if [ ${#PACKAGES[@]} -eq 0 ]; then
   echo "No smoketests found."
   exit 1
 fi
@@ -25,16 +34,14 @@ fi
 PASSED=0
 FAILED=()
 
-for test in "${TESTS[@]}"; do
-  [ -f "$test" ] || continue
-  pkg="$(basename "$(dirname "$test")")"
+for module in "${PACKAGES[@]}"; do
   echo "========================================="
-  echo "Smoketest: $pkg"
+  echo "Smoketest: $module"
   echo "========================================="
-  if bash "$test"; then
+  if python3 -c "import $module; $module.smoketest()"; then
     PASSED=$((PASSED + 1))
   else
-    FAILED+=("$pkg")
+    FAILED+=("$module")
   fi
   echo
 done
