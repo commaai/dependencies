@@ -12,11 +12,13 @@ motivations for this approach
 - `apt-get` doesn't always have the exact package we need
 - `apt-get` packages are often bloated
 
+<!--
 this critically adds friction to adding dependencies to our project
 - `apt-get` installing a package is easy. is it 1MB, 10MB, or 100MB? no idea.
 - `apt-get` installing a package is much easier than adding it here. how much do you want it?
+-->
 
-`uv`, as opposed to `apt-get`, `brew`, and friends, is fast and already used in our projects since we use Python.
+`uv`, as opposed to `apt-get`, `brew`, and friends, is fast and already used in our projects.
 
 we target the following platforms:
 - Linux x86_64
@@ -32,6 +34,8 @@ contributions welcome for other platforms!
 | gcc-arm-none-eabi | builds [panda](https://github.com/commaai/panda) firmware for STM32 MCUs |
 | capnproto         | message serialization for openpilot                                      |
 | ffmpeg            | video encode and decode for openpilot                                    |
+| git-lfs           | for tracking large files in openpilot                                    |
+| zeromq            | bridging the openpilot IPC between different hosts                       |
 
 ## usage
 
@@ -44,8 +48,8 @@ dependencies = [
 
 ## workflow
 
-
 to add a new package:
-* start a new top-level directory
-
-`./test.sh` tests the building of all packages. on pushes to `master`, wheels are built for our target platforms and pushed to a GitHub release. the `releases` branch contains shim packages to allow 
+* start a new top-level directory as a new package
+* `./test.sh` tests the building of all packages
+*  on pushes to `master`, wheels are built for our target platforms and pushed to a GitHub release
+*  the `releases` branch contains shim packages that allow pointing to a git branch and always getting the appropriate wheel for your platform
