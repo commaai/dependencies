@@ -1,6 +1,7 @@
 .git/
 repo/
 .venv/
+__pycache__/
 
 # agents
 .claude/

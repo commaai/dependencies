@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cppcheck"
+version = "2.19.1"
+description = "Cppcheck static analysis tool"
+requires-python = ">=3.8"
+
+[project.scripts]
+cppcheck = "cppcheck:_run"
+
+[tool.setuptools.packages.find]
+include = ["cppcheck*"]
+
+[tool.setuptools.package-data]
+cppcheck = ["install/**/*"]
