@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "git-lfs"
+version = "3.6.1"
+description = "Git Large File Storage extension"
+requires-python = ">=3.8"
+
+[project.scripts]
+git-lfs = "git_lfs:_run"
+
+[tool.setuptools.packages.find]
+include = ["git_lfs*"]
+
+[tool.setuptools.package-data]
+git_lfs = ["bin/**/*"]

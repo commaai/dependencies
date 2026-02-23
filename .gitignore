@@ -19,3 +19,6 @@ capnproto/capnproto/install/
 
 # built ffmpeg
 ffmpeg/ffmpeg/install/
+
+# downloaded git-lfs
+git-lfs/git_lfs/bin/
