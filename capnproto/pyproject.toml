@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "capnproto"
+version = "1.0.1"
+description = "Cap'n Proto serialization library and compiler"
+requires-python = ">=3.8"
+
+[project.scripts]
+capnp = "capnproto:_run_capnp"
+capnpc = "capnproto:_run_capnpc"
+"capnpc-c++" = "capnproto:_run_capnpc_cpp"
+
+[tool.setuptools.packages.find]
+include = ["capnproto*"]
+
+[tool.setuptools.package-data]
+capnproto = ["install/**/*"]

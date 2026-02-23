@@ -21,6 +21,14 @@ jobs:
         with:
           python-version: "3.14"
 
+      - name: Install build dependencies
+        run: |
+          if [ "$(uname)" = "Darwin" ]; then
+            brew install nasm pkg-config
+          else
+            sudo apt-get update && sudo apt-get install -y nasm cmake g++ pkg-config
+          fi
+
       - name: build and release wheels
         env:
           GH_TOKEN: ${{ github.token }}

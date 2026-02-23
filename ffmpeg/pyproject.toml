@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ffmpeg"
+version = "7.1.0"
+description = "FFmpeg media tools and libraries (minimal build for openpilot)"
+requires-python = ">=3.8"
+
+[project.scripts]
+ffmpeg = "ffmpeg:_run_ffmpeg"
+ffprobe = "ffmpeg:_run_ffprobe"
+
+[tool.setuptools.packages.find]
+include = ["ffmpeg*"]
+
+[tool.setuptools.package-data]
+ffmpeg = ["install/**/*"]
