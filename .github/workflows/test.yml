@@ -21,33 +21,30 @@ jobs:
             runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v6
-
       - uses: actions/setup-python@v6
         with:
           python-version: "3.14"
-
       - name: Build wheels
         run: |
           for pkg in */pyproject.toml; do
             pip wheel "./$(dirname "$pkg")" --no-deps --wheel-dir dist/
           done
-
       - name: Smoketest locally
         run: bash smoketest.sh dist/
-
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.platform }}
           path: dist/*.whl
 
-  smoketest:
-    name: smoketest (${{ matrix.image }})
+  test:
+    name: test (${{ matrix.image }})
     needs: build
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
       matrix:
         include:
+          # test on vanilla linux images
           - image: debian:bookworm-slim
             runs-on: ubuntu-latest
           - image: ubuntu:24.04
@@ -66,13 +63,11 @@ jobs:
             runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v6
-
       - uses: actions/download-artifact@v4
         with:
           name: wheels-${{ contains(matrix.runs-on, 'arm') && 'linux-arm64' || 'linux-x86_64' }}
           path: wheels
-
-      - name: Smoketest in Docker
+      - name: build docker
         run: |
           docker build -t smoketest -f - . <<'DOCKERFILE'
           FROM ${{ matrix.image }}
@@ -90,4 +85,5 @@ jobs:
                 xbps-install -Sy python3 python3-pip bash; \
               fi
           DOCKERFILE
-          docker run --rm -v "$PWD:/work" -w /work smoketest bash smoketest.sh wheels/
+      - name: ./smoketest.sh
+        run: docker run --rm -v "$PWD:/work" -w /work smoketest bash smoketest.sh wheels/
