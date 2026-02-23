@@ -22,12 +22,7 @@ jobs:
           python-version: "3.14"
 
       - name: Install build dependencies
-        run: |
-          if [ "$(uname)" = "Darwin" ]; then
-            brew install nasm pkg-config
-          else
-            sudo apt-get update && sudo apt-get install -y nasm cmake g++ pkg-config
-          fi
+        run: ./setup.sh
 
       - name: build and release wheels
         env:
@@ -81,9 +76,17 @@ jobs:
             version=$(python3 -c "import tomllib; print(tomllib.load(open('$toml', 'rb'))['project']['version'])")
             tag="${pkg}/v${version}"
             module="${pkg//-/_}"
+            # detect the package-data directory (e.g. "toolchain" or "install")
+            datadir=$(python3 -c "
+          import tomllib
+          t = tomllib.load(open('$toml', 'rb'))
+          pat = t.get('tool', {}).get('setuptools', {}).get('package-data', {}).get('$module', [''])[0]
+          print(pat.split('/')[0])
+          ")
+            description=$(python3 -c "import tomllib; print(tomllib.load(open('$toml', 'rb'))['project']['description'])")
 
             echo "========================================="
-            echo "Creating shim: $pkg v$version"
+            echo "Creating shim: $pkg v$version (datadir=$datadir)"
             echo "========================================="
 
             pkg_dir="$tmp/$pkg"
@@ -93,7 +96,6 @@ jobs:
             # copy __init__.py from source
             cp "$pkg/$module/__init__.py" "$mod_dir/"
 
-            # pyproject.toml — same metadata, no package-data (toolchain comes from wheel)
             cat > "$pkg_dir/pyproject.toml" << TOML
           [build-system]
           requires = ["setuptools>=64", "wheel"]
@@ -102,7 +104,7 @@ jobs:
           [project]
           name = "$pkg"
           version = "$version"
-          description = "ARM GCC toolchain for bare-metal targets (pre-built)"
+          description = "$description (pre-built)"
           requires-python = ">=3.8"
 
           [project.scripts]
@@ -112,10 +114,10 @@ jobs:
           include = ["${module}*"]
 
           [tool.setuptools.package-data]
-          $module = ["toolchain/**/*"]
+          $module = ["${datadir}/**/*"]
           TOML
 
-            # setup.py — downloads pre-built wheel from GH releases and extracts toolchain
+            # setup.py — downloads pre-built wheel from GH releases and extracts data
             cat > "$pkg_dir/setup.py" << 'SETUP'
           import os
           import platform
@@ -129,6 +131,7 @@ jobs:
           TAG = "TAG_PLACEHOLDER"
           VERSION = "VERSION_PLACEHOLDER"
           MODULE = "MODULE_PLACEHOLDER"
+          DATADIR = "DATADIR_PLACEHOLDER"
 
           PLATFORM_MAP = {
             ("Linux", "x86_64"): "linux_x86_64",
@@ -138,13 +141,13 @@ jobs:
 
 
           class InstallPrebuilt(build_py):
-            """Download pre-built wheel from GitHub Releases and extract the toolchain."""
+            """Download pre-built wheel from GitHub Releases and extract binaries."""
 
             def run(self):
               pkg_dir = os.path.dirname(os.path.abspath(__file__))
-              toolchain_dir = os.path.join(pkg_dir, MODULE, "toolchain")
+              data_dir = os.path.join(pkg_dir, MODULE, DATADIR)
 
-              if not os.path.exists(os.path.join(toolchain_dir, "bin")):
+              if not os.path.exists(os.path.join(data_dir, "bin")):
                 key = (platform.system(), platform.machine())
                 plat = PLATFORM_MAP.get(key)
                 if plat is None:
@@ -156,25 +159,23 @@ jobs:
                 print(f"Downloading {url} ...")
                 data = urlopen(url).read()
 
-                print("Extracting toolchain ...")
+                print(f"Extracting {DATADIR} ...")
                 with zipfile.ZipFile(BytesIO(data)) as zf:
-                  prefix = f"{MODULE}/toolchain/"
-                  # also handle .data/purelib/ layout
-                  alt_prefix = f"{MODULE}-{VERSION}.data/purelib/{MODULE}/toolchain/"
+                  prefix = f"{MODULE}/{DATADIR}/"
+                  alt_prefix = f"{MODULE}-{VERSION}.data/purelib/{MODULE}/{DATADIR}/"
                   for info in zf.infolist():
                     for p in (prefix, alt_prefix):
                       if info.filename.startswith(p):
                         rel = info.filename[len(p):]
                         if not rel:
                           continue
-                        dest = os.path.join(toolchain_dir, rel)
+                        dest = os.path.join(data_dir, rel)
                         if info.is_dir():
                           os.makedirs(dest, exist_ok=True)
                         else:
                           os.makedirs(os.path.dirname(dest), exist_ok=True)
                           with open(dest, "wb") as f:
                             f.write(zf.read(info))
-                          # preserve executable bit
                           if info.external_attr >> 16 & 0o111:
                             os.chmod(dest, 0o755)
                         break
@@ -196,6 +197,7 @@ jobs:
             sed -i "s|TAG_PLACEHOLDER|${tag}|" "$pkg_dir/setup.py"
             sed -i "s|VERSION_PLACEHOLDER|${version}|" "$pkg_dir/setup.py"
             sed -i "s|MODULE_PLACEHOLDER|${module}|" "$pkg_dir/setup.py"
+            sed -i "s|DATADIR_PLACEHOLDER|${datadir}|" "$pkg_dir/setup.py"
           done
 
           # push to releases branch
