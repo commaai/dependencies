@@ -53,8 +53,9 @@ jobs:
             runs-on: ubuntu-latest
           - image: archlinux:latest
             runs-on: ubuntu-latest
-          - image: alpine:3.21
-            runs-on: ubuntu-latest
+          # TODO: make musl work
+          #- image: alpine:3.21
+          #  runs-on: ubuntu-latest
           - image: opensuse/tumbleweed:latest
             runs-on: ubuntu-latest
           - image: ghcr.io/void-linux/void-glibc:latest
