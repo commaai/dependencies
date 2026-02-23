@@ -44,7 +44,10 @@ if bdist_wheel is not None:
       machine = platform.machine()
 
       if system == "Linux":
-        plat = f"linux_{machine}"
+        if os.path.exists(f"/lib/ld-musl-{machine}.so.1"):
+          plat = f"musllinux_1_2_{machine}"
+        else:
+          plat = f"linux_{machine}"
       elif system == "Darwin":
         plat = "macosx_11_0_arm64"
       else:

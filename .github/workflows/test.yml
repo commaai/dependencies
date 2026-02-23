@@ -19,20 +19,45 @@ jobs:
             runs-on: ubuntu-latest
           - platform: linux-arm64
             runs-on: ubuntu-24.04-arm
+          - platform: linux-x86_64-musl
+            runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+
+      # native builds (glibc / macOS)
       - uses: actions/setup-python@v6
+        if: "!contains(matrix.platform, 'musl')"
         with:
           python-version: "3.14"
       - name: Install build dependencies
+        if: "!contains(matrix.platform, 'musl')"
         run: ./setup.sh
       - name: Build wheels
+        if: "!contains(matrix.platform, 'musl')"
         run: |
           for pkg in */pyproject.toml; do
             pip wheel "./$(dirname "$pkg")" --no-deps --wheel-dir dist/
           done
       - name: Smoketest locally
+        if: "!contains(matrix.platform, 'musl')"
         run: bash smoketest.sh dist/
+
+      # musl builds (Alpine Docker)
+      - name: Build and test wheels (musl)
+        if: contains(matrix.platform, 'musl')
+        run: |
+          mkdir -p dist
+          docker run --rm -v "$PWD:/work" -w /work alpine:3.21 sh -c '
+            apk add --no-cache python3 py3-pip bash cmake g++ nasm pkgconf make git perl linux-headers curl tar
+            pip install build wheel setuptools --break-system-packages
+            for pkg in */pyproject.toml; do
+              dir="$(dirname "$pkg")"
+              [ "$dir" = "gcc-arm-none-eabi" ] && continue
+              pip wheel "./$dir" --no-deps --wheel-dir dist/ --break-system-packages
+            done
+            bash smoketest.sh dist/
+          '
+
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.platform }}
@@ -55,9 +80,8 @@ jobs:
             runs-on: ubuntu-latest
           - image: archlinux:latest
             runs-on: ubuntu-latest
-          # TODO: make musl work
-          #- image: alpine:3.21
-          #  runs-on: ubuntu-latest
+          - image: alpine:3.21
+            runs-on: ubuntu-latest
           - image: opensuse/tumbleweed:latest
             runs-on: ubuntu-latest
           - image: ghcr.io/void-linux/void-glibc:latest
@@ -68,7 +92,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/download-artifact@v4
         with:
-          name: wheels-${{ contains(matrix.runs-on, 'arm') && 'linux-arm64' || 'linux-x86_64' }}
+          name: wheels-${{ contains(matrix.image, 'alpine') && 'linux-x86_64-musl' || contains(matrix.runs-on, 'arm') && 'linux-arm64' || 'linux-x86_64' }}
           path: wheels
       - name: build docker
         run: |

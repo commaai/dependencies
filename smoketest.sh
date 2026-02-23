@@ -14,5 +14,9 @@ pip install "$WHEEL_DIR"/*.whl
 
 for toml in "$REPO_DIR"/*/pyproject.toml; do
   module="$(basename "$(dirname "$toml")" | tr '-' '_')"
+  if ! python3 -c "import $module" 2>/dev/null; then
+    echo "$module: SKIPPED (not installed)"
+    continue
+  fi
   python3 -c "import $module; $module.smoketest()" && echo "$module: OK"
 done

@@ -6,14 +6,22 @@ on:
 
 jobs:
   build:
-    name: build - ${{ matrix.runs-on }}
+    name: build - ${{ matrix.platform }}
     runs-on: ${{ matrix.runs-on }}
     permissions:
       contents: write
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [ubuntu-latest, ubuntu-24.04-arm, macos-latest]
+        include:
+          - runs-on: ubuntu-latest
+            platform: linux-x86_64
+          - runs-on: ubuntu-24.04-arm
+            platform: linux-arm64
+          - runs-on: macos-latest
+            platform: macos
+          - runs-on: ubuntu-latest
+            platform: linux-x86_64-musl
     steps:
       - uses: actions/checkout@v6
 
@@ -22,27 +30,47 @@ jobs:
           python-version: "3.14"
 
       - name: Install build dependencies
+        if: "!contains(matrix.platform, 'musl')"
         run: ./setup.sh
 
-      - name: build and release wheels
+      - name: Build wheels
+        if: "!contains(matrix.platform, 'musl')"
+        run: |
+          pip install build
+          for toml in */pyproject.toml; do
+            [ -f "$toml" ] || continue
+            python -m build --wheel "$(dirname "$toml")"
+          done
+
+      - name: Build wheels (musl)
+        if: contains(matrix.platform, 'musl')
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work alpine:3.21 sh -c '
+            apk add --no-cache python3 py3-pip bash cmake g++ nasm pkgconf make git perl linux-headers curl tar
+            pip install build wheel setuptools --break-system-packages
+            for toml in */pyproject.toml; do
+              [ -f "$toml" ] || continue
+              dir="$(dirname "$toml")"
+              [ "$dir" = "gcc-arm-none-eabi" ] && continue
+              python3 -m build --wheel "$dir"
+            done
+          '
+
+      - name: Upload wheels to GitHub Releases
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          pip install build
-
           for toml in */pyproject.toml; do
             [ -f "$toml" ] || continue
             pkg="$(dirname "$toml")"
+
+            whl=$(ls "$pkg"/dist/*.whl 2>/dev/null) || continue
             version=$(python3 -c "import tomllib; print(tomllib.load(open('$toml', 'rb'))['project']['version'])")
             tag="${pkg}/v${version}"
 
             echo "========================================="
-            echo "Building: $pkg v$version"
-            echo "========================================="
-            python -m build --wheel "$pkg"
-
-            whl=$(ls "$pkg"/dist/*.whl)
             echo "Uploading: $whl"
+            echo "========================================="
             if gh release view "$tag" --repo "$GITHUB_REPOSITORY" &>/dev/null; then
               gh release upload "$tag" "$whl" --repo "$GITHUB_REPOSITORY" --clobber
             else
@@ -135,6 +163,7 @@ jobs:
 
           PLATFORM_MAP = {
             ("Linux", "x86_64"): "linux_x86_64",
+            ("Linux", "x86_64", "musl"): "musllinux_1_2_x86_64",
             ("Linux", "aarch64"): "linux_aarch64",
             ("Darwin", "arm64"): "macosx_11_0_arm64",
           }
@@ -149,6 +178,8 @@ jobs:
 
               if not os.path.exists(os.path.join(data_dir, "bin")):
                 key = (platform.system(), platform.machine())
+                if key[0] == "Linux" and os.path.exists(f"/lib/ld-musl-{key[1]}.so.1"):
+                  key = (*key, "musl")
                 plat = PLATFORM_MAP.get(key)
                 if plat is None:
                   raise RuntimeError(f"unsupported platform: {key}")
