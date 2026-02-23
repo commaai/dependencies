@@ -1,6 +1,11 @@
 .git/
 repo/
 
+# agents
+.claude/
+.context/
+TASK.md
+
 # build artifacts (applies to all packages)
 build/
 dist/
