@@ -53,7 +53,7 @@ jobs:
             for pkg in */pyproject.toml; do
               dir="$(dirname "$pkg")"
               [ "$dir" = "gcc-arm-none-eabi" ] && continue
-              pip wheel "./$dir" --no-deps --wheel-dir dist/ --break-system-packages
+              pip wheel "./$dir" --no-deps --wheel-dir dist/
             done
             bash smoketest.sh dist/
           '
