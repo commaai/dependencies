@@ -4,7 +4,7 @@ set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 cd "$DIR"
 
-VERSION="2.19.1"
+VERSION="2.16.0"
 INSTALL_DIR="$DIR/cppcheck/install"
 
 # Idempotent: skip if already built

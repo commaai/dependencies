@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cppcheck"
-version = "2.19.1"
+version = "2.16.0"
 description = "Cppcheck static analysis tool"
 requires-python = ">=3.8"
 
