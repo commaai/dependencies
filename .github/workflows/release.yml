@@ -50,9 +50,7 @@ jobs:
             pip install build wheel setuptools --break-system-packages
             for toml in */pyproject.toml; do
               [ -f "$toml" ] || continue
-              dir="$(dirname "$toml")"
-              [ "$dir" = "gcc-arm-none-eabi" ] && continue
-              python3 -m build --wheel "$dir"
+              python3 -m build --wheel "$(dirname "$toml")"
             done
           '
 

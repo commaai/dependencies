@@ -51,9 +51,7 @@ jobs:
             apk add --no-cache python3 py3-pip bash cmake g++ nasm pkgconf make git perl linux-headers curl tar
             pip install build wheel setuptools --break-system-packages
             for pkg in */pyproject.toml; do
-              dir="$(dirname "$pkg")"
-              [ "$dir" = "gcc-arm-none-eabi" ] && continue
-              pip wheel "./$dir" --no-deps --wheel-dir dist/
+              pip wheel "./$(dirname "$pkg")" --no-deps --wheel-dir dist/
             done
             bash smoketest.sh dist/
           '
