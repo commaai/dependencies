@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zeromq"
+version = "4.3.5"
+description = "ZeroMQ messaging library (static build)"
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+include = ["zeromq*"]
+
+[tool.setuptools.package-data]
+zeromq = ["install/**/*"]
