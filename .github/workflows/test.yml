@@ -1,4 +1,4 @@
-name: build + smoketest
+name: ci
 
 on:
   push:
