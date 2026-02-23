@@ -2,15 +2,15 @@
 
 a central repo for managing and [vendoring](https://htmx.org/essays/vendoring/) third party dependencies for all comma projects.
 
-all of our projects are python projects, so each of these gets packaged as a pip project.
+since all our projects are Python, we wrap each vendored dependency as a pip package. `git clone` and `uv sync` is all you need.
 
 motivations for this approach
 - `apt-get` is slow
 - `apt-get` updates its packages on a schedule we don't control
 - `apt-get` pacakge versions don't match `brew` versions
-- `apt-get` doesn't comw with Arch Linux
+- `apt-get` doesn't come with Arch Linux
 - `apt-get` doesn't always have the exact package we need
-- `apt-get` packages are often larger than we need
+- `apt-get` packages are often bloated
 
 this critically adds friction to adding dependencies to our project
 - `apt-get` installing a package is easy. is it 1MB, 10MB, or 100MB? no idea.
@@ -22,6 +22,7 @@ we target the following platforms:
 - Linux x86_64
 - Linux aarch64
 - Darwin aarch64 (Apple Silicon)
+
 contributions welcome for other platforms!
 
 ## packages
@@ -34,7 +35,6 @@ contributions welcome for other platforms!
 
 ## usage
 
-add it to a project like this:
 ```python
 dependences = [
   "capnproto @ git+https://github.com/commaai/dependencies.git@more-vendor#subdirectory=capnproto",
