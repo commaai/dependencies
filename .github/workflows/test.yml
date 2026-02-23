@@ -1,4 +1,4 @@
-name: ./test.sh
+name: build + smoketest
 
 on:
   push:
@@ -6,20 +6,48 @@ on:
   pull_request:
 
 jobs:
-  test:
-    name: ${{ matrix.image || matrix.os }}
+  build:
+    name: build (${{ matrix.platform }})
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          # native (no docker)
-          - os: macos-latest
+          - platform: macos
             runs-on: macos-latest
+          - platform: linux-x86_64
+            runs-on: ubuntu-latest
+          - platform: linux-arm64
+            runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v6
 
-          # the provided github actions runner images
-          # have tons of pre-installed packages. the
-          # goal here is to test across many vanilla setups
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Build wheels
+        run: |
+          for pkg in */pyproject.toml; do
+            pip wheel "./$(dirname "$pkg")" --no-deps --wheel-dir dist/
+          done
+
+      - name: Smoketest locally
+        run: bash smoketest.sh dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.platform }}
+          path: dist/*.whl
+
+  smoketest:
+    name: smoketest (${{ matrix.image }})
+    needs: build
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
           - image: debian:bookworm-slim
             runs-on: ubuntu-latest
           - image: ubuntu:24.04
@@ -28,7 +56,7 @@ jobs:
             runs-on: ubuntu-latest
           - image: archlinux:latest
             runs-on: ubuntu-latest
-          - image: alpine:3.21  # musl libc
+          - image: alpine:3.21
             runs-on: ubuntu-latest
           - image: opensuse/tumbleweed:latest
             runs-on: ubuntu-latest
@@ -39,35 +67,27 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      # native (macOS)
-      - if: ${{ !matrix.image }}
-        uses: actions/setup-python@v6
+      - uses: actions/download-artifact@v4
         with:
-          python-version: "3.14"
-      - if: ${{ !matrix.image }}
-        name: ./test.sh
-        run: ./test.sh
+          name: wheels-${{ contains(matrix.runs-on, 'arm') && 'linux-arm64' || 'linux-x86_64' }}
+          path: wheels
 
-      # docker (vanilla Linux)
-      - if: ${{ matrix.image }}
-        name: install python3
+      - name: Smoketest in Docker
         run: |
-          docker build -t test -f - . <<'DOCKERFILE'
+          docker build -t smoketest -f - . <<'DOCKERFILE'
           FROM ${{ matrix.image }}
           RUN if command -v apk >/dev/null; then \
-                apk add --no-cache python3 py3-pip bash curl; \
+                apk add --no-cache python3 py3-pip bash; \
               elif command -v apt-get >/dev/null; then \
-                apt-get update && apt-get install -y --no-install-recommends python3 python3-pip python3-venv curl ca-certificates; \
+                apt-get update && apt-get install -y --no-install-recommends python3 python3-pip python3-venv; \
               elif command -v dnf >/dev/null; then \
-                dnf install -y python3 python3-pip curl; \
+                dnf install -y python3 python3-pip; \
               elif command -v pacman >/dev/null; then \
-                pacman -Sy --noconfirm python python-pip curl; \
+                pacman -Sy --noconfirm python python-pip; \
               elif command -v zypper >/dev/null; then \
-                zypper install -y python3 python3-pip curl; \
+                zypper install -y python3 python3-pip; \
               elif command -v xbps-install >/dev/null; then \
-                xbps-install -Sy python3 python3-pip bash curl; \
+                xbps-install -Sy python3 python3-pip bash; \
               fi
           DOCKERFILE
-      - if: ${{ matrix.image }}
-        name: ./test.sh
-        run: docker run --rm -v "$PWD:/work" -w /work test bash ./test.sh
+          docker run --rm -v "$PWD:/work" -w /work smoketest bash smoketest.sh wheels/
