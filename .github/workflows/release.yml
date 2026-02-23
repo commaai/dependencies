@@ -5,8 +5,8 @@ on:
   #  branches: [master]
 
 jobs:
-  release:
-    name: ${{ matrix.runs-on }}
+  build:
+    name: build - ${{ matrix.runs-on }}
     runs-on: ${{ matrix.runs-on }}
     permissions:
       contents: write
@@ -49,3 +49,154 @@ jobs:
                 --notes "Platform wheels for $pkg $version"
             fi
           done
+
+  publish-shims:
+    name: publish releases branch
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: build and push shim packages
+        run: |
+          REPO_URL="https://github.com/${GITHUB_REPOSITORY}"
+
+          # set up a temp dir for the releases branch
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+
+          for toml in */pyproject.toml; do
+            [ -f "$toml" ] || continue
+            pkg="$(dirname "$toml")"
+            version=$(python3 -c "import tomllib; print(tomllib.load(open('$toml', 'rb'))['project']['version'])")
+            tag="${pkg}/v${version}"
+            module="${pkg//-/_}"
+
+            echo "========================================="
+            echo "Creating shim: $pkg v$version"
+            echo "========================================="
+
+            pkg_dir="$tmp/$pkg"
+            mod_dir="$pkg_dir/$module"
+            mkdir -p "$mod_dir"
+
+            # copy __init__.py from source
+            cp "$pkg/$module/__init__.py" "$mod_dir/"
+
+            # pyproject.toml — same metadata, no package-data (toolchain comes from wheel)
+            cat > "$pkg_dir/pyproject.toml" << TOML
+          [build-system]
+          requires = ["setuptools>=64", "wheel"]
+          build-backend = "setuptools.build_meta"
+
+          [project]
+          name = "$pkg"
+          version = "$version"
+          description = "ARM GCC toolchain for bare-metal targets (pre-built)"
+          requires-python = ">=3.8"
+
+          [project.scripts]
+          $(grep -A100 '^\[project\.scripts\]' "$pkg/pyproject.toml" | tail -n +2 | sed '/^\[/q' | grep -v '^\[')
+
+          [tool.setuptools.packages.find]
+          include = ["${module}*"]
+
+          [tool.setuptools.package-data]
+          $module = ["toolchain/**/*"]
+          TOML
+
+            # setup.py — downloads pre-built wheel from GH releases and extracts toolchain
+            cat > "$pkg_dir/setup.py" << 'SETUP'
+          import os
+          import platform
+          import zipfile
+          from io import BytesIO
+          from urllib.request import urlopen
+
+          from setuptools.command.build_py import build_py
+
+          REPO_URL = "REPO_URL_PLACEHOLDER"
+          TAG = "TAG_PLACEHOLDER"
+          VERSION = "VERSION_PLACEHOLDER"
+          MODULE = "MODULE_PLACEHOLDER"
+
+          PLATFORM_MAP = {
+            ("Linux", "x86_64"): "linux_x86_64",
+            ("Linux", "aarch64"): "linux_aarch64",
+            ("Darwin", "arm64"): "macosx_11_0_arm64",
+          }
+
+
+          class InstallPrebuilt(build_py):
+            """Download pre-built wheel from GitHub Releases and extract the toolchain."""
+
+            def run(self):
+              pkg_dir = os.path.dirname(os.path.abspath(__file__))
+              toolchain_dir = os.path.join(pkg_dir, MODULE, "toolchain")
+
+              if not os.path.exists(os.path.join(toolchain_dir, "bin")):
+                key = (platform.system(), platform.machine())
+                plat = PLATFORM_MAP.get(key)
+                if plat is None:
+                  raise RuntimeError(f"unsupported platform: {key}")
+
+                whl_name = f"{MODULE}-{VERSION}-py3-none-{plat}.whl"
+                url = f"{REPO_URL}/releases/download/{TAG}/{whl_name}"
+
+                print(f"Downloading {url} ...")
+                data = urlopen(url).read()
+
+                print("Extracting toolchain ...")
+                with zipfile.ZipFile(BytesIO(data)) as zf:
+                  prefix = f"{MODULE}/toolchain/"
+                  # also handle .data/purelib/ layout
+                  alt_prefix = f"{MODULE}-{VERSION}.data/purelib/{MODULE}/toolchain/"
+                  for info in zf.infolist():
+                    for p in (prefix, alt_prefix):
+                      if info.filename.startswith(p):
+                        rel = info.filename[len(p):]
+                        if not rel:
+                          continue
+                        dest = os.path.join(toolchain_dir, rel)
+                        if info.is_dir():
+                          os.makedirs(dest, exist_ok=True)
+                        else:
+                          os.makedirs(os.path.dirname(dest), exist_ok=True)
+                          with open(dest, "wb") as f:
+                            f.write(zf.read(info))
+                          # preserve executable bit
+                          if info.external_attr >> 16 & 0o111:
+                            os.chmod(dest, 0o755)
+                        break
+
+              super().run()
+
+
+          def setup():
+            from setuptools import setup as _setup
+            _setup(cmdclass={"build_py": InstallPrebuilt})
+
+
+          if __name__ == "__main__":
+            setup()
+          SETUP
+
+            # template in the actual values
+            sed -i "s|REPO_URL_PLACEHOLDER|${REPO_URL}|" "$pkg_dir/setup.py"
+            sed -i "s|TAG_PLACEHOLDER|${tag}|" "$pkg_dir/setup.py"
+            sed -i "s|VERSION_PLACEHOLDER|${version}|" "$pkg_dir/setup.py"
+            sed -i "s|MODULE_PLACEHOLDER|${module}|" "$pkg_dir/setup.py"
+          done
+
+          # push to releases branch
+          cd "$tmp"
+          git init
+          git checkout -b releases
+          git add .
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "update shim packages"
+          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git"
+          git push -f origin releases
