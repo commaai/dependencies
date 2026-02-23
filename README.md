@@ -7,7 +7,7 @@ since all our projects are Python, we wrap each vendored dependency as a pip pac
 motivations for this approach
 - `apt-get` is slow
 - `apt-get` updates its packages on a schedule we don't control
-- `apt-get` pacakge versions don't match `brew` versions
+- `apt-get` package versions don't match `brew` versions
 - `apt-get` doesn't come with Arch Linux
 - `apt-get` doesn't always have the exact package we need
 - `apt-get` packages are often bloated
@@ -36,8 +36,16 @@ contributions welcome for other platforms!
 ## usage
 
 ```python
-dependences = [
-  "capnproto @ git+https://github.com/commaai/dependencies.git@more-vendor#subdirectory=capnproto",
-  "ffmpeg @ git+https://github.com/commaai/dependencies.git@more-vendor#subdirectory=ffmpeg",
+dependencies = [
+  "capnproto @ git+https://github.com/commaai/dependencies.git@releases#subdirectory=capnproto",
+  "ffmpeg @ git+https://github.com/commaai/dependencies.git@releases#subdirectory=ffmpeg",
 ]
 ```
+
+## workflow
+
+
+to add a new package:
+* start a new top-level directory
+
+`./test.sh` tests the building of all packages. on pushes to `master`, wheels are built for our target platforms and pushed to a GitHub release. the `releases` branch contains shim packages to allow 
