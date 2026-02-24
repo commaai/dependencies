@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "python3-dev"
+version = "3.12.8"
+description = "CPython development headers"
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+include = ["python3_dev*"]
+
+[tool.setuptools.package-data]
+python3_dev = ["install/**/*"]
