@@ -43,10 +43,11 @@ cd "ncurses-${VERSION}"
   --without-progs \
   --without-tests \
   --without-dlsym \
+  --disable-database \
   --enable-overwrite
 
 make -j"$NJOBS"
-make install
+make install.libs install.includes
 cd "$DIR"
 
 # Copy to package install dir
