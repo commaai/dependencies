@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zstd"
+version = "1.5.6"
+description = "Zstandard compression library (static build)"
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+include = ["zstd*"]
+
+[tool.setuptools.package-data]
+zstd = ["install/**/*"]
