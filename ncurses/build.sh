@@ -43,10 +43,10 @@ cd "ncurses-${VERSION}"
   --without-progs \
   --without-tests \
   --without-dlsym \
-  --disable-database \
   --enable-overwrite
 
 make -j"$NJOBS"
+# Only install libs and headers; skip terminfo database (fails on macOS CI)
 make install.libs install.includes
 cd "$DIR"
 
