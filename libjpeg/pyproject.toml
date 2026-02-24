@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "libjpeg"
+version = "3.1.0"
+description = "libjpeg-turbo JPEG library (static build)"
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+include = ["libjpeg*"]
+
+[tool.setuptools.package-data]
+libjpeg = ["install/**/*"]
