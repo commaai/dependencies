@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openssl"
+version = "3.4.1"
+description = "OpenSSL cryptography library (static build)"
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+include = ["openssl3*"]
+
+[tool.setuptools.package-data]
+openssl3 = ["install/**/*"]
