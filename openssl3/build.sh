@@ -43,6 +43,7 @@ if [ ! -f Makefile ]; then
     no-tests \
     no-docs \
     no-apps \
+    -fPIC \
     -Os
 fi
 
