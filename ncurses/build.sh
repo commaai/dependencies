@@ -25,19 +25,21 @@ PREFIX="$DIR/build/prefix"
 mkdir -p "$DIR/build"
 
 cd "ncurses-${VERSION}"
-./configure \
-  --prefix="$PREFIX" \
-  --without-shared \
-  --with-normal \
-  --without-debug \
-  --without-cxx \
-  --without-cxx-binding \
-  --without-ada \
-  --without-manpages \
-  --without-progs \
-  --without-tests \
-  --without-dlsym \
-  --enable-overwrite
+if [ ! -f Makefile ]; then
+  ./configure \
+    --prefix="$PREFIX" \
+    --without-shared \
+    --with-normal \
+    --without-debug \
+    --without-cxx \
+    --without-cxx-binding \
+    --without-ada \
+    --without-manpages \
+    --without-progs \
+    --without-tests \
+    --without-dlsym \
+    --enable-overwrite
+fi
 
 make -j"$NJOBS"
 # Only install libs and headers; skip terminfo database (fails on macOS CI)

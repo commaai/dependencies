@@ -16,6 +16,7 @@ install/
 *-src/
 *.tar.gz
 *.tar.xz
+*.tgz
 Python-*/
 ncurses-*/
 arm-gnu-toolchain-*/

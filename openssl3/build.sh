@@ -35,14 +35,16 @@ else
   fi
 fi
 
-./Configure "$TARGET" \
-  --prefix="$PREFIX" \
-  --libdir=lib \
-  no-shared \
-  no-tests \
-  no-docs \
-  no-apps \
-  -Os
+if [ ! -f Makefile ]; then
+  ./Configure "$TARGET" \
+    --prefix="$PREFIX" \
+    --libdir=lib \
+    no-shared \
+    no-tests \
+    no-docs \
+    no-apps \
+    -Os
+fi
 
 # Build
 make -j"$NJOBS"

@@ -18,7 +18,7 @@ if [ ! -d "zlib-src" ]; then
 fi
 
 cd zlib-src
-./configure --prefix="$PREFIX" --static
+[ ! -f Makefile ] && ./configure --prefix="$PREFIX" --static
 make -j"$NJOBS"
 make install
 cd "$DIR"
@@ -29,13 +29,15 @@ if [ ! -d "x264-src" ]; then
 fi
 
 cd x264-src
-CFLAGS="-fno-finite-math-only" ./configure \
-  --prefix="$PREFIX" \
-  --enable-static \
-  --disable-shared \
-  --disable-cli \
-  --disable-opencl \
-  --enable-pic
+if [ ! -f config.mak ]; then
+  CFLAGS="-fno-finite-math-only" ./configure \
+    --prefix="$PREFIX" \
+    --enable-static \
+    --disable-shared \
+    --disable-cli \
+    --disable-opencl \
+    --enable-pic
+fi
 make -j"$NJOBS"
 make install
 cd "$DIR"
@@ -46,29 +48,31 @@ if [ ! -d "ffmpeg-src" ]; then
 fi
 
 cd ffmpeg-src
-PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
-./configure \
-  --prefix="$PREFIX" \
-  --enable-gpl \
-  --enable-static \
-  --disable-shared \
-  --enable-zlib \
-  --enable-libx264 \
-  --enable-pic \
-  --disable-doc \
-  --disable-ffplay \
-  --disable-autodetect \
-  --disable-everything \
-  --enable-encoder=libx264,aac,ffvhuff,rawvideo,png,mjpeg \
-  --enable-decoder=h264,hevc,ffvhuff,aac,rawvideo,png,mjpeg,mp3,pcm_s16le \
-  --enable-muxer=mpegts,matroska,mp4,hevc,rawvideo,image2,null,mov,framehash \
-  --enable-demuxer=hevc,matroska,mpegts,mov,rawvideo,image2,aac,concat \
-  --enable-parser=h264,hevc,aac,mpegaudio \
-  --enable-protocol=file,pipe \
-  --enable-filter=blend,vflip,format,scale,aformat,anull,aresample,null \
-  --enable-bsf=extract_extradata,h264_mp4toannexb,hevc_mp4toannexb \
-  --extra-cflags="-I$PREFIX/include" \
-  --extra-ldflags="-L$PREFIX/lib"
+if [ ! -f ffbuild/config.mak ]; then
+  PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
+  ./configure \
+    --prefix="$PREFIX" \
+    --enable-gpl \
+    --enable-static \
+    --disable-shared \
+    --enable-zlib \
+    --enable-libx264 \
+    --enable-pic \
+    --disable-doc \
+    --disable-ffplay \
+    --disable-autodetect \
+    --disable-everything \
+    --enable-encoder=libx264,aac,ffvhuff,rawvideo,png,mjpeg \
+    --enable-decoder=h264,hevc,ffvhuff,aac,rawvideo,png,mjpeg,mp3,pcm_s16le \
+    --enable-muxer=mpegts,matroska,mp4,hevc,rawvideo,image2,null,mov,framehash \
+    --enable-demuxer=hevc,matroska,mpegts,mov,rawvideo,image2,aac,concat \
+    --enable-parser=h264,hevc,aac,mpegaudio \
+    --enable-protocol=file,pipe \
+    --enable-filter=blend,vflip,format,scale,aformat,anull,aresample,null \
+    --enable-bsf=extract_extradata,h264_mp4toannexb,hevc_mp4toannexb \
+    --extra-cflags="-I$PREFIX/include" \
+    --extra-ldflags="-L$PREFIX/lib"
+fi
 make -j"$NJOBS"
 make install
 cd "$DIR"
