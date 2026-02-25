@@ -27,15 +27,15 @@ for module in qtbase qtcharts qtserialbus; do
     echo "Downloading $tarball..."
     curl -fSL -o "$SRC_DIR/$tarball" "$QT_BASE_URL/$tarball"
   fi
-  if [ ! -d "$SRC_DIR/${module}-everywhere-opensource-src-${QT_VERSION}" ]; then
+  if [ ! -d "$SRC_DIR/${module}-everywhere-src-${QT_VERSION}" ]; then
     echo "Extracting $tarball..."
     tar xf "$SRC_DIR/$tarball" -C "$SRC_DIR"
   fi
 done
 
-QTBASE_SRC="$SRC_DIR/qtbase-everywhere-opensource-src-${QT_VERSION}"
-QTCHARTS_SRC="$SRC_DIR/qtcharts-everywhere-opensource-src-${QT_VERSION}"
-QTSERIALBUS_SRC="$SRC_DIR/qtserialbus-everywhere-opensource-src-${QT_VERSION}"
+QTBASE_SRC="$SRC_DIR/qtbase-everywhere-src-${QT_VERSION}"
+QTCHARTS_SRC="$SRC_DIR/qtcharts-everywhere-src-${QT_VERSION}"
+QTSERIALBUS_SRC="$SRC_DIR/qtserialbus-everywhere-src-${QT_VERSION}"
 
 # --- Build qtbase ---
 echo "Configuring qtbase..."
