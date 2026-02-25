@@ -40,6 +40,8 @@ jobs:
           restore-keys: build-${{ matrix.platform }}-
 
       - name: Build wheels
+        env:
+          MANYLINUX: ${{ matrix.container && '1' || '' }}
         run: ./build_wheels.sh dist/
 
       - name: Upload releases

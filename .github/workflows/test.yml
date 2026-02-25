@@ -37,6 +37,8 @@ jobs:
           key: build-${{ matrix.platform }}-${{ hashFiles('*/build.sh', '*/pyproject.toml') }}
           restore-keys: build-${{ matrix.platform }}-
       - name: Build wheels
+        env:
+          MANYLINUX: ${{ matrix.container && '1' || '' }}
         run: ./build_wheels.sh dist/
       - name: Smoketest
         run: bash smoketest.sh dist/
