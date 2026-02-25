@@ -22,16 +22,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
+        if: runner.os != 'Linux'
         with:
           python-version: "3.14"
-      - name: Install build dependencies
-        run: ./setup.sh
       - name: Build wheels
-        run: |
-          for pkg in */pyproject.toml; do
-            pip wheel "./$(dirname "$pkg")" --no-deps --wheel-dir dist/
-          done
-      - name: Smoketest locally
+        run: ./build_wheels.sh dist/
+      - name: Smoketest
         run: bash smoketest.sh dist/
       - uses: actions/upload-artifact@v4
         with:
@@ -50,6 +46,8 @@ jobs:
           - image: debian:bookworm-slim
             runs-on: ubuntu-latest
           - image: ubuntu:24.04
+            runs-on: ubuntu-latest
+          - image: ubuntu:20.04
             runs-on: ubuntu-latest
           - image: fedora:41
             runs-on: ubuntu-latest
