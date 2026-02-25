@@ -15,11 +15,21 @@ class BuildCppcheck(build_py):
 
   def run(self):
     pkg_dir = os.path.dirname(os.path.abspath(__file__))
-    marker = os.path.join(pkg_dir, "cppcheck", "install", "cppcheck")
+    source_dir = os.environ.get("DEPS_SOURCE_DIR", pkg_dir)
+    build_script = os.path.join(source_dir, "build.sh")
+    subprocess.check_call(["bash", build_script], cwd=source_dir)
 
-    if not os.path.exists(marker):
-      build_script = os.path.join(pkg_dir, "build.sh")
-      subprocess.check_call(["bash", build_script], cwd=pkg_dir)
+    # pip copies source to a temp dir for PEP 517 builds, excluding
+    # gitignored build products. Symlink them from the real source dir.
+    if os.path.realpath(source_dir) != os.path.realpath(pkg_dir):
+      module = os.path.basename(source_dir).replace("-", "_")
+      src_mod = os.path.join(source_dir, module)
+      dst_mod = os.path.join(pkg_dir, module)
+      for name in os.listdir(src_mod):
+        s = os.path.join(src_mod, name)
+        d = os.path.join(dst_mod, name)
+        if os.path.isdir(s) and not os.path.exists(d):
+          os.symlink(s, d)
 
     super().run()
 

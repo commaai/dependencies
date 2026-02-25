@@ -13,10 +13,16 @@ build/
 dist/
 install/
 *.egg-info/
+*-src/
+*.tar.gz
+*.tar.xz
+*.tgz
+Python-*/
+ncurses-*/
+arm-gnu-toolchain-*/
 
 # downloaded toolchain binaries
 gcc-arm-none-eabi/gcc_arm_none_eabi/toolchain/
-
 
 # downloaded git-lfs
 git-lfs/git_lfs/bin/

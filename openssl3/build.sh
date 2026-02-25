@@ -7,12 +7,6 @@ cd "$DIR"
 VERSION="3.4.1"
 INSTALL_DIR="$DIR/openssl3/install"
 
-# Idempotent: skip if already built
-if [ -f "$INSTALL_DIR/lib/libcrypto.a" ]; then
-  echo "openssl already present, skipping build."
-  exit 0
-fi
-
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
 # Download
@@ -41,15 +35,17 @@ else
   fi
 fi
 
-./Configure "$TARGET" \
-  --prefix="$PREFIX" \
-  --libdir=lib \
-  no-shared \
-  no-tests \
-  no-docs \
-  no-apps \
-  -fPIC \
-  -Os
+if [ ! -f Makefile ]; then
+  ./Configure "$TARGET" \
+    --prefix="$PREFIX" \
+    --libdir=lib \
+    no-shared \
+    no-tests \
+    no-docs \
+    no-apps \
+    -fPIC \
+    -Os
+fi
 
 # Build
 make -j"$NJOBS"
@@ -67,9 +63,6 @@ cp "$PREFIX/lib/libssl.a" "$INSTALL_DIR/lib/"
 
 # Headers
 cp -r "$PREFIX/include/openssl" "$INSTALL_DIR/include/"
-
-# Clean up
-rm -rf openssl-src "$DIR/build"
 
 echo "Installed openssl to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"

@@ -7,12 +7,6 @@ cd "$DIR"
 VERSION="3.1.0"
 INSTALL_DIR="$DIR/libjpeg/install"
 
-# Idempotent: skip if already built
-if [ -f "$INSTALL_DIR/lib/libjpeg.a" ]; then
-  echo "libjpeg already present, skipping build."
-  exit 0
-fi
-
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
 # Clone
@@ -49,9 +43,6 @@ cp "$PREFIX/include/jpeglib.h" "$INSTALL_DIR/include/"
 cp "$PREFIX/include/jconfig.h" "$INSTALL_DIR/include/"
 cp "$PREFIX/include/jerror.h" "$INSTALL_DIR/include/"
 cp "$PREFIX/include/jmorecfg.h" "$INSTALL_DIR/include/"
-
-# Clean up
-rm -rf libjpeg-turbo-src "$DIR/build"
 
 echo "Installed libjpeg to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"

@@ -7,12 +7,6 @@ cd "$DIR"
 VERSION="6.5"
 INSTALL_DIR="$DIR/ncurses/install"
 
-# Idempotent: skip if already built
-if [ -f "$INSTALL_DIR/lib/libncurses.a" ]; then
-  echo "ncurses already present, skipping build."
-  exit 0
-fi
-
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
 # Download
@@ -31,19 +25,21 @@ PREFIX="$DIR/build/prefix"
 mkdir -p "$DIR/build"
 
 cd "ncurses-${VERSION}"
-CFLAGS="-fPIC" ./configure \
-  --prefix="$PREFIX" \
-  --without-shared \
-  --with-normal \
-  --without-debug \
-  --without-cxx \
-  --without-cxx-binding \
-  --without-ada \
-  --without-manpages \
-  --without-progs \
-  --without-tests \
-  --without-dlsym \
-  --enable-overwrite
+if [ ! -f Makefile ]; then
+  CFLAGS="-fPIC" ./configure \
+    --prefix="$PREFIX" \
+    --without-shared \
+    --with-normal \
+    --without-debug \
+    --without-cxx \
+    --without-cxx-binding \
+    --without-ada \
+    --without-manpages \
+    --without-progs \
+    --without-tests \
+    --without-dlsym \
+    --enable-overwrite
+fi
 
 make -j"$NJOBS"
 # Only install libs and headers; skip terminfo database (fails on macOS CI)
@@ -65,9 +61,6 @@ cp "$PREFIX/include/ncurses_dll.h" "$INSTALL_DIR/include/"
 cp "$PREFIX/include/unctrl.h" "$INSTALL_DIR/include/"
 cp "$PREFIX/include/term.h" "$INSTALL_DIR/include/"
 cp "$PREFIX/include/termcap.h" "$INSTALL_DIR/include/"
-
-# Clean up
-rm -rf "ncurses-${VERSION}" "$TARBALL" "$DIR/build"
 
 echo "Installed ncurses to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"

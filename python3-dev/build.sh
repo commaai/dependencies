@@ -37,8 +37,5 @@ mkdir -p "$INSTALL_DIR/include"
 cp -r "Python-${VERSION}/Include/"* "$INSTALL_DIR/include/"
 cp "Python-${VERSION}/pyconfig.h" "$INSTALL_DIR/include/"
 
-# Clean up
-rm -rf "Python-${VERSION}" "$TARBALL"
-
 echo "Installed python3-dev headers to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"

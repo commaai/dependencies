@@ -4,11 +4,13 @@ on:
   push:
     branches: [master]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
     name: build (${{ matrix.platform }})
     runs-on: ${{ matrix.runs-on }}
+    container: ${{ matrix.container || '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -17,15 +19,26 @@ jobs:
             runs-on: macos-latest
           - platform: linux-x86_64
             runs-on: ubuntu-latest
+            container: ghcr.io/commaai/dependencies/manylinux:x86_64
           - platform: linux-arm64
             runs-on: ubuntu-24.04-arm
+            container: ghcr.io/commaai/dependencies/manylinux:aarch64
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         if: runner.os != 'Linux'
         with:
           python-version: "3.14"
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .
+            !.git
+          key: build-${{ matrix.platform }}-${{ hashFiles('*/build.sh', '*/pyproject.toml') }}
+          restore-keys: build-${{ matrix.platform }}-
       - name: Build wheels
+        env:
+          MANYLINUX: ${{ matrix.container && '1' || '' }}
         run: ./build_wheels.sh dist/
       - name: Smoketest
         run: bash smoketest.sh dist/

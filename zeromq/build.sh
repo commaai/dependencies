@@ -7,12 +7,6 @@ cd "$DIR"
 VERSION="4.3.5"
 INSTALL_DIR="$DIR/zeromq/install"
 
-# Idempotent: skip if already built
-if [ -f "$INSTALL_DIR/lib/libzmq.a" ]; then
-  echo "zeromq already present, skipping build."
-  exit 0
-fi
-
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
 # Clone
@@ -53,9 +47,6 @@ cp "$PREFIX/lib/libzmq.a" "$INSTALL_DIR/lib/"
 # Headers
 cp "$PREFIX/include/zmq.h" "$INSTALL_DIR/include/"
 cp "$PREFIX/include/zmq_utils.h" "$INSTALL_DIR/include/"
-
-# Clean up
-rm -rf libzmq-src "$DIR/build"
 
 echo "Installed zeromq to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"

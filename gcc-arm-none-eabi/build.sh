@@ -109,9 +109,5 @@ rm -f "$LIB_GCC_DST/include/arm_cde.h"
 # --- strip host binaries ---
 find "$INSTALL_DIR" -type f \( -executable -o -name '*.so' \) -exec strip {} + 2>/dev/null || true
 
-# --- clean up download artifacts ---
-rm -rf "$EXTRACT_DIR"
-rm -f "$TARBALL"
-
 echo "Installed to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"

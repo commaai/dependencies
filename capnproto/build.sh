@@ -7,12 +7,6 @@ cd "$DIR"
 VERSION="1.0.1"
 INSTALL_DIR="$DIR/capnproto/install"
 
-# Idempotent: skip if already built
-if [ -x "$INSTALL_DIR/bin/capnp" ]; then
-  echo "capnproto already present, skipping build."
-  exit 0
-fi
-
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
 # Clone
@@ -63,9 +57,6 @@ strip "$INSTALL_DIR/bin/capnp" "$INSTALL_DIR/bin/capnpc-c++" 2>/dev/null || true
 for obj in filesystem.c++.o main.c++.o test-helpers.c++.o; do
   ar d "$INSTALL_DIR/lib/libkj.a" "$obj" 2>/dev/null || true
 done
-
-# Clean up
-rm -rf capnproto-src "$DIR/build"
 
 echo "Installed capnproto to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"
