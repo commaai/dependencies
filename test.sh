@@ -1,60 +1,44 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
+cd "$REPO_DIR"
 
-# Create a temporary virtualenv
-VENV_DIR="$(mktemp -d)"
-trap 'rm -rf "$VENV_DIR"' EXIT
-python3 -m venv "$VENV_DIR"
-source "$VENV_DIR/bin/activate"
-pip install --upgrade pip >/dev/null
+if ! command -v uv >/dev/null 2>&1; then
+  echo "uv not found, installing..."
+  curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Auto-discover packages: any subdirectory containing a pyproject.toml
-PACKAGES=()
-for toml in "$REPO_DIR"/*/pyproject.toml; do
+  if [ -x "$HOME/.local/bin/uv" ]; then
+    export PATH="$HOME/.local/bin:$PATH"
+  fi
+fi
+
+uv venv --allow-existing
+source .venv/bin/activate
+
+# do the build
+uv pip install */
+
+# do the tests
+echo
+echo "Verifying imports..."
+for toml in */pyproject.toml; do
   [ -f "$toml" ] || continue
-  PACKAGES+=("$(dirname "$toml")")
-done
-
-if [ ${#PACKAGES[@]} -eq 0 ]; then
-  echo "No packages found."
-  exit 1
-fi
-
-FAILED=()
-
-for pkg in "${PACKAGES[@]}"; do
-  name="$(basename "$pkg")"
-  echo "========================================="
-  echo "Testing: $name"
-  echo "========================================="
-
-  # Install from git URL with subdirectory (simulates real-world usage)
-  echo "[$name] pip install ..."
-  pip install "$pkg" --verbose
-
-  # Verify import works
+  name="${toml%%/*}"
   module="${name//-/_}"
-  echo "[$name] Verifying import of $module ..."
-  python -c "import $module; print(f'{$module.__name__} OK')"
-
-  echo "[$name] PASSED"
-  echo
+  python -c "import $module; $module.smoketest(); print('$module OK')"
 done
 
-if [ ${#FAILED[@]} -ne 0 ]; then
-  echo "FAILED packages: ${FAILED[*]}"
-  exit 1
-fi
-
-echo "All ${#PACKAGES[@]} package(s) passed."
 echo
 echo "Installed sizes:"
-for pkg in "${PACKAGES[@]}"; do
-  name="$(basename "$pkg")"
+for toml in */pyproject.toml; do
+  [ -f "$toml" ] || continue
+  name="${toml%%/*}"
   module="${name//-/_}"
   mod_dir="$(python -c "import $module, os; print(os.path.dirname($module.__file__))")"
   size="$(du -sh "$mod_dir" | cut -f1)"
   echo "  $name: $size"
 done
+
+echo
+echo "Done in $SECONDS seconds."

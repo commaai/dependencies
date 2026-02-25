@@ -18,3 +18,12 @@ def _run_ffmpeg():
 
 def _run_ffprobe():
   _run("ffprobe")
+
+
+def smoketest():
+  import subprocess
+
+  ffmpeg = os.path.join(BIN_DIR, "ffmpeg")
+  ffprobe = os.path.join(BIN_DIR, "ffprobe")
+  subprocess.run([ffmpeg, "-version"], check=True)
+  subprocess.run([ffprobe, "-version"], check=True)

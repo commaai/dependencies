@@ -29,3 +29,16 @@ def _run_capnpc():
 
 def _run_capnpc_cpp():
   _run("capnpc-c++")
+
+
+def smoketest():
+  import subprocess
+
+  capnp = os.path.join(BIN_DIR, "capnp")
+  capnpc = os.path.join(BIN_DIR, "capnpc")
+  capnpc_cpp = os.path.join(BIN_DIR, "capnpc-c++")
+  env = os.environ.copy()
+  env["PATH"] = BIN_DIR + ":" + env.get("PATH", "")
+  subprocess.run([capnp, "--version"], check=True, env=env)
+  subprocess.run([capnpc, "--version"], check=True, env=env)
+  subprocess.run([capnpc_cpp, "--version"], check=True, env=env)
