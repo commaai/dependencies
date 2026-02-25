@@ -8,6 +8,7 @@ jobs:
   build:
     name: build - ${{ matrix.platform }}
     runs-on: ${{ matrix.runs-on }}
+    container: ${{ matrix.container || '' }}
     permissions:
       contents: write
     strategy:
@@ -16,8 +17,10 @@ jobs:
         include:
           - platform: linux-x86_64
             runs-on: ubuntu-latest
+            container: ghcr.io/commaai/dependencies/manylinux:x86_64
           - platform: linux-arm64
             runs-on: ubuntu-24.04-arm
+            container: ghcr.io/commaai/dependencies/manylinux:aarch64
           - platform: macos
             runs-on: macos-latest
     steps:
