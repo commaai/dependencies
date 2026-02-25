@@ -41,7 +41,8 @@ QTSERIALBUS_SRC="$SRC_DIR/qtserialbus-everywhere-src-${QT_VERSION}"
 # Add missing #include <limits> to qglobal.h so it propagates everywhere
 QGLOBAL="$QTBASE_SRC/src/corelib/global/qglobal.h"
 if [ -f "$QGLOBAL" ] && ! grep -q '#include <limits>' "$QGLOBAL"; then
-  sed -i.bak '/#include <type_traits>/a #include <limits>' "$QGLOBAL"
+  sed -i.bak '1i\
+#include <limits>' "$QGLOBAL"
 fi
 
 # --- Build qtbase ---
