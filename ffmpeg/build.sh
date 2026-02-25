@@ -17,6 +17,17 @@ NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 PREFIX="$DIR/build/prefix"
 mkdir -p "$DIR/build"
 
+# --- Build zlib (static) ---
+if [ ! -d "zlib-src" ]; then
+  git clone --depth 1 --branch v1.3.2 https://github.com/madler/zlib.git zlib-src
+fi
+
+cd zlib-src
+./configure --prefix="$PREFIX" --static
+make -j"$NJOBS"
+make install
+cd "$DIR"
+
 # --- Build x264 (static) ---
 if [ ! -d "x264-src" ]; then
   git clone --depth 1 --branch stable https://code.videolan.org/videolan/x264.git x264-src
@@ -46,6 +57,7 @@ PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
   --enable-gpl \
   --enable-static \
   --disable-shared \
+  --enable-zlib \
   --enable-libx264 \
   --enable-pic \
   --disable-doc \
@@ -75,7 +87,7 @@ cp "$PREFIX/bin/ffmpeg" "$INSTALL_DIR/bin/"
 cp "$PREFIX/bin/ffprobe" "$INSTALL_DIR/bin/"
 
 # Libraries
-for lib in libavformat.a libavcodec.a libavutil.a libswresample.a libx264.a; do
+for lib in libavformat.a libavcodec.a libavutil.a libswresample.a libx264.a libz.a; do
   cp "$PREFIX/lib/$lib" "$INSTALL_DIR/lib/"
 done
 
@@ -88,7 +100,7 @@ done
 strip "$INSTALL_DIR/bin/ffmpeg" "$INSTALL_DIR/bin/ffprobe" 2>/dev/null || true
 
 # Clean up
-rm -rf x264-src ffmpeg-src "$DIR/build"
+rm -rf zlib-src x264-src ffmpeg-src "$DIR/build"
 
 echo "Installed ffmpeg to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"
