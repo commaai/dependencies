@@ -67,8 +67,5 @@ cp "$PREFIX/lib/libssl.a" "$INSTALL_DIR/lib/"
 # Headers
 cp -r "$PREFIX/include/openssl" "$INSTALL_DIR/include/"
 
-# Clean up
-rm -rf openssl-src "$DIR/build"
-
 echo "Installed openssl to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"

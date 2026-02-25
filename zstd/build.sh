@@ -51,8 +51,5 @@ cp "$PREFIX/include/zstd.h" "$INSTALL_DIR/include/"
 cp "$PREFIX/include/zstd_errors.h" "$INSTALL_DIR/include/"
 cp "$PREFIX/include/zdict.h" "$INSTALL_DIR/include/"
 
-# Clean up
-rm -rf zstd-src "$DIR/build"
-
 echo "Installed zstd to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"

@@ -66,8 +66,5 @@ cp "$PREFIX/include/unctrl.h" "$INSTALL_DIR/include/"
 cp "$PREFIX/include/term.h" "$INSTALL_DIR/include/"
 cp "$PREFIX/include/termcap.h" "$INSTALL_DIR/include/"
 
-# Clean up
-rm -rf "ncurses-${VERSION}" "$TARBALL" "$DIR/build"
-
 echo "Installed ncurses to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"

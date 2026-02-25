@@ -64,8 +64,5 @@ for obj in filesystem.c++.o main.c++.o test-helpers.c++.o; do
   ar d "$INSTALL_DIR/lib/libkj.a" "$obj" 2>/dev/null || true
 done
 
-# Clean up
-rm -rf capnproto-src "$DIR/build"
-
 echo "Installed capnproto to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"

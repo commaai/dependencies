@@ -100,8 +100,5 @@ done
 # Strip binaries
 strip "$INSTALL_DIR/bin/ffmpeg" "$INSTALL_DIR/bin/ffprobe" 2>/dev/null || true
 
-# Clean up
-rm -rf zlib-src x264-src ffmpeg-src "$DIR/build"
-
 echo "Installed ffmpeg to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"

@@ -35,8 +35,5 @@ cp -r cppcheck-src/cfg "$INSTALL_DIR/"
 cp -r cppcheck-src/platforms "$INSTALL_DIR/"
 strip "$INSTALL_DIR/cppcheck" 2>/dev/null || true
 
-# Clean up
-rm -rf cppcheck-src
-
 echo "Installed cppcheck to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"

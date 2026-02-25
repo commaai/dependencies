@@ -49,8 +49,5 @@ cp "$PREFIX/include/jconfig.h" "$INSTALL_DIR/include/"
 cp "$PREFIX/include/jerror.h" "$INSTALL_DIR/include/"
 cp "$PREFIX/include/jmorecfg.h" "$INSTALL_DIR/include/"
 
-# Clean up
-rm -rf libjpeg-turbo-src "$DIR/build"
-
 echo "Installed libjpeg to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"
