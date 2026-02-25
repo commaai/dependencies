@@ -1,0 +1,15 @@
+[tool.uv.workspace]
+members = [
+  "capnproto",
+  "cppcheck",
+  "eigen",
+  "ffmpeg",
+  "gcc-arm-none-eabi",
+  "git-lfs",
+  "libjpeg",
+  "ncurses",
+  "openssl3",
+  "python3-dev",
+  "zeromq",
+  "zstd",
+]
