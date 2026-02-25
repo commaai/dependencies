@@ -30,11 +30,11 @@ jobs:
 
       - uses: actions/cache@v4
         with:
-          path: .
+          path: |
+            .
+            !.git
           key: build-${{ matrix.platform }}-${{ hashFiles('*/build.sh', '*/pyproject.toml') }}
           restore-keys: build-${{ matrix.platform }}-
-
-      - run: git checkout -- .
 
       - name: Build wheels
         run: ./build_wheels.sh dist/
