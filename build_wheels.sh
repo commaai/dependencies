@@ -39,5 +39,5 @@ for pkg in */pyproject.toml; do
     done
     [ "$match" -eq 0 ] && continue
   fi
-  pip wheel "./$pkgname" --no-deps --wheel-dir "$WHEEL_DIR"/
+  DEPS_SOURCE_DIR="$(pwd)/$pkgname" pip wheel "./$pkgname" --no-deps --wheel-dir "$WHEEL_DIR"/
 done
