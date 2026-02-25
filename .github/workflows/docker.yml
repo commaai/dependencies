@@ -2,7 +2,7 @@ name: manylinux image
 
 on:
   push:
-    branches: [master]
+    branches: [master, fast]
     paths: ['manylinux/Dockerfile']
   workflow_dispatch:
 
