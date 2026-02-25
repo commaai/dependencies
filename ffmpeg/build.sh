@@ -18,7 +18,7 @@ if [ ! -d "zlib-src" ]; then
 fi
 
 cd zlib-src
-[ ! -f Makefile ] && ./configure --prefix="$PREFIX" --static
+[ ! -f zlib.pc ] && ./configure --prefix="$PREFIX" --static
 make -j"$NJOBS"
 make install
 cd "$DIR"
