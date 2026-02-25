@@ -37,18 +37,14 @@ QTBASE_SRC="$SRC_DIR/qtbase-everywhere-src-${QT_VERSION}"
 QTCHARTS_SRC="$SRC_DIR/qtcharts-everywhere-src-${QT_VERSION}"
 QTSERIALBUS_SRC="$SRC_DIR/qtserialbus-everywhere-src-${QT_VERSION}"
 
-# --- Patch Qt 5.15.2 for modern compilers (GCC 12+) ---
-# Add missing #include <limits> to qglobal.h so it propagates everywhere
-QGLOBAL="$QTBASE_SRC/src/corelib/global/qglobal.h"
-if [ -f "$QGLOBAL" ] && ! grep -q '#include <limits>' "$QGLOBAL"; then
-  sed -i.bak '1i\
-#include <limits>' "$QGLOBAL"
-fi
-
 # --- Build qtbase ---
 echo "Configuring qtbase..."
 cd "$QTBASE_SRC"
 
+# Qt 5.15.2 is missing #include <limits> in several headers (qfloat16.h,
+# qendian.h, qbytearraymatcher.h). Use -include to inject it globally.
+# This is passed via QMAKE_CXXFLAGS so it only affects the main build,
+# not the bootstrap qmake compilation.
 CONFIGURE_ARGS=(
   -release -opensource -confirm-license
   -shared -prefix "$PREFIX"
@@ -56,6 +52,7 @@ CONFIGURE_ARGS=(
   -no-dbus -no-icu -no-openssl -no-cups -no-glib
   -no-feature-sql -no-feature-printer -no-feature-testlib
   -qt-pcre -qt-zlib -qt-libpng -qt-libjpeg -qt-harfbuzz
+  QMAKE_CXXFLAGS+="-include limits"
 )
 
 if [ "$(uname)" = "Darwin" ]; then
