@@ -7,12 +7,6 @@ cd "$DIR"
 VERSION="6.5"
 INSTALL_DIR="$DIR/ncurses/install"
 
-# Idempotent: skip if already built
-if [ -f "$INSTALL_DIR/lib/libncurses.a" ]; then
-  echo "ncurses already present, skipping build."
-  exit 0
-fi
-
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
 # Download

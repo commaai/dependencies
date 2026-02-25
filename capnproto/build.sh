@@ -7,12 +7,6 @@ cd "$DIR"
 VERSION="1.0.1"
 INSTALL_DIR="$DIR/capnproto/install"
 
-# Idempotent: skip if already built
-if [ -x "$INSTALL_DIR/bin/capnp" ]; then
-  echo "capnproto already present, skipping build."
-  exit 0
-fi
-
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
 # Clone

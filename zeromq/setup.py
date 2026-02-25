@@ -15,11 +15,8 @@ class BuildZeromq(build_py):
 
   def run(self):
     pkg_dir = os.path.dirname(os.path.abspath(__file__))
-    marker = os.path.join(pkg_dir, "zeromq", "install", "lib", "libzmq.a")
-
-    if not os.path.exists(marker):
-      build_script = os.path.join(pkg_dir, "build.sh")
-      subprocess.check_call(["bash", build_script], cwd=pkg_dir)
+    build_script = os.path.join(pkg_dir, "build.sh")
+    subprocess.check_call(["bash", build_script], cwd=pkg_dir)
 
     super().run()
 

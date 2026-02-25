@@ -7,12 +7,6 @@ cd "$DIR"
 VERSION="1.5.6"
 INSTALL_DIR="$DIR/zstd/install"
 
-# Idempotent: skip if already built
-if [ -f "$INSTALL_DIR/lib/libzstd.a" ]; then
-  echo "zstd already present, skipping build."
-  exit 0
-fi
-
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
 # Clone

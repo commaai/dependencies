@@ -7,12 +7,6 @@ cd "$DIR"
 FFMPEG_VERSION="7.1"
 INSTALL_DIR="$DIR/ffmpeg/install"
 
-# Idempotent: skip if already built
-if [ -x "$INSTALL_DIR/bin/ffmpeg" ]; then
-  echo "ffmpeg already present, skipping build."
-  exit 0
-fi
-
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 PREFIX="$DIR/build/prefix"
 mkdir -p "$DIR/build"

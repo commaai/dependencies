@@ -7,12 +7,6 @@ cd "$DIR"
 VERSION="2.16.0"
 INSTALL_DIR="$DIR/cppcheck/install"
 
-# Idempotent: skip if already built
-if [ -x "$INSTALL_DIR/cppcheck" ]; then
-  echo "cppcheck already present, skipping build."
-  exit 0
-fi
-
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
 # Clone

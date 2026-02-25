@@ -7,12 +7,6 @@ cd "$DIR"
 VERSION="3.4.1"
 INSTALL_DIR="$DIR/openssl3/install"
 
-# Idempotent: skip if already built
-if [ -f "$INSTALL_DIR/lib/libcrypto.a" ]; then
-  echo "openssl already present, skipping build."
-  exit 0
-fi
-
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
 # Download
