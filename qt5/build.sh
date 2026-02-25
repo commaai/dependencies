@@ -37,6 +37,16 @@ QTBASE_SRC="$SRC_DIR/qtbase-everywhere-src-${QT_VERSION}"
 QTCHARTS_SRC="$SRC_DIR/qtcharts-everywhere-src-${QT_VERSION}"
 QTSERIALBUS_SRC="$SRC_DIR/qtserialbus-everywhere-src-${QT_VERSION}"
 
+# --- Patch Qt 5.15.2 for modern compilers (GCC 12+) ---
+# Missing #include <limits> causes build failures
+for header in \
+  "$QTBASE_SRC/src/corelib/global/qendian.h" \
+  "$QTBASE_SRC/src/corelib/global/qfloat16.h"; do
+  if [ -f "$header" ] && ! grep -q '#include <limits>' "$header"; then
+    sed -i.bak '1s/^/#include <limits>\n/' "$header"
+  fi
+done
+
 # --- Build qtbase ---
 echo "Configuring qtbase..."
 cd "$QTBASE_SRC"
