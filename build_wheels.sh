@@ -12,7 +12,14 @@ PKGS=("$@")
 # for reference, Ubuntu 20.04 is glibc 2.31, so this gives us wide compatibility.
 if [ "$(uname)" = "Linux" ] && [ -z "${MANYLINUX:-}" ]; then
   ARCH="$(uname -m)"
-  IMAGE="quay.io/pypa/manylinux_2_28_${ARCH}"
+  GHCR_IMAGE="ghcr.io/commaai/dependencies/manylinux:${ARCH}"
+  # try pre-built image first, fall back to building locally
+  if docker pull "$GHCR_IMAGE" 2>/dev/null; then
+    IMAGE="$GHCR_IMAGE"
+  else
+    docker build -t deps-manylinux --build-arg "ARCH=${ARCH}" manylinux/
+    IMAGE="deps-manylinux"
+  fi
   exec docker run --rm \
     -e MANYLINUX=1 \
     -v "$DIR:/work" \
@@ -21,13 +28,11 @@ if [ "$(uname)" = "Linux" ] && [ -z "${MANYLINUX:-}" ]; then
     bash build_wheels.sh "$WHEEL_DIR" "${PKGS[@]}"
 fi
 
-# Set up Python inside manylinux container
-if [ -n "${MANYLINUX:-}" ]; then
-  export PATH="/opt/python/cp312-cp312/bin:$PATH"
+# inside manylinux container (or macOS)
+if [ -z "${MANYLINUX:-}" ]; then
+  ./setup.sh
+  pip install setuptools wheel
 fi
-
-./setup.sh
-pip install setuptools wheel
 
 mkdir -p "$WHEEL_DIR"
 for pkg in */pyproject.toml; do
