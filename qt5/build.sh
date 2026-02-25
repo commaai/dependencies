@@ -4,7 +4,7 @@ set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 cd "$DIR"
 
-QT_VERSION="5.15.2"
+QT_VERSION="5.15.18"
 INSTALL_DIR="$DIR/qt5/install"
 
 # Idempotent: skip if already built
@@ -19,32 +19,28 @@ SRC_DIR="$DIR/build/src"
 mkdir -p "$SRC_DIR"
 
 # --- Download source tarballs ---
-QT_BASE_URL="https://download.qt.io/archive/qt/5.15/5.15.2/submodules"
+QT_BASE_URL="https://download.qt.io/archive/qt/5.15/${QT_VERSION}/submodules"
 
 for module in qtbase qtcharts qtserialbus; do
-  tarball="${module}-everywhere-src-${QT_VERSION}.tar.xz"
+  tarball="${module}-everywhere-opensource-src-${QT_VERSION}.tar.xz"
   if [ ! -f "$SRC_DIR/$tarball" ]; then
     echo "Downloading $tarball..."
     curl -fSL -o "$SRC_DIR/$tarball" "$QT_BASE_URL/$tarball"
   fi
-  if [ ! -d "$SRC_DIR/${module}-everywhere-src-${QT_VERSION}" ]; then
+  if [ ! -d "$SRC_DIR/${module}-everywhere-opensource-src-${QT_VERSION}" ]; then
     echo "Extracting $tarball..."
     tar xf "$SRC_DIR/$tarball" -C "$SRC_DIR"
   fi
 done
 
-QTBASE_SRC="$SRC_DIR/qtbase-everywhere-src-${QT_VERSION}"
-QTCHARTS_SRC="$SRC_DIR/qtcharts-everywhere-src-${QT_VERSION}"
-QTSERIALBUS_SRC="$SRC_DIR/qtserialbus-everywhere-src-${QT_VERSION}"
+QTBASE_SRC="$SRC_DIR/qtbase-everywhere-opensource-src-${QT_VERSION}"
+QTCHARTS_SRC="$SRC_DIR/qtcharts-everywhere-opensource-src-${QT_VERSION}"
+QTSERIALBUS_SRC="$SRC_DIR/qtserialbus-everywhere-opensource-src-${QT_VERSION}"
 
 # --- Build qtbase ---
 echo "Configuring qtbase..."
 cd "$QTBASE_SRC"
 
-# Qt 5.15.2 is missing #include <limits> in several headers (qfloat16.h,
-# qendian.h, qbytearraymatcher.h). Use -include to inject it globally.
-# This is passed via QMAKE_CXXFLAGS so it only affects the main build,
-# not the bootstrap qmake compilation.
 CONFIGURE_ARGS=(
   -release -opensource -confirm-license
   -shared -prefix "$PREFIX"
@@ -52,7 +48,6 @@ CONFIGURE_ARGS=(
   -no-dbus -no-icu -no-openssl -no-cups -no-glib
   -no-feature-sql -no-feature-printer -no-feature-testlib
   -qt-pcre -qt-zlib -qt-libpng -qt-libjpeg -qt-harfbuzz
-  QMAKE_CXXFLAGS+="-include limits"
 )
 
 if [ "$(uname)" = "Darwin" ]; then
