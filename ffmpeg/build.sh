@@ -19,7 +19,8 @@ mkdir -p "$DIR/build"
 
 # --- Build zlib (static) ---
 if [ ! -d "zlib-src" ]; then
-  git clone --depth 1 --branch v1.3.2 https://github.com/madler/zlib.git zlib-src
+  git clone https://github.com/madler/zlib.git zlib-src
+  git -C zlib-src checkout da607da739fa6047df13e66a2af6b8bec7c2a498  # pin to v1.3.2
 fi
 
 cd zlib-src
