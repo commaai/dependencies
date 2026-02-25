@@ -30,6 +30,7 @@ jobs:
         with:
           path: .
           key: build-${{ matrix.platform }}-${{ hashFiles('*/build.sh', '*/pyproject.toml') }}
+          restore-keys: build-${{ matrix.platform }}-
       - name: Build wheels
         run: ./build_wheels.sh dist/
       - name: Smoketest
