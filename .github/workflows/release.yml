@@ -8,7 +8,6 @@ jobs:
   build:
     name: build - ${{ matrix.platform }}
     runs-on: ${{ matrix.runs-on }}
-    container: ${{ matrix.container || '' }}
     permissions:
       contents: write
     strategy:
@@ -17,10 +16,8 @@ jobs:
         include:
           - platform: linux-x86_64
             runs-on: ubuntu-latest
-            container: ghcr.io/commaai/dependencies/manylinux:x86_64
           - platform: linux-arm64
             runs-on: ubuntu-24.04-arm
-            container: ghcr.io/commaai/dependencies/manylinux:aarch64
           - platform: macos
             runs-on: macos-latest
     steps:
@@ -31,17 +28,7 @@ jobs:
         with:
           python-version: "3.14"
 
-      - uses: actions/cache@v4
-        with:
-          path: |
-            .
-            !.git
-          key: build-${{ matrix.platform }}-${{ hashFiles('*/build.sh', '*/pyproject.toml') }}
-          restore-keys: build-${{ matrix.platform }}-
-
       - name: Build wheels
-        env:
-          MANYLINUX: ${{ matrix.container && '1' || '' }}
         run: ./build_wheels.sh dist/
 
       - name: Upload releases
