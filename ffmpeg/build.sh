@@ -35,7 +35,7 @@ if [ ! -d "x264-src" ]; then
 fi
 
 cd x264-src
-./configure \
+CFLAGS="-fno-finite-math-only" ./configure \
   --prefix="$PREFIX" \
   --enable-static \
   --disable-shared \
