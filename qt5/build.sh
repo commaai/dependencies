@@ -56,7 +56,7 @@ CONFIGURE_ARGS=(
   -shared -prefix "$PREFIX"
   -nomake examples -nomake tests
   -no-dbus -no-icu -no-openssl -no-cups -no-glib
-  -no-feature-sql -no-feature-printsupport -no-feature-testlib
+  -no-feature-sql -no-feature-printer -no-feature-testlib
   -qt-pcre -qt-zlib -qt-libpng -qt-libjpeg -qt-harfbuzz
   -- -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_CXX_FLAGS="-fPIC"
 )
