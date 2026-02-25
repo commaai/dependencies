@@ -25,6 +25,10 @@ jobs:
         if: runner.os != 'Linux'
         with:
           python-version: "3.14"
+      - uses: actions/cache@v4
+        with:
+          path: .
+          key: build-${{ matrix.platform }}-${{ hashFiles('*/build.sh', '*/pyproject.toml') }}
       - name: Build wheels
         run: ./build_wheels.sh dist/
       - name: Smoketest
