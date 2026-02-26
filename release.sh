@@ -57,6 +57,7 @@ import sys
 tmp_dir = pathlib.Path(sys.argv[1])
 repo = sys.argv[2]
 repo_url = f"https://github.com/{repo}"
+shim_setup = pathlib.Path("_shim_setup.py")
 
 for toml in sorted(pathlib.Path(".").glob("*/pyproject.toml")):
   pkg = toml.parent.name
@@ -73,10 +74,11 @@ for toml in sorted(pathlib.Path(".").glob("*/pyproject.toml")):
   mod_dir = pkg_dir / module
   mod_dir.mkdir(parents=True, exist_ok=True)
   shutil.copy2(pathlib.Path(pkg) / module / "__init__.py", mod_dir / "__init__.py")
+  shutil.copy2(shim_setup, pkg_dir / "setup.py")
 
   lines = [
     "[build-system]",
-    'requires = ["setuptools>=64", "wheel"]',
+    'requires = ["setuptools>=64", "wheel", \'tomli; python_version < \"3.11\"\']',
     'build-backend = "setuptools.build_meta"',
     "",
     "[project]",
@@ -89,7 +91,7 @@ for toml in sorted(pathlib.Path(".").glob("*/pyproject.toml")):
   if scripts:
     lines += ["", "[project.scripts]"]
     for name, target in scripts.items():
-      lines.append(f"{name} = {json.dumps(target)}")
+      lines.append(f'"{name}" = {json.dumps(target)}')
 
   lines += [
     "",
@@ -98,82 +100,14 @@ for toml in sorted(pathlib.Path(".").glob("*/pyproject.toml")):
     "",
     "[tool.setuptools.package-data]",
     f'{module} = ["{datadir}/**/*"]',
+    "",
+    "[tool.shim]",
+    f'repo_url = "{repo_url}"',
+    f'tag = "{tag}"',
+    f'datadir = "{datadir}"',
   ]
 
   (pkg_dir / "pyproject.toml").write_text("\n".join(lines) + "\n")
-
-  setup_text = f'''import os
-import platform
-import zipfile
-from io import BytesIO
-from urllib.request import urlopen
-
-from setuptools.command.build_py import build_py
-
-REPO_URL = {repo_url!r}
-TAG = {tag!r}
-VERSION = {version!r}
-MODULE = {module!r}
-DATADIR = {datadir!r}
-
-PLATFORM_MAP = {{
-  ("Linux", "x86_64"): "linux_x86_64",
-  ("Linux", "aarch64"): "linux_aarch64",
-  ("Darwin", "arm64"): "macosx_11_0_arm64",
-}}
-
-
-class InstallPrebuilt(build_py):
-  def run(self):
-    pkg_dir = os.path.dirname(os.path.abspath(__file__))
-    data_dir = os.path.join(pkg_dir, MODULE, DATADIR)
-
-    if not os.path.exists(os.path.join(data_dir, "bin")):
-      key = (platform.system(), platform.machine())
-      plat = PLATFORM_MAP.get(key)
-      if plat is None:
-        raise RuntimeError(f"unsupported platform: {{key}}")
-
-      whl_name = f"{{MODULE}}-{{VERSION}}-py3-none-{{plat}}.whl"
-      url = f"{{REPO_URL}}/releases/download/{{TAG}}/{{whl_name}}"
-
-      print(f"Downloading {{url}} ...")
-      data = urlopen(url).read()
-
-      print(f"Extracting {{DATADIR}} ...")
-      with zipfile.ZipFile(BytesIO(data)) as zf:
-        prefix = f"{{MODULE}}/{{DATADIR}}/"
-        alt_prefix = f"{{MODULE}}-{{VERSION}}.data/purelib/{{MODULE}}/{{DATADIR}}/"
-        for info in zf.infolist():
-          for p in (prefix, alt_prefix):
-            if info.filename.startswith(p):
-              rel = info.filename[len(p):]
-              if not rel:
-                continue
-              dest = os.path.join(data_dir, rel)
-              if info.is_dir():
-                os.makedirs(dest, exist_ok=True)
-              else:
-                os.makedirs(os.path.dirname(dest), exist_ok=True)
-                with open(dest, "wb") as f:
-                  f.write(zf.read(info))
-                if info.external_attr >> 16 & 0o111:
-                  os.chmod(dest, 0o755)
-              break
-
-    super().run()
-
-
-def setup():
-  from setuptools import setup as _setup
-  _setup(cmdclass={{"build_py": InstallPrebuilt}})
-
-
-if __name__ == "__main__":
-  setup()
-'''
-
-  (pkg_dir / "setup.py").write_text(setup_text)
 PY
 
 (

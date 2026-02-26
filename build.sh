@@ -18,8 +18,6 @@ fi
 if [[ "$USE_MANYLINUX" == "1" && -z "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
   UV_BIN="$(command -v uv)"
   docker run --rm \
-    -e BUILD_SH_HOST_UID="$(id -u)" \
-    -e BUILD_SH_HOST_GID="$(id -g)" \
     -e BUILD_SH_IN_MANYLINUX=1 \
     -e BUILD_SH_REUSE_MANYLINUX_ARTIFACTS="${BUILD_SH_REUSE_MANYLINUX_ARTIFACTS:-}" \
     -e HOME=/tmp \
@@ -68,14 +66,6 @@ for toml in */pyproject.toml; do
   module="$(basename "$(dirname "$toml")" | tr '-' '_')"
   "$VENV_DIR/bin/python" -c "import $module; $module.smoketest()" >/dev/null
 done
-
-if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
-  chown -R "${BUILD_SH_HOST_UID}:${BUILD_SH_HOST_GID}" dist .venv-manylinux
-  for toml in */pyproject.toml; do
-    pkg="${toml%/pyproject.toml}"
-    chown -R "${BUILD_SH_HOST_UID}:${BUILD_SH_HOST_GID}" "$pkg"
-  done
-fi
 
 echo
 echo "Done in $((SECONDS - START_SECS))s"

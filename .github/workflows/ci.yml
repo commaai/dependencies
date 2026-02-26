@@ -95,6 +95,15 @@ jobs:
           pattern: wheels-*
           merge-multiple: true
           path: dist
+      - uses: actions/cache/restore@v4
+        with:
+          key: build-cache-v1-${{ matrix.platform }}-${{ hashFiles('build.sh', 'setup.sh', '*/pyproject.toml', '*/setup.py', '*/build.sh') }}
+          restore-keys: build-cache-v1-${{ matrix.platform }}-
+          path: |
+            .uv-cache
+            */*/install
+            */*/toolchain
+            */*/bin
       - name: Publish wheels and shims
         env:
           GH_TOKEN: ${{ github.token }}
