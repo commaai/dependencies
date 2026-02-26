@@ -72,12 +72,11 @@ jobs:
         with:
           name: ${{ contains(matrix.runs-on, 'arm') && 'wheels-linux-arm64' || 'wheels-linux-x86_64' }}
           path: dist/
-      - name: Test wheels in distro
-        run: ./test_wheels_in_image.sh "${{ matrix.image }}"
+      - run: ./test_wheels_in_image.sh "${{ matrix.image }}"
 
   publish:
     name: publish wheels
-    #if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: [build, test]
     runs-on: ubuntu-latest
     permissions:
