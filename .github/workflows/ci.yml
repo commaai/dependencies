@@ -27,7 +27,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           key: build-cache-v1-${{ matrix.platform }}-${{ hashFiles('build.sh', 'setup.sh', '*/pyproject.toml', '*/setup.py', '*/build.sh') }}
-          restore-key: build-cache-v1-${{ matrix.platform }}-
+          restore-keys: build-cache-v1-${{ matrix.platform }}-
           path: |
             .uv-cache
             */*/install
