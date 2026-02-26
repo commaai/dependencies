@@ -4,10 +4,6 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 cd "$ROOT_DIR"
 
-if [[ "${1:-}" != "--publish-only" ]]; then
-  ./build.sh
-fi
-
 REPO=commaai/dependencies
 
 echo
@@ -28,25 +24,12 @@ for toml in */pyproject.toml; do
 
   echo "[$pkg] Uploading ${#wheels[@]} wheel(s) to $tag"
 
-  if gh release view "$tag" --repo "$REPO" >/dev/null 2>&1; then
+  gh release create "$tag" "${wheels[@]}" --repo "$REPO" --title "$pkg v$version" --notes "Platform wheels for $pkg $version" 2>/dev/null ||
     gh release upload "$tag" "${wheels[@]}" --repo "$REPO" --clobber
-  else
-    if ! gh release create "$tag" "${wheels[@]}" --repo "$REPO" --title "$pkg v$version" --notes "Platform wheels for $pkg $version"; then
-      gh release upload "$tag" "${wheels[@]}" --repo "$REPO" --clobber
-    fi
-  fi
 done
 shopt -u nullglob
 
-TOKEN="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
-if [[ -z "$TOKEN" ]]; then
-  TOKEN="$(gh auth token 2>/dev/null || true)"
-fi
-
-if [[ -z "$TOKEN" ]]; then
-  echo "set GH_TOKEN (or GITHUB_TOKEN) to publish shim branch" >&2
-  exit 1
-fi
+TOKEN="$(gh auth token 2>/dev/null)" || { echo "set GH_TOKEN to publish shim branch" >&2; exit 1; }
 
 TMP_DIR="$(mktemp -d)"
 python3 - "$TMP_DIR" "$REPO" <<'PY'
@@ -117,10 +100,6 @@ PY
   git init
   git checkout -b releases
   git add .
-  if git diff --cached --quiet; then
-    echo "No shim changes to publish"
-    exit 0
-  fi
   git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" commit -m "update shim packages"
   git remote add origin "https://x-access-token:${TOKEN}@github.com/${REPO}.git"
   git push -f origin releases
