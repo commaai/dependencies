@@ -67,5 +67,7 @@ for toml in */pyproject.toml; do
   "$VENV_DIR/bin/python" -c "import $module; $module.smoketest()" >/dev/null
 done
 
+du -hs dist/* | sort -hr
+
 echo
 echo "Done in $((SECONDS - START_SECS))s"
