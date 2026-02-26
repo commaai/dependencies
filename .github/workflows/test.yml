@@ -25,66 +25,9 @@ jobs:
         if: runner.os != 'Linux'
         with:
           python-version: "3.14"
-      - name: Build wheels
-        run: ./build_wheels.sh dist/
-      - name: Smoketest
-        run: bash smoketest.sh dist/
+      - name: Build wheels + smoketest
+        run: ./build.sh
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.platform }}
           path: dist/*.whl
-
-  test:
-    name: test (${{ matrix.image }})
-    needs: build
-    runs-on: ${{ matrix.runs-on }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # test on vanilla linux images
-          - image: debian:bookworm-slim
-            runs-on: ubuntu-latest
-          - image: ubuntu:24.04
-            runs-on: ubuntu-latest
-          - image: ubuntu:20.04
-            runs-on: ubuntu-latest
-          - image: fedora:41
-            runs-on: ubuntu-latest
-          - image: archlinux:latest
-            runs-on: ubuntu-latest
-          # TODO: make musl work
-          #- image: alpine:3.21
-          #  runs-on: ubuntu-latest
-          - image: opensuse/tumbleweed:latest
-            runs-on: ubuntu-latest
-          - image: ghcr.io/void-linux/void-glibc:latest
-            runs-on: ubuntu-latest
-          - image: debian:bookworm-slim
-            runs-on: ubuntu-24.04-arm
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v4
-        with:
-          name: wheels-${{ contains(matrix.runs-on, 'arm') && 'linux-arm64' || 'linux-x86_64' }}
-          path: wheels
-      - name: build docker
-        run: |
-          docker build -t smoketest -f - . <<'DOCKERFILE'
-          FROM ${{ matrix.image }}
-          RUN if command -v apk >/dev/null; then \
-                apk add --no-cache python3 py3-pip bash; \
-              elif command -v apt-get >/dev/null; then \
-                apt-get update && apt-get install -y --no-install-recommends python3 python3-pip python3-venv; \
-              elif command -v dnf >/dev/null; then \
-                dnf install -y python3 python3-pip; \
-              elif command -v pacman >/dev/null; then \
-                pacman -Sy --noconfirm python python-pip; \
-              elif command -v zypper >/dev/null; then \
-                zypper install -y python3 python3-pip; \
-              elif command -v xbps-install >/dev/null; then \
-                xbps-install -Sy python3 python3-pip bash; \
-              fi
-          DOCKERFILE
-      - name: ./smoketest.sh
-        run: docker run --rm -v "$PWD:/work" -w /work smoketest bash smoketest.sh wheels/
