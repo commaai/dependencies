@@ -80,7 +80,7 @@ jobs:
 
   publish:
     name: publish wheels
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    #if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: [build, test]
     runs-on: ubuntu-latest
     permissions:
