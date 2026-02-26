@@ -39,17 +39,26 @@ contributions welcome for other platforms!
 
 ## usage
 
+```toml
+[tool.uv]
+extra-index-url = ["https://commaai.github.io/dependencies/simple/"]
+```
+
 ```python
 dependencies = [
-  "capnproto @ git+https://github.com/commaai/dependencies.git@releases#subdirectory=capnproto",
-  "ffmpeg @ git+https://github.com/commaai/dependencies.git@releases#subdirectory=ffmpeg",
+  "capnproto",
+  "ffmpeg",
 ]
+```
+
+or directly:
+```
+pip install capnproto --extra-index-url https://commaai.github.io/dependencies/simple/
 ```
 
 ## workflow
 
 to add a new package:
 * start a new top-level directory as a new package
-* `./test.sh` tests the building of all packages
-*  on pushes to `master`, wheels are built for our target platforms and pushed to a GitHub release
-*  the `releases` branch contains shim packages that allow pointing to a git branch and always getting the appropriate wheel for your platform
+* `./build.sh` builds wheels for all packages
+* on pushes to `master`, wheels are uploaded to GitHub Releases and a [PEP 503](https://peps.python.org/pep-0503/) package index is published to GitHub Pages

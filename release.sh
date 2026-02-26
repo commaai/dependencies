@@ -29,78 +29,62 @@ for toml in */pyproject.toml; do
 done
 shopt -u nullglob
 
-TOKEN="$(gh auth token 2>/dev/null)" || { echo "set GH_TOKEN to publish shim branch" >&2; exit 1; }
+echo
+echo "Generating PEP 503 package index"
+
+TOKEN="$(gh auth token 2>/dev/null)" || { echo "set GH_TOKEN to publish package index" >&2; exit 1; }
 
 TMP_DIR="$(mktemp -d)"
 python3 - "$TMP_DIR" "$REPO" <<'PY'
-import json
 import pathlib
-import shutil
-import tomllib
+import re
 import sys
+import tomllib
 
 tmp_dir = pathlib.Path(sys.argv[1])
 repo = sys.argv[2]
 repo_url = f"https://github.com/{repo}"
-shim_setup = pathlib.Path("_shim_setup.py")
+
+def normalize(name):
+  return re.sub(r"[-_.]+", "-", name).lower()
+
+simple = tmp_dir / "simple"
+root_links = []
 
 for toml in sorted(pathlib.Path(".").glob("*/pyproject.toml")):
   pkg = toml.parent.name
   module = pkg.replace("-", "_")
   data = tomllib.load(toml.open("rb"))
-  version = str(data["project"]["version"])
+  version = data["project"]["version"]
   tag = f"{pkg}/v{version}"
-  description = data["project"]["description"]
-  patterns = data.get("tool", {}).get("setuptools", {}).get("package-data", {}).get(module, [""])
-  datadir = patterns[0].split("/", 1)[0] if patterns and patterns[0] else ""
-  scripts = data.get("project", {}).get("scripts", {}) or {}
+  normalized = normalize(pkg)
 
-  pkg_dir = tmp_dir / pkg
-  mod_dir = pkg_dir / module
-  mod_dir.mkdir(parents=True, exist_ok=True)
-  shutil.copy2(pathlib.Path(pkg) / module / "__init__.py", mod_dir / "__init__.py")
-  shutil.copy2(shim_setup, pkg_dir / "setup.py")
+  wheels = sorted(pathlib.Path("dist").glob(f"{module}-{version}-*.whl"))
 
-  lines = [
-    "[build-system]",
-    'requires = ["setuptools>=64", "wheel", \'tomli; python_version < \"3.11\"\']',
-    'build-backend = "setuptools.build_meta"',
-    "",
-    "[project]",
-    f'name = "{pkg}"',
-    f'version = "{version}"',
-    f"description = {json.dumps(description + ' (pre-built)')}",
-    'requires-python = ">=3.8"',
-  ]
+  pkg_dir = simple / normalized
+  pkg_dir.mkdir(parents=True, exist_ok=True)
 
-  if scripts:
-    lines += ["", "[project.scripts]"]
-    for name, target in scripts.items():
-      lines.append(f'"{name}" = {json.dumps(target)}')
+  links = []
+  for whl in wheels:
+    url = f"{repo_url}/releases/download/{tag}/{whl.name}"
+    links.append(f'<a href="{url}">{whl.name}</a>')
 
-  lines += [
-    "",
-    "[tool.setuptools.packages.find]",
-    f'include = ["{module}*"]',
-    "",
-    "[tool.setuptools.package-data]",
-    f'{module} = ["{datadir}/**/*"]',
-    "",
-    "[tool.shim]",
-    f'repo_url = "{repo_url}"',
-    f'tag = "{tag}"',
-    f'datadir = "{datadir}"',
-  ]
+  (pkg_dir / "index.html").write_text(
+    "<!DOCTYPE html>\n<html><body>\n" + "\n".join(links) + "\n</body></html>\n"
+  )
+  root_links.append(f'<a href="{normalized}/">{normalized}</a>')
 
-  (pkg_dir / "pyproject.toml").write_text("\n".join(lines) + "\n")
+(simple / "index.html").write_text(
+  "<!DOCTYPE html>\n<html><body>\n" + "\n".join(root_links) + "\n</body></html>\n"
+)
 PY
 
 (
   cd "$TMP_DIR"
-  git init
+  git init -q
   git checkout -b releases
   git add .
-  git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" commit -m "update shim packages"
+  git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" commit -q -m "update package index"
   git remote add origin "https://x-access-token:${TOKEN}@github.com/${REPO}.git"
   git push -f origin releases
 )
