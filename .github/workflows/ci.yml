@@ -27,6 +27,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           key: build-cache-v1-${{ matrix.platform }}-${{ hashFiles('build.sh', 'setup.sh', '*/pyproject.toml', '*/setup.py', '*/build.sh') }}
+          restore-key: build-cache-v1-${{ matrix.platform }}-
           path: |
             .uv-cache
             */*/install
@@ -34,9 +35,10 @@ jobs:
             */*/bin
       - name: Build wheels
         env:
+          MANYLINUX: ${{ runner.os == 'Linux' && '1' || '0' }}
           UV_CACHE_DIR: ${{ github.workspace }}/.uv-cache
           BUILD_SH_REUSE_MANYLINUX_ARTIFACTS: "1"
-        run: ./build.sh ${{ runner.os == 'Linux' && '--manylinux' || '' }}
+        run: ./build.sh
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.platform }}
@@ -96,4 +98,4 @@ jobs:
       - name: Publish wheels and shims
         env:
           GH_TOKEN: ${{ github.token }}
-        run: ./release.sh --publish-only --publish-shims
+        run: ./release.sh --publish-only

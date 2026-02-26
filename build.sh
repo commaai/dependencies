@@ -4,21 +4,18 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 cd "$ROOT_DIR"
 
-USE_MANYLINUX=0
 if [[ $# -gt 0 ]]; then
-  if [[ "$1" == "--manylinux" && $# -eq 1 ]]; then
-    USE_MANYLINUX=1
-  else
-    echo "usage: ./build.sh [--manylinux]" >&2
-    exit 2
-  fi
+  echo "usage: MANYLINUX=1 ./build.sh" >&2
+  exit 2
 fi
+
+USE_MANYLINUX="${MANYLINUX:-0}"
 
 if [[ -z "${BUILD_SH_IN_MANYLINUX:-}" ]] && ! command -v uv >/dev/null 2>&1; then
   ./setup.sh
 fi
 
-if [[ $USE_MANYLINUX -eq 1 && -z "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
+if [[ "$USE_MANYLINUX" == "1" && -z "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
   UV_BIN="$(command -v uv)"
   docker run --rm \
     -e BUILD_SH_HOST_UID="$(id -u)" \
@@ -32,7 +29,7 @@ if [[ $USE_MANYLINUX -eq 1 && -z "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
     -v "$UV_BIN:/usr/local/bin/uv:ro" \
     -w /work \
     "quay.io/pypa/manylinux_2_28_$(uname -m)" \
-    bash build.sh --manylinux
+    bash build.sh
   exit 0
 fi
 
