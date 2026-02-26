@@ -49,7 +49,7 @@ fi
 echo "Building workspace packages into dist"
 START_SECS=$SECONDS
 
-uv build --all-packages --wheel --clear --out-dir dist --no-create-gitignore --no-build-logs
+uv build --all-packages --wheel --out-dir dist --no-create-gitignore --no-build-logs
 
 if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
   VENV_DIR="$ROOT_DIR/.venv-manylinux"
