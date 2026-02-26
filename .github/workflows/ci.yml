@@ -74,7 +74,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: ${{ contains(matrix.runs-on, 'arm') && 'wheels-linux-arm64' || 'wheels-linux-x86_64' }}
-          path: wheels
+          path: dist/
       - name: Test wheels in distro
         run: ./test_wheels_in_image.sh "${{ matrix.image }}"
 

@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# a small script for testing our built wheels in a variety of linux distros
+
 IMAGE="${1:?usage: ./test_wheels_in_image.sh <image>}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 cd "$ROOT_DIR"
 
+# setup our deps - should only need a python3 build
 docker build -t wheeltest -f - . <<DOCKERFILE
 FROM $IMAGE
 RUN if command -v apk >/dev/null; then \
@@ -23,13 +26,17 @@ RUN if command -v apk >/dev/null; then \
     fi
 DOCKERFILE
 
+# install + smoketest
 docker run --rm -v "$PWD:/work" -w /work wheeltest bash -lc '
   set -euo pipefail
   python3 -m venv /tmp/venv
-  /tmp/venv/bin/python -m pip install --upgrade pip >/dev/null
-  /tmp/venv/bin/python -m pip install wheels/*.whl
+  source /tmp/venv/bin/activate
+  pip install dist/*.whl
   for toml in */pyproject.toml; do
     module="$(basename "$(dirname "$toml")" | tr "-" "_")"
-    /tmp/venv/bin/python -c "import $module; $module.smoketest()" && echo "$module: OK"
+    python -c "import $module; $module.smoketest()" && echo "$module: OK"
   done
 '
+
+echo
+echo "All good!"
