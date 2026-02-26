@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# sets up build-time dependencies (NOT runtime dependencies)
+
 run_as_root() {
   if [ "$(id -u)" -eq 0 ]; then
     "$@"

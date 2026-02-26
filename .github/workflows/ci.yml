@@ -24,7 +24,18 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.14"
+      - uses: actions/cache@v4
+        with:
+          key: build-cache-v1-${{ matrix.platform }}-${{ hashFiles('build.sh', 'setup.sh', '*/pyproject.toml', '*/setup.py', '*/build.sh') }}
+          path: |
+            .uv-cache
+            */*/install
+            */*/toolchain
+            */*/bin
       - name: Build wheels
+        env:
+          UV_CACHE_DIR: ${{ github.workspace }}/.uv-cache
+          BUILD_SH_REUSE_MANYLINUX_ARTIFACTS: "1"
         run: ./build.sh ${{ runner.os == 'Linux' && '--manylinux' || '' }}
       - uses: actions/upload-artifact@v4
         with:

@@ -24,7 +24,9 @@ if [[ $USE_MANYLINUX -eq 1 && -z "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
     -e BUILD_SH_HOST_UID="$(id -u)" \
     -e BUILD_SH_HOST_GID="$(id -g)" \
     -e BUILD_SH_IN_MANYLINUX=1 \
+    -e BUILD_SH_REUSE_MANYLINUX_ARTIFACTS="${BUILD_SH_REUSE_MANYLINUX_ARTIFACTS:-}" \
     -e HOME=/tmp \
+    -e UV_CACHE_DIR=/work/.uv-cache \
     -e UV_PYTHON=/opt/python/cp312-cp312/bin/python3 \
     -v "$ROOT_DIR:/work" \
     -v "$UV_BIN:/usr/local/bin/uv:ro" \
@@ -39,11 +41,13 @@ if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
 
   ./setup.sh
 
-  for toml in */pyproject.toml; do
-    pkg="${toml%/pyproject.toml}"
-    module="${pkg//-/_}"
-    rm -rf "$pkg/$module/install" "$pkg/$module/toolchain" "$pkg/$module/bin"
-  done
+  if [[ -z "${BUILD_SH_REUSE_MANYLINUX_ARTIFACTS:-}" ]]; then
+    for toml in */pyproject.toml; do
+      pkg="${toml%/pyproject.toml}"
+      module="${pkg//-/_}"
+      rm -rf "$pkg/$module/install" "$pkg/$module/toolchain" "$pkg/$module/bin"
+    done
+  fi
 fi
 
 echo "Building workspace packages into dist"
