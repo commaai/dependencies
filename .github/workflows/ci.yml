@@ -21,10 +21,6 @@ jobs:
             runs-on: macos-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        if: runner.os != 'Linux'
-        with:
-          python-version: "3.14"
       - uses: actions/cache@v4
         with:
           key: build-cache-v1-${{ matrix.platform }}-${{ hashFiles('build.sh', 'setup.sh', '*/pyproject.toml', '*/setup.py', '*/build.sh') }}
@@ -81,16 +77,13 @@ jobs:
 
   publish:
     name: publish wheels
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    #if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: [build, test]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.14"
       - uses: actions/download-artifact@v4
         with:
           pattern: wheels-*
