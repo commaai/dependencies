@@ -110,12 +110,12 @@ else
   VENV_DIR="$ROOT_DIR/.venv"
 fi
 
-uv venv --allow-existing --quiet "$VENV_DIR" >/dev/null
+uv venv --allow-existing --quiet "$VENV_DIR"
 uv pip install --python "$VENV_DIR/bin/python" --reinstall --no-deps --quiet "$DIST_DIR"/*.whl >/dev/null
 
 for toml in */pyproject.toml; do
   module="$(basename "$(dirname "$toml")" | tr '-' '_')"
-  "$VENV_DIR/bin/python" -c "import $module; $module.smoketest(); print('$module: OK')"
+  "$VENV_DIR/bin/python" -c "import $module; $module.smoketest()" >/dev/null
 done
 
 echo
