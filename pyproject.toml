@@ -1,5 +1,6 @@
 [tool.uv.workspace]
 members = [
+  "bzip2",
   "capnproto",
   "cppcheck",
   "eigen",
