@@ -41,7 +41,7 @@ if [[ "$USE_MUSL" == "1" && -z "${BUILD_SH_IN_MUSL:-}" ]]; then
     -v "$ROOT_DIR:/work" \
     -w /work \
     "alpine:3.21" \
-    sh -c 'apk add --no-cache bash python3 nasm cmake g++ pkgconf make git perl linux-headers curl tar && bash build.sh'
+    sh -c 'apk add --no-cache bash python3 nasm cmake g++ pkgconf make git perl linux-headers curl tar texinfo gawk bison flex wget diffutils && bash build.sh'
   exit 0
 fi
 
