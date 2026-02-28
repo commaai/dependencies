@@ -1,6 +1,7 @@
 import os
 import platform
 import subprocess
+import sys
 
 from setuptools.command.build_py import build_py
 
@@ -13,7 +14,7 @@ except ImportError:
 class BuildRaylibPythonCffi(build_py):
   def run(self):
     pkg_dir = os.path.dirname(os.path.abspath(__file__))
-    marker = os.path.join(pkg_dir, "raylib_python_cffi", "install", "raylib", "__init__.py")
+    marker = os.path.join(pkg_dir, "raylib", "install", "raylib", "__init__.py")
     if not os.path.exists(marker):
       env = dict(os.environ)
       env["PYTHON_EXECUTABLE"] = sys.executable

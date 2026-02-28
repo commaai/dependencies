@@ -3,13 +3,14 @@ requires = ["setuptools>=64", "wheel", "pip", "cffi"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "raylib-python-cffi"
+name = "raylib"
 version = "5.5.0.4"
 description = "Python bindings for raylib graphics library (CFFI)"
 requires-python = ">=3.8"
+dependencies = ["cffi>=1.15.1"]
 
 [tool.setuptools.packages.find]
-include = ["raylib_python_cffi*"]
+include = ["raylib*"]
 
 [tool.setuptools.package-data]
-raylib_python_cffi = ["install/**/*"]
+raylib = ["install/**/*"]
