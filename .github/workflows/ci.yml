@@ -17,6 +17,8 @@ jobs:
             runs-on: ubuntu-latest
           - platform: linux-arm64
             runs-on: ubuntu-24.04-arm
+          - platform: linux-x86_64-musl
+            runs-on: ubuntu-latest
           - platform: macos
             runs-on: macos-latest
     steps:
@@ -32,9 +34,11 @@ jobs:
             */*/bin
       - name: Build wheels
         env:
-          MANYLINUX: ${{ runner.os == 'Linux' && '1' || '0' }}
+          MANYLINUX: ${{ (!contains(matrix.platform, 'musl') && runner.os == 'Linux') && '1' || '0' }}
+          MUSL: ${{ contains(matrix.platform, 'musl') && '1' || '0' }}
           UV_CACHE_DIR: ${{ github.workspace }}/.uv-cache
           BUILD_SH_REUSE_MANYLINUX_ARTIFACTS: "1"
+          BUILD_SH_REUSE_MUSL_ARTIFACTS: "1"
         run: ./build.sh
       - uses: actions/upload-artifact@v4
         with:
@@ -65,12 +69,14 @@ jobs:
             runs-on: ubuntu-latest
           - image: debian:bookworm-slim
             runs-on: ubuntu-24.04-arm
-          # TODO: add musl test
+          - image: alpine:3.21
+            runs-on: ubuntu-latest
+            musl: true
     steps:
       - uses: actions/checkout@v6
       - uses: actions/download-artifact@v4
         with:
-          name: ${{ contains(matrix.runs-on, 'arm') && 'wheels-linux-arm64' || 'wheels-linux-x86_64' }}
+          name: ${{ matrix.musl && 'wheels-linux-x86_64-musl' || (contains(matrix.runs-on, 'arm') && 'wheels-linux-arm64' || 'wheels-linux-x86_64') }}
           path: dist/
       - run: ./test_wheels_in_image.sh "${{ matrix.image }}"
 

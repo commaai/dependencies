@@ -23,10 +23,20 @@ DATADIR = _cfg["tool"]["shim"]["datadir"]
 VERSION = _cfg["project"]["version"]
 MODULE = _cfg["project"]["name"].replace("-", "_")
 
+def _is_musl():
+  """Detect musl libc by checking for the musl dynamic linker."""
+  import platform
+  return os.path.exists(f"/lib/ld-musl-{platform.machine()}.so.1")
+
 PLATFORM_MAP = {
   ("Linux", "x86_64"): "linux_x86_64",
   ("Linux", "aarch64"): "linux_aarch64",
   ("Darwin", "arm64"): "macosx_11_0_arm64",
+}
+
+MUSL_PLATFORM_MAP = {
+  ("Linux", "x86_64"): "musllinux_1_2_x86_64",
+  ("Linux", "aarch64"): "musllinux_1_2_aarch64",
 }
 
 
@@ -36,7 +46,8 @@ class InstallPrebuilt(build_py):
 
     if not os.path.exists(os.path.join(data_dir, "bin")):
       key = (platform.system(), platform.machine())
-      plat = PLATFORM_MAP.get(key)
+      pmap = MUSL_PLATFORM_MAP if _is_musl() else PLATFORM_MAP
+      plat = pmap.get(key)
       if plat is None:
         raise RuntimeError(f"unsupported platform: {key}")
 

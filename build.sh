@@ -5,13 +5,14 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 cd "$ROOT_DIR"
 
 if [[ $# -gt 0 ]]; then
-  echo "usage: MANYLINUX=1 ./build.sh" >&2
+  echo "usage: MANYLINUX=1 ./build.sh  or  MUSL=1 ./build.sh" >&2
   exit 2
 fi
 
 USE_MANYLINUX="${MANYLINUX:-0}"
+USE_MUSL="${MUSL:-0}"
 
-if [[ -z "${BUILD_SH_IN_MANYLINUX:-}" ]] && ! command -v uv >/dev/null 2>&1; then
+if [[ -z "${BUILD_SH_IN_MANYLINUX:-}" ]] && [[ -z "${BUILD_SH_IN_MUSL:-}" ]] && ! command -v uv >/dev/null 2>&1; then
   ./setup.sh
 fi
 
@@ -31,12 +32,39 @@ if [[ "$USE_MANYLINUX" == "1" && -z "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
   exit 0
 fi
 
+if [[ "$USE_MUSL" == "1" && -z "${BUILD_SH_IN_MUSL:-}" ]]; then
+  UV_BIN="$(command -v uv)"
+  docker run --rm \
+    -e BUILD_SH_IN_MUSL=1 \
+    -e BUILD_SH_REUSE_MUSL_ARTIFACTS="${BUILD_SH_REUSE_MUSL_ARTIFACTS:-}" \
+    -e HOME=/tmp \
+    -e UV_CACHE_DIR=/work/.uv-cache \
+    -v "$ROOT_DIR:/work" \
+    -v "$UV_BIN:/usr/local/bin/uv:ro" \
+    -w /work \
+    "alpine:3.21" \
+    sh -c 'apk add --no-cache bash && bash build.sh'
+  exit 0
+fi
+
 if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
   export PATH="/opt/python/cp312-cp312/bin:$PATH"
 
   ./setup.sh
 
   if [[ -z "${BUILD_SH_REUSE_MANYLINUX_ARTIFACTS:-}" ]]; then
+    for toml in */pyproject.toml; do
+      pkg="${toml%/pyproject.toml}"
+      module="${pkg//-/_}"
+      rm -rf "$pkg/$module/install" "$pkg/$module/toolchain" "$pkg/$module/bin"
+    done
+  fi
+fi
+
+if [[ -n "${BUILD_SH_IN_MUSL:-}" ]]; then
+  ./setup.sh
+
+  if [[ -z "${BUILD_SH_REUSE_MUSL_ARTIFACTS:-}" ]]; then
     for toml in */pyproject.toml; do
       pkg="${toml%/pyproject.toml}"
       module="${pkg//-/_}"
@@ -52,6 +80,8 @@ uv build --all-packages --wheel --out-dir dist --no-create-gitignore --no-build-
 
 if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
   VENV_DIR="$ROOT_DIR/.venv-manylinux"
+elif [[ -n "${BUILD_SH_IN_MUSL:-}" ]]; then
+  VENV_DIR="$ROOT_DIR/.venv-musl"
 else
   VENV_DIR="$ROOT_DIR/.venv"
 fi
