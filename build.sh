@@ -33,17 +33,15 @@ if [[ "$USE_MANYLINUX" == "1" && -z "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
 fi
 
 if [[ "$USE_MUSL" == "1" && -z "${BUILD_SH_IN_MUSL:-}" ]]; then
-  UV_BIN="$(command -v uv)"
   docker run --rm \
     -e BUILD_SH_IN_MUSL=1 \
     -e BUILD_SH_REUSE_MUSL_ARTIFACTS="${BUILD_SH_REUSE_MUSL_ARTIFACTS:-}" \
     -e HOME=/tmp \
     -e UV_CACHE_DIR=/work/.uv-cache \
     -v "$ROOT_DIR:/work" \
-    -v "$UV_BIN:/usr/local/bin/uv:ro" \
     -w /work \
     "alpine:3.21" \
-    sh -c 'apk add --no-cache bash && bash build.sh'
+    sh -c 'apk add --no-cache bash python3 && bash build.sh'
   exit 0
 fi
 
@@ -63,6 +61,7 @@ fi
 
 if [[ -n "${BUILD_SH_IN_MUSL:-}" ]]; then
   ./setup.sh
+  export PATH="$HOME/.local/bin:$PATH"
 
   if [[ -z "${BUILD_SH_REUSE_MUSL_ARTIFACTS:-}" ]]; then
     for toml in */pyproject.toml; do
