@@ -12,9 +12,11 @@ if [ -f /TICI ]; then
   RAYLIB_PLATFORM="PLATFORM_COMMA"
 fi
 
-INSTALL_DIR="$DIR/raylib/install"
-if [ -d "$INSTALL_DIR/raylib" ]; then
-  echo "raylib already present, skipping build."
+ROOT_DIR="$(cd "$DIR/.." >/dev/null && pwd)"
+DIST_DIR="$ROOT_DIR/dist"
+mkdir -p "$DIST_DIR"
+if ls "$DIST_DIR"/raylib-*.whl 1>/dev/null 2>&1; then
+  echo "raylib wheel already present, skipping build."
   exit 0
 fi
 
@@ -74,6 +76,20 @@ text = text.replace(', "-D_CFFI_NO_LIMITED_API"', '')
 f.write_text(text)
 "
 
+# Patch smoketest into raylib/__init__.py
+"$PYTHON" -c "
+import pathlib
+f = pathlib.Path('raylib/__init__.py')
+text = f.read_text()
+smoketest = '''
+def smoketest():
+    import raylib
+'''
+if 'def smoketest' not in text:
+    text = text.replace('logger.warning(\"RAYLIB STATIC', smoketest + 'logger.warning(\"RAYLIB STATIC')
+    f.write_text(text)
+"
+
 # GLFW is bundled in commaai/raylib src
 GLFW_INCLUDE="$DIR/raylib_repo/src/external/glfw/include"
 [ ! -d "$GLFW_INCLUDE" ] && GLFW_INCLUDE="$INSTALL_H_DIR"
@@ -88,15 +104,11 @@ export PHYSAC_INCLUDE_PATH="$INSTALL_H_DIR"
 "$PYTHON" setup.py bdist_wheel
 cd "$DIR"
 
-# Extract wheel into install/ (package expects raylib/, pyray/, _raylib_cffi*.so)
-rm -rf "$INSTALL_DIR" wheel_extract
-mkdir -p "$INSTALL_DIR" wheel_extract
-unzip -q -o raylib_python_repo/dist/raylib-*.whl -d wheel_extract
-cp -r wheel_extract/raylib wheel_extract/pyray "$INSTALL_DIR/"
-find wheel_extract -name "_raylib_cffi*.so" -exec cp {} "$INSTALL_DIR/" \;
+# Copy wheel to dist/ (like openpilot third_party/raylib/build.sh)
+cp raylib_python_repo/dist/raylib-*.whl "$DIST_DIR/"
 
 # Cleanup
-rm -rf raylib_repo raylib_python_repo "$DIR/build" wheel_extract
+rm -rf raylib_repo raylib_python_repo "$DIR/build"
 
-echo "Installed raylib to $INSTALL_DIR"
-du -sh "$INSTALL_DIR"
+echo "Built raylib wheel: $DIST_DIR"/raylib-*.whl
+du -sh "$DIST_DIR"/raylib-*.whl

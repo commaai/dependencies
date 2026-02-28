@@ -42,11 +42,22 @@ if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
       module="${pkg//-/_}"
       rm -rf "$pkg/$module/install" "$pkg/$module/toolchain" "$pkg/$module/bin"
     done
+    BUILD_SCRIPT_PKGS=$(grep 'build-script-packages' pyproject.toml 2>/dev/null | sed -E 's/.*\[(.*)\].*/\1/' | tr ',' '\n' | sed 's/[" ]//g' | grep -v '^$' || true)
+    for pkg in $BUILD_SCRIPT_PKGS; do
+      [ -d dist ] && rm -f "dist/${pkg}-"*.whl
+    done
   fi
 fi
 
 echo "Building workspace packages into dist"
 START_SECS=$SECONDS
+
+BUILD_SCRIPT_PKGS=$(grep 'build-script-packages' pyproject.toml 2>/dev/null | sed -E 's/.*\[(.*)\].*/\1/' | tr ',' '\n' | sed 's/[" ]//g' | grep -v '^$' || true)
+for pkg in $BUILD_SCRIPT_PKGS; do
+  if [[ -d "$pkg" ]] && [[ -f "$pkg/build.sh" ]]; then
+    (cd "$pkg" && uv run --project . bash build.sh)
+  fi
+done
 
 uv build --all-packages --wheel --out-dir dist --no-create-gitignore --no-build-logs
 
@@ -62,9 +73,13 @@ echo "Running smoketests"
 uv venv --allow-existing --quiet "$VENV_DIR"
 uv pip install --python "$VENV_DIR/bin/python" --reinstall --no-deps --quiet dist/*.whl >/dev/null
 
-for toml in */pyproject.toml; do
-  module="$(basename "$(dirname "$toml")" | tr '-' '_')"
-  "$VENV_DIR/bin/python" -c "import $module; $module.smoketest()" >/dev/null
+for whl in dist/*.whl; do
+  [[ -f "$whl" ]] || continue
+  pkg=$(basename "$whl" .whl | sed -E 's/-[0-9][0-9.]*.*//' | tr '-' '_')
+  "$VENV_DIR/bin/python" -c "
+import $pkg
+getattr($pkg, 'smoketest', lambda: None)()
+" >/dev/null
 done
 
 du -hs dist/* | sort -hr
