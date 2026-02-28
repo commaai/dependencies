@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "raylib-python-cffi"
+version = "5.5.0.4"
+description = "Python bindings for raylib graphics library (CFFI)"
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+include = ["raylib_python_cffi*"]
+
+[tool.setuptools.package-data]
+raylib_python_cffi = ["install/**/*"]
