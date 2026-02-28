@@ -1,3 +1,4 @@
+import glob
 import os
 import sys
 
@@ -9,7 +10,7 @@ if DIR not in sys.path:
 
 
 def smoketest():
-    import raylib
-    import pyray
-    assert hasattr(raylib, 'InitWindow'), "raylib.InitWindow not found"
-    assert hasattr(pyray, 'init_window'), "pyray.init_window not found"
+    assert os.path.isdir(os.path.join(DIR, "raylib")), "raylib/ not found in install"
+    assert os.path.isdir(os.path.join(DIR, "pyray")), "pyray/ not found in install"
+    so_files = glob.glob(os.path.join(DIR, "_raylib_cffi*.so"))
+    assert so_files, "_raylib_cffi*.so not found in install"

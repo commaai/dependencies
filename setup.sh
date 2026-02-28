@@ -17,10 +17,12 @@ run_as_root() {
 if [ "$(uname)" = "Darwin" ]; then
   brew install nasm pkg-config
 elif command -v dnf &>/dev/null; then
-  dnf install -y nasm cmake gcc-c++ pkgconfig git perl-IPC-Cmd
+  dnf install -y nasm cmake gcc-c++ pkgconfig git perl-IPC-Cmd \
+    libX11-devel libXrandr-devel libXcursor-devel libXi-devel libXinerama-devel mesa-libGL-devel
 elif command -v apt-get &>/dev/null; then
   run_as_root apt-get update
-  run_as_root apt-get install -y nasm cmake g++ pkg-config curl
+  run_as_root apt-get install -y nasm cmake g++ pkg-config curl \
+    libx11-dev libxrandr-dev libxcursor-dev libxi-dev libxinerama-dev libgl-dev
 fi
 
 if ! command -v uv &>/dev/null; then

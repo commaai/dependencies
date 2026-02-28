@@ -17,6 +17,7 @@ PYTHON="${PYTHON_EXECUTABLE:-python3}"
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
 # Clone at specific commit with submodules (raylib-c, raygui, physac)
+# Note: raylib-c's GLFW is bundled in-tree, no sub-submodule needed
 SRC="$DIR/raylib-python-cffi-src"
 if [ ! -d "$SRC" ]; then
   git clone https://github.com/electronstudio/raylib-python-cffi.git "$SRC"
@@ -26,22 +27,16 @@ if [ ! -d "$SRC" ]; then
   cd "$DIR"
 fi
 
-# Build raylib C library from source
-RAYLIB_INSTALL="$DIR/build/raylib-install"
-cmake -S "$SRC/raylib-c" -B "$DIR/build/raylib-c" \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DBUILD_SHARED_LIBS=OFF \
-  -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-  -DBUILD_EXAMPLES=OFF \
-  -DGLFW_BUILD_WAYLAND=OFF \
-  -DCMAKE_INSTALL_PREFIX="$RAYLIB_INSTALL" \
-  -DCMAKE_INSTALL_LIBDIR=lib
-cmake --build "$DIR/build/raylib-c" -j"$NJOBS"
-cmake --install "$DIR/build/raylib-c"
+# Build raylib C static library via its Makefile (same approach as openpilot)
+RAYLIB_INSTALL="$DIR/build/raylib"
+mkdir -p "$RAYLIB_INSTALL"
+make -j"$NJOBS" -C "$SRC/raylib-c/src" \
+  PLATFORM=PLATFORM_DESKTOP \
+  RAYLIB_RELEASE_PATH="$RAYLIB_INSTALL"
 
 # Set env vars for the CFFI builder (raylib/build.py reads these)
-export RAYLIB_LINK_ARGS="$RAYLIB_INSTALL/lib/libraylib.a"
-export RAYLIB_INCLUDE_PATH="$RAYLIB_INSTALL/include"
+export RAYLIB_LINK_ARGS="$RAYLIB_INSTALL/libraylib.a"
+export RAYLIB_INCLUDE_PATH="$SRC/raylib-c/src"
 export RAYGUI_INCLUDE_PATH="$SRC/raygui/src"
 export PHYSAC_INCLUDE_PATH="$SRC/physac/src"
 export GLFW_INCLUDE_PATH="$SRC/raylib-c/src/external/glfw/include"
