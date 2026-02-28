@@ -16,8 +16,6 @@ run_as_root() {
 
 if [ "$(uname)" = "Darwin" ]; then
   brew install nasm pkg-config
-elif command -v apk &>/dev/null; then
-  apk add --no-cache nasm cmake g++ pkgconf make git perl linux-headers curl tar
 elif command -v dnf &>/dev/null; then
   dnf install -y nasm cmake gcc-c++ pkgconfig git perl-IPC-Cmd
 elif command -v apt-get &>/dev/null; then
