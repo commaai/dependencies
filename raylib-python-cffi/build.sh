@@ -28,14 +28,16 @@ fi
 # Build into a temporary prefix using pip
 PREFIX="$DIR/build/prefix"
 mkdir -p "$PREFIX"
-MAKEFLAGS="-j${NJOBS}" python3 -m pip install \
+PYTHON="${PYTHON_EXECUTABLE:-python3}"
+
+MAKEFLAGS="-j${NJOBS}" "$PYTHON" -m pip install \
   --prefix="$PREFIX" \
   --no-deps \
   --no-build-isolation \
   "./raylib-python-cffi-src/"
 
 # Locate installed site-packages
-SITE_PKG=$(python3 -c "
+SITE_PKG=$("$PYTHON" -c "
 import sysconfig, os
 prefix='$PREFIX'
 p = sysconfig.get_path('platlib', vars={'platbase': prefix, 'base': prefix})

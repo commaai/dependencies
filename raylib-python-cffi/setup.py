@@ -16,7 +16,9 @@ class BuildRaylibPythonCffi(build_py):
     pkg_dir = os.path.dirname(os.path.abspath(__file__))
     marker = os.path.join(pkg_dir, "raylib_python_cffi", "install", "raylib", "__init__.py")
     if not os.path.exists(marker):
-      subprocess.check_call(["bash", os.path.join(pkg_dir, "build.sh")], cwd=pkg_dir)
+      env = dict(os.environ)
+      env["PYTHON_EXECUTABLE"] = sys.executable
+      subprocess.check_call(["bash", os.path.join(pkg_dir, "build.sh")], cwd=pkg_dir, env=env)
     super().run()
 
 
