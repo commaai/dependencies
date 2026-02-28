@@ -1,6 +1,5 @@
 import os
 import platform
-import sys
 import subprocess
 
 from setuptools.command.build_py import build_py
@@ -32,7 +31,6 @@ if bdist_wheel is not None:
       self.root_is_pure = False
 
     def get_tag(self):
-      py = f"cp{sys.version_info.major}{sys.version_info.minor}"
       system = platform.system()
       machine = platform.machine()
       if system == "Linux":
@@ -41,7 +39,8 @@ if bdist_wheel is not None:
         plat = "macosx_11_0_arm64"
       else:
         plat = f"{system.lower()}_{machine}"
-      return py, py, plat
+      # stable ABI: installable on Python 3.8+
+      return "cp38", "abi3", plat
 
   cmdclass["bdist_wheel"] = PlatformWheel
 

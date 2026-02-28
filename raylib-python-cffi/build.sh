@@ -27,6 +27,17 @@ if [ ! -d "$SRC" ]; then
   cd "$DIR"
 fi
 
+# Patch upstream build.py to use stable ABI so the wheel installs on Python 3.8+
+# (upstream hardcodes py_limited_api=False and -D_CFFI_NO_LIMITED_API)
+"$PYTHON" -c "
+import pathlib
+f = pathlib.Path('$SRC/raylib/build.py')
+text = f.read_text()
+text = text.replace('py_limited_api=False', 'py_limited_api=True')
+text = text.replace(', \"-D_CFFI_NO_LIMITED_API\"', '')
+f.write_text(text)
+"
+
 # Build raylib C static library via its Makefile (same approach as openpilot)
 RAYLIB_INSTALL="$DIR/build/raylib"
 mkdir -p "$RAYLIB_INSTALL"
