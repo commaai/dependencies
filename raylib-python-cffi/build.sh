@@ -31,6 +31,7 @@ mkdir -p "$PREFIX"
 MAKEFLAGS="-j${NJOBS}" python3 -m pip install \
   --prefix="$PREFIX" \
   --no-deps \
+  --no-build-isolation \
   "./raylib-python-cffi-src/"
 
 # Locate installed site-packages
