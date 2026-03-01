@@ -4,11 +4,12 @@ set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 cd "$DIR"
 
-VERSION="4a14cb2e81235ecd656e799aecaaf139db8ce4a2"
+VERSION="6067afde563c3946eebd94f146b3824ab7a97a9c"
 INSTALL_DIR="$DIR/libyuv/install"
+VERSION_FILE="$INSTALL_DIR/VERSION"
 
-# Idempotent: skip if already built.
-if [ -f "$INSTALL_DIR/lib/libyuv.a" ]; then
+# Idempotent: skip if already built at this source revision.
+if [ -f "$INSTALL_DIR/lib/libyuv.a" ] && [ -f "$VERSION_FILE" ] && [ "$(cat "$VERSION_FILE")" = "$VERSION" ]; then
   echo "libyuv already present, skipping build."
   exit 0
 fi
@@ -46,6 +47,7 @@ rm -rf "$INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"/{lib,include}
 cp "$LIBYUV_STATIC" "$INSTALL_DIR/lib/libyuv.a"
 cp -r "$DIR/libyuv-src/include/." "$INSTALL_DIR/include/"
+echo "$VERSION" > "$VERSION_FILE"
 
 # Keep workspace small and deterministic across builds.
 rm -rf "$DIR/libyuv-src" "$DIR/build"
