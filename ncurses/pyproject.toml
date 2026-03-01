@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64", "wheel", 'tomli; python_version < "3.11"']
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ncurses"
+version = "6.5"
+description = "ncurses terminal library (static build) (pre-built)"
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+include = ["ncurses*"]
+
+[tool.setuptools.package-data]
+ncurses = ["install/**/*", "*.so"]
+
+[tool.shim]
+repo_url = "https://github.com/commaai/dependencies"
+tag = "ncurses/v6.5"
+datadir = "install"

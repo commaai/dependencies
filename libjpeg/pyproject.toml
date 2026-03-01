@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64", "wheel", 'tomli; python_version < "3.11"']
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "libjpeg"
+version = "3.1.0"
+description = "libjpeg-turbo JPEG library (static build) (pre-built)"
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+include = ["libjpeg*"]
+
+[tool.setuptools.package-data]
+libjpeg = ["install/**/*", "*.so"]
+
+[tool.shim]
+repo_url = "https://github.com/commaai/dependencies"
+tag = "libjpeg/v3.1.0"
+datadir = "install"

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64", "wheel", 'tomli; python_version < "3.11"']
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "python3-dev"
+version = "3.12.8"
+description = "CPython development headers (pre-built)"
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+include = ["python3_dev*"]
+
+[tool.setuptools.package-data]
+python3_dev = ["install/**/*", "*.so"]
+
+[tool.shim]
+repo_url = "https://github.com/commaai/dependencies"
+tag = "python3-dev/v3.12.8"
+datadir = "install"
