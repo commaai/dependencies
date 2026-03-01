@@ -13,6 +13,7 @@ members = [
   "ncurses",
   "openssl3",
   "python3-dev",
+  "qt5",
   "raylib",
   "zeromq",
   "zstd",
