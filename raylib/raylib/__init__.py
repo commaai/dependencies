@@ -1,8 +1,19 @@
 import os
+import platform as _platform
 
 DIR = os.path.join(os.path.dirname(__file__), "install")
 LIB_DIR = os.path.join(DIR, "lib")
 INCLUDE_DIR = os.path.join(DIR, "include")
+
+
+def _detect_platform():
+  """Auto-detect the raylib platform. In CI on Linux x86_64, use offscreen EGL rendering."""
+  explicit = os.environ.get("RAYLIB_PLATFORM", "")
+  if explicit:
+    return explicit
+  if os.environ.get("CI") and _platform.system() == "Linux" and _platform.machine() == "x86_64":
+    return "PLATFORM_OFFSCREEN"
+  return ""
 
 
 def smoketest():
@@ -11,14 +22,22 @@ def smoketest():
 
 
 # Build CFFI extension on first import if not already compiled,
-# or rebuild if RAYLIB_PLATFORM changed since last build.
+# or rebuild if the target platform changed since last build.
 def _ensure_cffi_built():
   import glob
   import subprocess
   import sys
   pkg_dir = os.path.dirname(__file__)
   platform_marker = os.path.join(pkg_dir, ".raylib_platform")
-  requested = os.environ.get("RAYLIB_PLATFORM", "")
+  requested = _detect_platform()
+
+  # Export so build.py picks it up
+  if requested:
+    os.environ["RAYLIB_PLATFORM"] = requested
+    # Mesa llvmpipe for software rendering in headless CI
+    if requested == "PLATFORM_OFFSCREEN":
+      os.environ.setdefault("LIBGL_ALWAYS_SOFTWARE", "1")
+
   cffi_files = glob.glob(os.path.join(pkg_dir, "_raylib_cffi*"))
 
   # Rebuild if platform changed
