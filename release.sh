@@ -58,8 +58,27 @@ for toml in sorted(pathlib.Path(".").glob("*/pyproject.toml")):
   pkg_dir = tmp_dir / pkg
   mod_dir = pkg_dir / module
   mod_dir.mkdir(parents=True, exist_ok=True)
-  shutil.copy2(pathlib.Path(pkg) / module / "__init__.py", mod_dir / "__init__.py")
+
+  # copy all .py files from the main module
+  src_mod = pathlib.Path(pkg) / module
+  for py_file in src_mod.glob("*.py"):
+    shutil.copy2(py_file, mod_dir / py_file.name)
+
+  # copy extra packages (e.g. pyray for raylib)
+  include_patterns = data.get("tool", {}).get("setuptools", {}).get("packages", {}).get("find", {}).get("include", [])
+  extra_packages = []
+  for pattern in include_patterns:
+    p = pattern.rstrip("*")
+    if p and p != module and p != f"{module}/":
+      src_extra = pathlib.Path(pkg) / p
+      if src_extra.is_dir():
+        dst_extra = pkg_dir / p
+        shutil.copytree(src_extra, dst_extra, dirs_exist_ok=True)
+        extra_packages.append(pattern)
+
   shutil.copy2(shim_setup, pkg_dir / "setup.py")
+
+  deps = data.get("project", {}).get("dependencies", [])
 
   lines = [
     "[build-system]",
@@ -73,15 +92,19 @@ for toml in sorted(pathlib.Path(".").glob("*/pyproject.toml")):
     'requires-python = ">=3.8"',
   ]
 
+  if deps:
+    lines.append(f"dependencies = {json.dumps(deps)}")
+
   if scripts:
     lines += ["", "[project.scripts]"]
     for name, target in scripts.items():
       lines.append(f'"{name}" = {json.dumps(target)}')
 
+  find_include = [f"{module}*"] + extra_packages
   lines += [
     "",
     "[tool.setuptools.packages.find]",
-    f'include = ["{module}*"]',
+    f"include = {json.dumps(find_include)}",
     "",
     "[tool.setuptools.package-data]",
     f'{module} = ["{datadir}/**/*"]',
