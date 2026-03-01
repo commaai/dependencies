@@ -8,6 +8,7 @@ members = [
   "gcc-arm-none-eabi",
   "git-lfs",
   "libjpeg",
+  "libyuv",
   "ncurses",
   "openssl3",
   "python3-dev",
