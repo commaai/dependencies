@@ -1,6 +1,8 @@
+import glob
 import os
 import platform
 import subprocess
+import sys
 
 from setuptools import setup
 from setuptools.command.build_py import build_py
@@ -12,7 +14,7 @@ except ImportError:
 
 
 class BuildRaylib(build_py):
-  """Run build.sh to compile the C library before collecting package data."""
+  """Run build.sh to compile the C library and CFFI extension before collecting package data."""
 
   def run(self):
     pkg_dir = os.path.dirname(os.path.abspath(__file__))
@@ -21,6 +23,13 @@ class BuildRaylib(build_py):
     if not os.path.exists(marker):
       build_script = os.path.join(pkg_dir, "build.sh")
       subprocess.check_call(["bash", build_script], cwd=pkg_dir)
+
+    # Build CFFI extension so it's included in the wheel
+    cffi_so = glob.glob(os.path.join(pkg_dir, "raylib", "_raylib_cffi*"))
+    if not cffi_so:
+      build_cffi = os.path.join(pkg_dir, "raylib", "build.py")
+      if os.path.isfile(build_cffi):
+        subprocess.check_call([sys.executable, build_cffi], cwd=pkg_dir)
 
     super().run()
 

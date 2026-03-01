@@ -32,7 +32,8 @@ PLATFORM_MAP = {
 
 class InstallPrebuilt(build_py):
   def run(self):
-    data_dir = os.path.join(_HERE, MODULE, DATADIR)
+    module_dir = os.path.join(_HERE, MODULE)
+    data_dir = os.path.join(module_dir, DATADIR)
 
     if not os.path.exists(os.path.join(data_dir, "bin")):
       key = (platform.system(), platform.machine())
@@ -60,6 +61,24 @@ class InstallPrebuilt(build_py):
               if info.is_dir():
                 os.makedirs(dest, exist_ok=True)
               else:
+                os.makedirs(os.path.dirname(dest), exist_ok=True)
+                with open(dest, "wb") as f:
+                  f.write(zf.read(info))
+                if info.external_attr >> 16 & 0o111:
+                  os.chmod(dest, 0o755)
+              break
+
+        # Also extract compiled extension modules (.so)
+        ext_prefix = f"{MODULE}/"
+        ext_alt_prefix = f"{MODULE}-{VERSION}.data/purelib/{MODULE}/"
+        for info in zf.infolist():
+          if not info.filename.endswith('.so'):
+            continue
+          for p in (ext_prefix, ext_alt_prefix):
+            if info.filename.startswith(p):
+              rel = info.filename[len(p):]
+              if rel and '/' not in rel:
+                dest = os.path.join(module_dir, rel)
                 os.makedirs(os.path.dirname(dest), exist_ok=True)
                 with open(dest, "wb") as f:
                   f.write(zf.read(info))
