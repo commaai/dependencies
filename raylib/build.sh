@@ -33,6 +33,15 @@ if [[ "$(uname)" == "Linux" ]]; then
         sudo apt-get update && sudo apt-get install -y libdrm-dev libgbm-dev libgles2-mesa-dev libegl1-mesa-dev || true
       fi
     fi
+  elif [ "$RAYLIB_PLATFORM" = "PLATFORM_OFFSCREEN" ]; then
+    # offscreen (CI): needs EGL/GL dev packages (no X11)
+    if command -v apt-get &>/dev/null; then
+      if [ "$(id -u)" -eq 0 ]; then
+        apt-get update && apt-get install -y libegl-dev libgl-dev
+      else
+        sudo apt-get update && sudo apt-get install -y libegl-dev libgl-dev
+      fi
+    fi
   else
     # desktop: needs X11/GL dev packages
     if command -v dnf &>/dev/null; then
@@ -48,10 +57,10 @@ if [[ "$(uname)" == "Linux" ]]; then
 fi
 
 # Clone and build raylib C library
-RAYLIB_COMMIT="aa6ade09ac4bfb2847a356535f2d9f87e49ab089"
+RAYLIB_COMMIT="d9d7cc1353ec0f73c97e84ddf0973983d1ee25e2"
 
 if [ ! -d "raylib-src" ]; then
-  git clone -b master --no-tags https://github.com/commaai/raylib.git raylib-src
+  git clone -b platform-offscreen --no-tags https://github.com/commaai/raylib.git raylib-src
 fi
 
 cd raylib-src
@@ -70,6 +79,29 @@ mkdir -p "$INSTALL_DIR"/{lib,include}
 
 cp raylib-src/src/libraylib.a "$INSTALL_DIR/lib/"
 cp raylib-src/src/raylib.h raylib-src/src/raymath.h raylib-src/src/rlgl.h "$INSTALL_DIR/include/"
+
+# On x86_64 Linux, also build the offscreen variant for CI headless rendering
+if [[ "$(uname)" == "Linux" && "$(uname -m)" == "x86_64" && "$RAYLIB_PLATFORM" != "PLATFORM_OFFSCREEN" ]]; then
+  echo "Building offscreen variant..."
+  cd raylib-src/src
+  make clean
+  make -j"$NJOBS" PLATFORM=PLATFORM_OFFSCREEN
+  cp libraylib.a "$INSTALL_DIR/lib/libraylib_offscreen.a"
+  cd "$DIR"
+
+  # Bundle GLVND dispatchers so offscreen rendering works without extra system packages
+  MESA_DIR="$INSTALL_DIR/lib/mesa"
+  mkdir -p "$MESA_DIR"
+  for lib in libEGL.so.1 libOpenGL.so.0 libGLdispatch.so.0; do
+    src="$(ldconfig -p 2>/dev/null | grep "$lib" | grep 'x86-64' | awk '{print $NF}' | head -1)"
+    if [ -n "$src" ] && [ -f "$src" ]; then
+      cp -L "$src" "$MESA_DIR/"
+      # Create unversioned symlink for the linker
+      base="${lib%%.so.*}"
+      ln -sf "$lib" "$MESA_DIR/${base}.so"
+    fi
+  done
+fi
 
 # Download raygui header
 RAYGUI_COMMIT="76b36b597edb70ffaf96f046076adc20d67e7827"

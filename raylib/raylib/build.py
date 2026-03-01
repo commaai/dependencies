@@ -104,6 +104,17 @@ def build_ffi():
     if RAYLIB_PLATFORM == "PLATFORM_COMMA":
       extra_link_args.remove('-lGL')
       extra_link_args += ['-lGLESv2', '-lEGL', '-lgbm', '-ldrm']
+    elif RAYLIB_PLATFORM == "PLATFORM_OFFSCREEN":
+      # Use offscreen variant if available, otherwise fall back to default
+      offscreen_lib = os.path.join(RAYLIB_LIB_PATH, 'libraylib_offscreen.a')
+      if os.path.isfile(offscreen_lib):
+        extra_link_args[extra_link_args.index('-lraylib')] = '-lraylib_offscreen'
+      extra_link_args.remove('-lGL')
+      # Use bundled GLVND dispatchers if available, with RPATH for runtime
+      mesa_dir = os.path.join(RAYLIB_LIB_PATH, 'mesa')
+      if os.path.isdir(mesa_dir):
+        extra_link_args += [f'-L{mesa_dir}', f'-Wl,-rpath,$ORIGIN/install/lib/mesa']
+      extra_link_args += ['-lOpenGL', '-lEGL']
     else:
       extra_link_args += ['-lX11']
     extra_compile_args = ["-Wno-incompatible-pointer-types"]
