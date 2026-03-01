@@ -93,7 +93,7 @@ def build_ffi():
       '-framework', 'CoreVideo',
     ]
     libraries = []
-    extra_compile_args = ["-Wno-error=incompatible-function-pointer-types", "-D_CFFI_NO_LIMITED_API"]
+    extra_compile_args = ["-Wno-error=incompatible-function-pointer-types"]
   else:
     print("BUILDING FOR LINUX")
     extra_link_args = [
@@ -106,13 +106,13 @@ def build_ffi():
       extra_link_args += ['-lGLESv2', '-lEGL', '-lgbm', '-ldrm']
     else:
       extra_link_args += ['-lX11']
-    extra_compile_args = ["-Wno-incompatible-pointer-types", "-D_CFFI_NO_LIMITED_API"]
+    extra_compile_args = ["-Wno-incompatible-pointer-types"]
     libraries = []
 
   print("extra_link_args: " + str(extra_link_args))
   ffibuilder.set_source("raylib._raylib_cffi",
                         ffi_includes,
-                        py_limited_api=False,
+                        py_limited_api=True,
                         include_dirs=[RAYLIB_INCLUDE_PATH],
                         extra_link_args=extra_link_args,
                         extra_compile_args=extra_compile_args,
