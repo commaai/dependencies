@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "libyuv"
+version = "1922.0"
+description = "libyuv image processing library (static build)"
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+include = ["libyuv*"]
+
+[tool.setuptools.package-data]
+libyuv = ["install/**/*"]
