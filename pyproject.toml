@@ -7,6 +7,7 @@ members = [
   "ffmpeg",
   "gcc-arm-none-eabi",
   "git-lfs",
+  "json11",
   "libjpeg",
   "libyuv",
   "ncurses",

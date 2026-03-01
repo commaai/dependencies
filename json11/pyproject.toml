@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "json11"
+version = "20170411.0"
+description = "json11 JSON parser library (static build)"
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+include = ["json11*"]
+
+[tool.setuptools.package-data]
+json11 = ["install/**/*"]
