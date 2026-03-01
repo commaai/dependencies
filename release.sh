@@ -107,7 +107,7 @@ for toml in sorted(pathlib.Path(".").glob("*/pyproject.toml")):
     f"include = {json.dumps(find_include)}",
     "",
     "[tool.setuptools.package-data]",
-    f'{module} = ["{datadir}/**/*"]',
+    f'{module} = ["{datadir}/**/*", "*.so"]',
     "",
     "[tool.shim]",
     f'repo_url = "{repo_url}"',
