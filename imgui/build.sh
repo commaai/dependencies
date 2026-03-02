@@ -41,6 +41,9 @@ cp "$TMPDIR/imgui/imgui.h" "$TMPDIR/imgui/imgui_internal.h" "$TMPDIR/imgui/imcon
 cp "$TMPDIR/imgui/imgui.cpp" "$TMPDIR/imgui/imgui_draw.cpp" "$TMPDIR/imgui/imgui_tables.cpp" \
    "$TMPDIR/imgui/imgui_widgets.cpp" "$TMPDIR/imgui/imgui_demo.cpp" \
    "$INSTALL_DIR/src/"
+cp "$TMPDIR/imgui/backends/imgui_impl_opengl3.h" "$TMPDIR/imgui/backends/imgui_impl_opengl3_loader.h" \
+   "$INSTALL_DIR/include/"
+cp "$TMPDIR/imgui/backends/imgui_impl_opengl3.cpp" "$INSTALL_DIR/src/"
 
 echo "Downloading ImPlot ..."
 curl -fSL -o "$TMPDIR/implot.tar.gz" "$IMPLOT_URL"
