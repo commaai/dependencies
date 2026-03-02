@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64", "wheel", 'tomli; python_version < "3.11"']
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "imgui"
+version = "1.92.7"
+description = "Dear ImGui + ImPlot + rlImGui (source distribution)"
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+include = ["imgui*"]
+
+[tool.setuptools.package-data]
+imgui = ["install/**/*"]
+
+[tool.shim]
+repo_url = "https://github.com/commaai/dependencies"
+tag = "imgui/v1.92.7"
+datadir = "install"
