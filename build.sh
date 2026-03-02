@@ -11,6 +11,84 @@ fi
 
 USE_MANYLINUX="${MANYLINUX:-0}"
 
+package_artifact_dirs() {
+  local pkg="$1"
+  local module="${pkg//-/_}"
+  printf '%s\n' \
+    "$pkg/$module/install" \
+    "$pkg/$module/toolchain" \
+    "$pkg/$module/bin"
+}
+
+package_build_stamp() {
+  local pkg="$1"
+  python3 - "$pkg" <<'PY'
+import hashlib
+import platform
+import sys
+from pathlib import Path
+
+pkg = Path(sys.argv[1])
+files = [pkg / "build.sh", pkg / "setup.py", pkg / "pyproject.toml"]
+
+h = hashlib.sha256()
+h.update(platform.system().encode())
+h.update(b"\0")
+h.update(platform.machine().encode())
+
+for path in files:
+  h.update(b"\0")
+  h.update(path.name.encode())
+  h.update(b"\0")
+  h.update(path.read_bytes())
+
+print(h.hexdigest())
+PY
+}
+
+invalidate_stale_artifacts() {
+  local toml pkg stamp cached_stamp found dir
+  for toml in */pyproject.toml; do
+    pkg="${toml%/pyproject.toml}"
+    stamp="$(package_build_stamp "$pkg")"
+    cached_stamp=""
+    found=0
+
+    while IFS= read -r dir; do
+      if [[ -d "$dir" ]]; then
+        found=1
+        if [[ -z "$cached_stamp" && -f "$dir/.build-stamp" ]]; then
+          cached_stamp="$(cat "$dir/.build-stamp")"
+        fi
+      fi
+    done < <(package_artifact_dirs "$pkg")
+
+    if [[ "$found" -eq 0 ]]; then
+      continue
+    fi
+
+    if [[ "$cached_stamp" != "$stamp" ]]; then
+      echo "[$pkg] cache mismatch, removing stale artifacts"
+      while IFS= read -r dir; do
+        rm -rf "$dir"
+      done < <(package_artifact_dirs "$pkg")
+    fi
+  done
+}
+
+write_artifact_stamps() {
+  local toml pkg stamp dir
+  for toml in */pyproject.toml; do
+    pkg="${toml%/pyproject.toml}"
+    stamp="$(package_build_stamp "$pkg")"
+    while IFS= read -r dir; do
+      if [[ -d "$dir" ]]; then
+        printf '%s\n' "$stamp" > "$dir/.build-stamp"
+      fi
+    done < <(package_artifact_dirs "$pkg")
+  done
+}
+
 if [[ -z "${BUILD_SH_IN_MANYLINUX:-}" ]] && ! command -v uv >/dev/null 2>&1; then
   ./setup.sh
 fi
@@ -39,14 +117,20 @@ if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
   if [[ -z "${BUILD_SH_REUSE_MANYLINUX_ARTIFACTS:-}" ]]; then
     for toml in */pyproject.toml; do
       pkg="${toml%/pyproject.toml}"
-      module="${pkg//-/_}"
-      rm -rf "$pkg/$module/install" "$pkg/$module/toolchain" "$pkg/$module/bin"
+      while IFS= read -r dir; do
+        rm -rf "$dir"
+      done < <(package_artifact_dirs "$pkg")
     done
   fi
 fi
 
+invalidate_stale_artifacts
+
 echo "Building workspace packages into dist"
 START_SECS=$SECONDS
+
+mkdir -p dist
+rm -f dist/*.whl
 
 uv build --all-packages --wheel --out-dir dist --no-create-gitignore --no-build-logs
 
@@ -66,6 +150,8 @@ for toml in */pyproject.toml; do
   module="$(basename "$(dirname "$toml")" | tr '-' '_')"
   "$VENV_DIR/bin/python" -c "import $module; $module.smoketest()" >/dev/null
 done
+
+write_artifact_stamps
 
 du -hs dist/* | sort -hr
 
