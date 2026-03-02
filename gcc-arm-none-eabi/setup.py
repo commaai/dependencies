@@ -1,8 +1,10 @@
 """Shim setup.py: downloads pre-built wheels from GitHub Releases at install time."""
 import os
 import platform
+import time
 import zipfile
 from io import BytesIO
+from urllib.error import URLError
 from urllib.request import urlopen
 
 try:
@@ -45,7 +47,16 @@ class InstallPrebuilt(build_py):
       url = f"{REPO_URL}/releases/download/{TAG}/{whl_name}"
 
       print(f"Downloading {url} ...")
-      raw = urlopen(url).read()
+      for attempt in range(3):
+        try:
+          raw = urlopen(url, timeout=60).read()
+          break
+        except (URLError, OSError) as e:
+          if attempt == 2:
+            raise
+          wait = 2 ** attempt
+          print(f"Download failed ({e}), retrying in {wait}s ...")
+          time.sleep(wait)
 
       print(f"Extracting {DATADIR} ...")
       with zipfile.ZipFile(BytesIO(raw)) as zf:
