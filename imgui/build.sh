@@ -28,30 +28,36 @@ RLIMGUI_URL="https://github.com/raylib-extras/rlImGui/archive/${RLIMGUI_COMMIT}.
 rm -rf "$INSTALL_DIR"
 mkdir -p "$INSTALL_DIR/include/extras" "$INSTALL_DIR/src"
 
+TMPDIR="$(mktemp -d)"
+trap 'rm -rf "$TMPDIR"' EXIT
+
 echo "Downloading Dear ImGui ${IMGUI_VERSION} (docking) ..."
-curl -fSL "$IMGUI_URL" | tar xz --strip-components=1 -C /tmp/imgui-src --one-top-level=/tmp/imgui-src
-cp /tmp/imgui-src/imgui.h /tmp/imgui-src/imgui_internal.h /tmp/imgui-src/imconfig.h \
-   /tmp/imgui-src/imstb_rectpack.h /tmp/imgui-src/imstb_textedit.h /tmp/imgui-src/imstb_truetype.h \
+curl -fSL -o "$TMPDIR/imgui.tar.gz" "$IMGUI_URL"
+mkdir -p "$TMPDIR/imgui"
+tar --strip-components=1 -xzf "$TMPDIR/imgui.tar.gz" -C "$TMPDIR/imgui"
+cp "$TMPDIR/imgui/imgui.h" "$TMPDIR/imgui/imgui_internal.h" "$TMPDIR/imgui/imconfig.h" \
+   "$TMPDIR/imgui/imstb_rectpack.h" "$TMPDIR/imgui/imstb_textedit.h" "$TMPDIR/imgui/imstb_truetype.h" \
    "$INSTALL_DIR/include/"
-cp /tmp/imgui-src/imgui.cpp /tmp/imgui-src/imgui_draw.cpp /tmp/imgui-src/imgui_tables.cpp \
-   /tmp/imgui-src/imgui_widgets.cpp /tmp/imgui-src/imgui_demo.cpp \
+cp "$TMPDIR/imgui/imgui.cpp" "$TMPDIR/imgui/imgui_draw.cpp" "$TMPDIR/imgui/imgui_tables.cpp" \
+   "$TMPDIR/imgui/imgui_widgets.cpp" "$TMPDIR/imgui/imgui_demo.cpp" \
    "$INSTALL_DIR/src/"
-rm -rf /tmp/imgui-src
 
 echo "Downloading ImPlot ..."
-curl -fSL "$IMPLOT_URL" | tar xz --strip-components=1 -C /tmp/implot-src --one-top-level=/tmp/implot-src
-cp /tmp/implot-src/implot.h /tmp/implot-src/implot_internal.h "$INSTALL_DIR/include/"
-cp /tmp/implot-src/implot.cpp /tmp/implot-src/implot_items.cpp "$INSTALL_DIR/src/"
-rm -rf /tmp/implot-src
+curl -fSL -o "$TMPDIR/implot.tar.gz" "$IMPLOT_URL"
+mkdir -p "$TMPDIR/implot"
+tar --strip-components=1 -xzf "$TMPDIR/implot.tar.gz" -C "$TMPDIR/implot"
+cp "$TMPDIR/implot/implot.h" "$TMPDIR/implot/implot_internal.h" "$INSTALL_DIR/include/"
+cp "$TMPDIR/implot/implot.cpp" "$TMPDIR/implot/implot_items.cpp" "$INSTALL_DIR/src/"
 
 echo "Downloading rlImGui ..."
-curl -fSL "$RLIMGUI_URL" | tar xz --strip-components=1 -C /tmp/rlimgui-src --one-top-level=/tmp/rlimgui-src
-cp /tmp/rlimgui-src/rlImGui.h /tmp/rlimgui-src/rlImGuiColors.h /tmp/rlimgui-src/imgui_impl_raylib.h \
+curl -fSL -o "$TMPDIR/rlimgui.tar.gz" "$RLIMGUI_URL"
+mkdir -p "$TMPDIR/rlimgui"
+tar --strip-components=1 -xzf "$TMPDIR/rlimgui.tar.gz" -C "$TMPDIR/rlimgui"
+cp "$TMPDIR/rlimgui/rlImGui.h" "$TMPDIR/rlimgui/rlImGuiColors.h" "$TMPDIR/rlimgui/imgui_impl_raylib.h" \
    "$INSTALL_DIR/include/"
-cp /tmp/rlimgui-src/extras/FA6FreeSolidFontData.h /tmp/rlimgui-src/extras/IconsFontAwesome6.h \
+cp "$TMPDIR/rlimgui/extras/FA6FreeSolidFontData.h" "$TMPDIR/rlimgui/extras/IconsFontAwesome6.h" \
    "$INSTALL_DIR/include/extras/"
-cp /tmp/rlimgui-src/rlImGui.cpp "$INSTALL_DIR/src/"
-rm -rf /tmp/rlimgui-src
+cp "$TMPDIR/rlimgui/rlImGui.cpp" "$INSTALL_DIR/src/"
 
 echo "Installed imgui to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"
