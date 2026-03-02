@@ -7,18 +7,15 @@ cd "$DIR"
 VERSION="1.0.1"
 INSTALL_DIR="$DIR/capnproto/install"
 
-# Idempotent: skip if already built
-if [ -x "$INSTALL_DIR/bin/capnp" ]; then
-  echo "capnproto already present, skipping build."
-  exit 0
-fi
-
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
-# Clone
-if [ ! -d "capnproto-src" ]; then
-  git clone --depth 1 --branch "v${VERSION}" https://github.com/capnproto/capnproto.git capnproto-src
+# Clone/update source
+if [ ! -d "capnproto-src/.git" ]; then
+  rm -rf capnproto-src
+  git clone https://github.com/capnproto/capnproto.git capnproto-src
 fi
+git -C capnproto-src fetch --depth 1 origin "v${VERSION}"
+git -C capnproto-src checkout --force FETCH_HEAD
 
 # Build
 PREFIX="$DIR/build/prefix"
@@ -63,9 +60,6 @@ strip "$INSTALL_DIR/bin/capnp" "$INSTALL_DIR/bin/capnpc-c++" 2>/dev/null || true
 for obj in filesystem.c++.o main.c++.o test-helpers.c++.o; do
   ar d "$INSTALL_DIR/lib/libkj.a" "$obj" 2>/dev/null || true
 done
-
-# Clean up
-rm -rf capnproto-src "$DIR/build"
 
 echo "Installed capnproto to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"

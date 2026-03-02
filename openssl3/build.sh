@@ -6,22 +6,20 @@ cd "$DIR"
 
 VERSION="3.4.1"
 INSTALL_DIR="$DIR/openssl3/install"
-
-# Idempotent: skip if already built
-if [ -f "$INSTALL_DIR/lib/libcrypto.a" ]; then
-  echo "openssl already present, skipping build."
-  exit 0
-fi
+SRC_DIR="$DIR/openssl-src"
+VERSION_FILE="$SRC_DIR/.version"
 
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
-# Download
-TARBALL="openssl-${VERSION}.tar.gz"
-if [ ! -d "openssl-src" ]; then
+# Download if version changed or missing
+if [ ! -f "$VERSION_FILE" ] || [ "$(cat "$VERSION_FILE")" != "$VERSION" ]; then
+  rm -rf "$SRC_DIR"
+  TARBALL="openssl-${VERSION}.tar.gz"
   curl -fSL -o "$TARBALL" "https://github.com/openssl/openssl/releases/download/openssl-${VERSION}/${TARBALL}"
-  mkdir -p openssl-src
-  tar -xf "$TARBALL" -C openssl-src --strip-components=1
+  mkdir -p "$SRC_DIR"
+  tar -xf "$TARBALL" -C "$SRC_DIR" --strip-components=1
   rm -f "$TARBALL"
+  echo "$VERSION" > "$VERSION_FILE"
 fi
 
 # Configure
@@ -67,9 +65,6 @@ cp "$PREFIX/lib/libssl.a" "$INSTALL_DIR/lib/"
 
 # Headers
 cp -r "$PREFIX/include/openssl" "$INSTALL_DIR/include/"
-
-# Clean up
-rm -rf openssl-src "$DIR/build"
 
 echo "Installed openssl to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"

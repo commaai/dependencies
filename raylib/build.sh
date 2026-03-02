@@ -6,19 +6,6 @@ cd "$DIR"
 
 INSTALL_DIR="$DIR/raylib/install"
 
-# Idempotent: skip if already fully built
-# On x86_64 Linux, also require the offscreen variant
-NEED_OFFSCREEN=0
-if [[ "$(uname)" == "Linux" && "$(uname -m)" == "x86_64" ]]; then
-  NEED_OFFSCREEN=1
-fi
-if [ -f "$INSTALL_DIR/lib/libraylib.a" ]; then
-  if [ "$NEED_OFFSCREEN" -eq 0 ] || [ -f "$INSTALL_DIR/lib/libraylib_offscreen.a" ]; then
-    echo "raylib already present, skipping build."
-    exit 0
-  fi
-fi
-
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
 # Detect platform: PLATFORM_COMMA for comma devices, PLATFORM_DESKTOP otherwise
@@ -66,14 +53,14 @@ fi
 # Clone and build raylib C library
 RAYLIB_COMMIT="d9d7cc1353ec0f73c97e84ddf0973983d1ee25e2"
 
-if [ ! -d "raylib-src" ]; then
+if [ ! -d "raylib-src/.git" ]; then
+  rm -rf raylib-src
   git clone -b platform-offscreen --no-tags https://github.com/commaai/raylib.git raylib-src
 fi
 
 cd raylib-src
 git fetch origin "$RAYLIB_COMMIT"
 git reset --hard "$RAYLIB_COMMIT"
-git clean -xdff .
 
 cd src
 make -j"$NJOBS" PLATFORM="$RAYLIB_PLATFORM"
@@ -127,9 +114,6 @@ fi
 RAYGUI_COMMIT="76b36b597edb70ffaf96f046076adc20d67e7827"
 curl -fsSLo "$INSTALL_DIR/include/raygui.h" \
   "https://raw.githubusercontent.com/raysan5/raygui/$RAYGUI_COMMIT/src/raygui.h"
-
-# Clean up source
-rm -rf raylib-src
 
 echo "Installed raylib to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"

@@ -7,18 +7,15 @@ cd "$DIR"
 VERSION="1.5.6"
 INSTALL_DIR="$DIR/zstd/install"
 
-# Idempotent: skip if already built
-if [ -f "$INSTALL_DIR/lib/libzstd.a" ]; then
-  echo "zstd already present, skipping build."
-  exit 0
-fi
-
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
-# Clone
-if [ ! -d "zstd-src" ]; then
-  git clone --depth 1 --branch "v${VERSION}" https://github.com/facebook/zstd.git zstd-src
+# Clone/update source
+if [ ! -d "zstd-src/.git" ]; then
+  rm -rf zstd-src
+  git clone https://github.com/facebook/zstd.git zstd-src
 fi
+git -C zstd-src fetch --depth 1 origin "v${VERSION}"
+git -C zstd-src checkout --force FETCH_HEAD
 
 # Build
 PREFIX="$DIR/build/prefix"
@@ -51,9 +48,6 @@ cp "$PREFIX/lib/libzstd.a" "$INSTALL_DIR/lib/"
 cp "$PREFIX/include/zstd.h" "$INSTALL_DIR/include/"
 cp "$PREFIX/include/zstd_errors.h" "$INSTALL_DIR/include/"
 cp "$PREFIX/include/zdict.h" "$INSTALL_DIR/include/"
-
-# Clean up
-rm -rf zstd-src "$DIR/build"
 
 echo "Installed zstd to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"
