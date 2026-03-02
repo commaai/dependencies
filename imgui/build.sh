@@ -6,10 +6,10 @@ cd "$DIR"
 
 INSTALL_DIR="$DIR/imgui/install"
 
-# Dear ImGui (docking branch)
-IMGUI_VERSION="v1.92.0-docking"
+# Dear ImGui (docking branch, version 1.92.7)
+IMGUI_COMMIT="934c6a5f5ef2355d6df25395d555cb71f790c4e9"
 # ImPlot
-IMPLOT_VERSION="v0.16"
+IMPLOT_COMMIT="93c801b4bb801c5c11031d880b6af1d1f70bd79d"
 # rlImGui
 RLIMGUI_COMMIT="286e11acd6c785004c9550c7ed3762add2ae3d47"
 
@@ -18,16 +18,16 @@ if [ ! -d "imgui-src/.git" ]; then
   rm -rf imgui-src
   git clone https://github.com/ocornut/imgui.git imgui-src
 fi
-git -C imgui-src fetch --depth 1 origin "$IMGUI_VERSION"
-git -C imgui-src checkout --force FETCH_HEAD
+git -C imgui-src fetch origin
+git -C imgui-src checkout --force "$IMGUI_COMMIT"
 
 # Clone/update implot
 if [ ! -d "implot-src/.git" ]; then
   rm -rf implot-src
   git clone https://github.com/epezent/implot.git implot-src
 fi
-git -C implot-src fetch --depth 1 origin "$IMPLOT_VERSION"
-git -C implot-src checkout --force FETCH_HEAD
+git -C implot-src fetch origin
+git -C implot-src checkout --force "$IMPLOT_COMMIT"
 
 # Clone/update rlimgui
 if [ ! -d "rlimgui-src/.git" ]; then
