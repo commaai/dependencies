@@ -6,10 +6,11 @@ cd "$DIR"
 
 VERSION="3.6.1"
 INSTALL_DIR="$DIR/git_lfs/bin"
+VERSION_FILE="$INSTALL_DIR/.version"
 
-# Idempotent: skip if already present
-if [ -x "$INSTALL_DIR/git-lfs" ]; then
-  echo "git-lfs already present, skipping download."
+# Skip if already at correct version
+if [ -f "$VERSION_FILE" ] && [ "$(cat "$VERSION_FILE")" = "$VERSION" ]; then
+  echo "git-lfs $VERSION already present, skipping."
   exit 0
 fi
 
@@ -51,6 +52,7 @@ fi
 chmod +x "$INSTALL_DIR/git-lfs"
 
 rm -f "$FILENAME"
+echo "$VERSION" > "$VERSION_FILE"
 
 echo "Installed git-lfs to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"

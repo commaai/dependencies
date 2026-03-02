@@ -9,10 +9,11 @@ TOOLCHAIN_BASE="arm-gnu-toolchain-${TOOLCHAIN_VERSION}"
 GCC_VERSION="13.2.1"
 
 INSTALL_DIR="$DIR/gcc_arm_none_eabi/toolchain"
+VERSION_FILE="$INSTALL_DIR/.version"
 
-# Idempotent: skip if already built
-if [ -x "$INSTALL_DIR/bin/arm-none-eabi-gcc" ]; then
-  echo "Toolchain already present, skipping download."
+# Skip if already at correct version
+if [ -f "$VERSION_FILE" ] && [ "$(cat "$VERSION_FILE")" = "$TOOLCHAIN_VERSION" ]; then
+  echo "Toolchain $TOOLCHAIN_VERSION already present, skipping."
   exit 0
 fi
 
@@ -112,6 +113,7 @@ find "$INSTALL_DIR" -type f \( -executable -o -name '*.so' \) -exec strip {} + 2
 # --- clean up download artifacts ---
 rm -rf "$EXTRACT_DIR"
 rm -f "$TARBALL"
+echo "$TOOLCHAIN_VERSION" > "$VERSION_FILE"
 
 echo "Installed to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"

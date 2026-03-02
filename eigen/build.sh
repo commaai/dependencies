@@ -7,28 +7,19 @@ cd "$DIR"
 VERSION="3.4.0"
 INSTALL_DIR="$DIR/eigen/install"
 
-# Idempotent: skip if already present
-if [ -d "$INSTALL_DIR/eigen3/Eigen" ]; then
-  echo "eigen already present, skipping download."
-  exit 0
+# Clone/update source
+if [ ! -d "eigen-src/.git" ]; then
+  rm -rf eigen-src
+  git clone https://gitlab.com/libeigen/eigen.git eigen-src
 fi
+git -C eigen-src fetch --depth 1 origin "$VERSION"
+git -C eigen-src checkout --force FETCH_HEAD
 
-TARBALL="eigen-${VERSION}.tar.gz"
-URL="https://gitlab.com/libeigen/eigen/-/archive/${VERSION}/${TARBALL}"
-
-echo "Downloading Eigen ${VERSION} ..."
-curl -fSL -o "$TARBALL" "$URL"
-
-echo "Extracting headers ..."
+# Copy headers
 rm -rf "$INSTALL_DIR"
 mkdir -p "$INSTALL_DIR/eigen3"
-
-# Extract only the Eigen/ and unsupported/Eigen/ header directories
-tar --strip-components=1 -xzf "$TARBALL" -C "$INSTALL_DIR/eigen3" \
-  "eigen-${VERSION}/Eigen" \
-  "eigen-${VERSION}/unsupported"
-
-rm -f "$TARBALL"
+cp -r eigen-src/Eigen "$INSTALL_DIR/eigen3/"
+cp -r eigen-src/unsupported "$INSTALL_DIR/eigen3/"
 
 echo "Installed eigen to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"
