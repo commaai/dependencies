@@ -4,23 +4,18 @@ set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 cd "$DIR"
 
-VERSION="3.4.1"
+VERSION="openssl-3.4.1"
 INSTALL_DIR="$DIR/openssl3/install"
-SRC_DIR="$DIR/openssl-src"
-VERSION_FILE="$SRC_DIR/.version"
 
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
-# Download if version changed or missing
-if [ ! -f "$VERSION_FILE" ] || [ "$(cat "$VERSION_FILE")" != "$VERSION" ]; then
-  rm -rf "$SRC_DIR"
-  TARBALL="openssl-${VERSION}.tar.gz"
-  curl -fSL -o "$TARBALL" "https://github.com/openssl/openssl/releases/download/openssl-${VERSION}/${TARBALL}"
-  mkdir -p "$SRC_DIR"
-  tar -xf "$TARBALL" -C "$SRC_DIR" --strip-components=1
-  rm -f "$TARBALL"
-  echo "$VERSION" > "$VERSION_FILE"
+# Clone/update source
+if [ ! -d "openssl-src/.git" ]; then
+  rm -rf openssl-src
+  git clone https://github.com/openssl/openssl.git openssl-src
 fi
+git -C openssl-src fetch --depth 1 origin "$VERSION"
+git -C openssl-src checkout --force FETCH_HEAD
 
 # Configure
 PREFIX="$DIR/build/prefix"

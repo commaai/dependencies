@@ -4,29 +4,24 @@ set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 cd "$DIR"
 
-VERSION="6.5"
+VERSION="v6.5"
 INSTALL_DIR="$DIR/ncurses/install"
-SRC_DIR="$DIR/ncurses-src"
-VERSION_FILE="$SRC_DIR/.version"
 
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
-# Download if version changed or missing
-if [ ! -f "$VERSION_FILE" ] || [ "$(cat "$VERSION_FILE")" != "$VERSION" ]; then
-  rm -rf "$SRC_DIR"
-  TARBALL="ncurses-${VERSION}.tar.gz"
-  curl -fsSL "https://ftp.gnu.org/gnu/ncurses/${TARBALL}" -o "$TARBALL"
-  mkdir -p "$SRC_DIR"
-  tar xf "$TARBALL" -C "$SRC_DIR" --strip-components=1
-  rm -f "$TARBALL"
-  echo "$VERSION" > "$VERSION_FILE"
+# Clone/update source
+if [ ! -d "ncurses-src/.git" ]; then
+  rm -rf ncurses-src
+  git clone https://github.com/mirror/ncurses.git ncurses-src
 fi
+git -C ncurses-src fetch --depth 1 origin "$VERSION"
+git -C ncurses-src checkout --force FETCH_HEAD
 
 # Build
 PREFIX="$DIR/build/prefix"
 mkdir -p "$DIR/build"
 
-cd "$SRC_DIR"
+cd ncurses-src
 CFLAGS="-fPIC" ./configure \
   --prefix="$PREFIX" \
   --without-shared \
