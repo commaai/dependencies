@@ -23,8 +23,8 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/cache@v4
         with:
-          key: build-cache-v1-${{ matrix.platform }}-${{ hashFiles('build.sh', 'setup.sh', '*/pyproject.toml', '*/setup.py', '*/build.sh') }}
-          restore-keys: build-cache-v1-${{ matrix.platform }}-
+          key: build-cache-v2-${{ matrix.platform }}-${{ hashFiles('build.sh', 'setup.sh', '*/pyproject.toml', '*/setup.py', '*/build.sh') }}
+          restore-keys: build-cache-v2-${{ matrix.platform }}-
           path: |
             .uv-cache
             */*/install
@@ -92,8 +92,8 @@ jobs:
           path: dist
       - uses: actions/cache/restore@v4
         with:
-          key: build-cache-v1-${{ matrix.platform }}-${{ hashFiles('build.sh', 'setup.sh', '*/pyproject.toml', '*/setup.py', '*/build.sh') }}
-          restore-keys: build-cache-v1-${{ matrix.platform }}-
+          key: build-cache-v2-${{ matrix.platform }}-${{ hashFiles('build.sh', 'setup.sh', '*/pyproject.toml', '*/setup.py', '*/build.sh') }}
+          restore-keys: build-cache-v2-${{ matrix.platform }}-
           path: |
             .uv-cache
             */*/install
