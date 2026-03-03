@@ -8,6 +8,7 @@ VERSION="bzip2-1.0.8"
 INSTALL_DIR="$DIR/bzip2/install"
 
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
+CC="ccache ${CC:-cc}"
 
 # Clone/update source
 if [ ! -d "bzip2-src/.git" ]; then

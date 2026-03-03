@@ -8,6 +8,7 @@ VERSION="2.16.0"
 INSTALL_DIR="$DIR/cppcheck/install"
 
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
+CXX="ccache ${CXX:-c++}"
 
 # Clone/update source
 if [ ! -d "cppcheck-src/.git" ]; then

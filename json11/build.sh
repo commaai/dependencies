@@ -6,6 +6,7 @@ cd "$DIR"
 
 VERSION="db00e9369a92aa74bf630a2ffb092a4b0b132c01"
 INSTALL_DIR="$DIR/json11/install"
+CXX="ccache ${CXX:-c++}"
 
 if [ ! -d "$DIR/json11-src/.git" ]; then
   git clone --depth 1 https://github.com/dropbox/json11.git json11-src

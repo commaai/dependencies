@@ -8,6 +8,7 @@ VERSION="openssl-3.4.1"
 INSTALL_DIR="$DIR/openssl3/install"
 
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
+export CC="ccache ${CC:-cc}"
 
 # Clone/update source
 if [ ! -d "openssl-src/.git" ]; then

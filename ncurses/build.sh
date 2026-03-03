@@ -9,6 +9,7 @@ INSTALL_DIR="$DIR/ncurses/install"
 VERSION_FILE="$DIR/ncurses-src/.version"
 
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
+export CC="ccache ${CC:-cc}"
 
 # Download tarball (v6.5 tag doesn't exist on the GitHub mirror)
 if [ ! -f "$VERSION_FILE" ] || [ "$(cat "$VERSION_FILE")" != "$VERSION" ]; then

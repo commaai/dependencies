@@ -10,6 +10,7 @@ X264_BRANCH="stable"
 INSTALL_DIR="$DIR/ffmpeg/install"
 
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
+CC="ccache ${CC:-cc}"
 PREFIX="$DIR/build/prefix"
 mkdir -p "$DIR/build"
 
