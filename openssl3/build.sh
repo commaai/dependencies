@@ -15,6 +15,12 @@ if [ ! -d "openssl-src/.git" ]; then
   git clone --depth 1 https://github.com/openssl/openssl.git openssl-src
 fi
 git -C openssl-src fetch --depth 1 origin "$VERSION"
+WANT_COMMIT="$(git -C openssl-src rev-parse FETCH_HEAD)"
+VERSION_FILE="$INSTALL_DIR/.version"
+if [ -f "$VERSION_FILE" ] && [ "$(cat "$VERSION_FILE")" = "$WANT_COMMIT" ]; then
+  echo "openssl already at $VERSION, skipping build."
+  exit 0
+fi
 git -C openssl-src checkout --force FETCH_HEAD
 
 # Configure
@@ -61,5 +67,6 @@ cp "$PREFIX/lib/libssl.a" "$INSTALL_DIR/lib/"
 # Headers
 cp -r "$PREFIX/include/openssl" "$INSTALL_DIR/include/"
 
+echo "$WANT_COMMIT" > "$VERSION_FILE"
 echo "Installed openssl to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"

@@ -45,6 +45,9 @@ if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
   fi
 fi
 
+export CC="ccache ${CC:-cc}"
+export CXX="ccache ${CXX:-c++}"
+
 echo "Building workspace packages into dist"
 START_SECS=$SECONDS
 

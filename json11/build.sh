@@ -22,7 +22,7 @@ mkdir -p "$INSTALL_DIR/lib" "$INSTALL_DIR/include/json11"
 CXX="${CXX:-c++}"
 AR="${AR:-ar}"
 
-"$CXX" -std=c++11 -fPIC -O2 -c "$DIR/json11-src/json11.cpp" -o "$BUILD_DIR/json11.o"
+$CXX -std=c++11 -fPIC -O2 -c "$DIR/json11-src/json11.cpp" -o "$BUILD_DIR/json11.o"
 "$AR" rcs "$INSTALL_DIR/lib/libjson11.a" "$BUILD_DIR/json11.o"
 cp "$DIR/json11-src/json11.hpp" "$INSTALL_DIR/include/json11/json11.hpp"
 
