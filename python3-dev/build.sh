@@ -10,7 +10,7 @@ INSTALL_DIR="$DIR/python3_dev/install"
 # Clone/update source
 if [ ! -d "python3-src/.git" ]; then
   rm -rf python3-src
-  git clone https://github.com/python/cpython.git python3-src
+  git clone --depth 1 https://github.com/python/cpython.git python3-src
 fi
 git -C python3-src fetch --depth 1 origin "$VERSION"
 git -C python3-src checkout --force FETCH_HEAD

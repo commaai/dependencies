@@ -4,18 +4,20 @@ set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 cd "$DIR"
 
-VERSION="v6.5"
+VERSION="6.5"
 INSTALL_DIR="$DIR/ncurses/install"
+VERSION_FILE="$DIR/ncurses-src/.version"
 
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
-# Clone/update source
-if [ ! -d "ncurses-src/.git" ]; then
+# Download tarball (v6.5 tag doesn't exist on the GitHub mirror)
+if [ ! -f "$VERSION_FILE" ] || [ "$(cat "$VERSION_FILE")" != "$VERSION" ]; then
   rm -rf ncurses-src
-  git clone https://github.com/mirror/ncurses.git ncurses-src
+  mkdir -p ncurses-src
+  curl -fSL "https://ftp.gnu.org/gnu/ncurses/ncurses-${VERSION}.tar.gz" \
+    | tar xz --strip-components=1 -C ncurses-src
+  echo "$VERSION" > "$VERSION_FILE"
 fi
-git -C ncurses-src fetch --depth 1 origin "$VERSION"
-git -C ncurses-src checkout --force FETCH_HEAD
 
 # Build
 PREFIX="$DIR/build/prefix"

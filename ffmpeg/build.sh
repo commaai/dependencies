@@ -16,7 +16,7 @@ mkdir -p "$DIR/build"
 # --- Build zlib (static) ---
 if [ ! -d "zlib-src/.git" ]; then
   rm -rf zlib-src
-  git clone https://github.com/madler/zlib.git zlib-src
+  git clone --depth 1 https://github.com/madler/zlib.git zlib-src
 fi
 git -C zlib-src fetch origin
 git -C zlib-src checkout --force "$ZLIB_VERSION"
@@ -30,7 +30,7 @@ cd "$DIR"
 # --- Build x264 (static) ---
 if [ ! -d "x264-src/.git" ]; then
   rm -rf x264-src
-  git clone https://code.videolan.org/videolan/x264.git x264-src
+  git clone --depth 1 https://code.videolan.org/videolan/x264.git x264-src
 fi
 git -C x264-src fetch --depth 1 origin "$X264_BRANCH"
 git -C x264-src checkout --force FETCH_HEAD
@@ -50,7 +50,7 @@ cd "$DIR"
 # --- Build FFmpeg ---
 if [ ! -d "ffmpeg-src/.git" ]; then
   rm -rf ffmpeg-src
-  git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg-src
+  git clone --depth 1 https://github.com/FFmpeg/FFmpeg.git ffmpeg-src
 fi
 git -C ffmpeg-src fetch --depth 1 origin "n${FFMPEG_VERSION}"
 git -C ffmpeg-src checkout --force FETCH_HEAD

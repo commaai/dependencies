@@ -12,7 +12,7 @@ NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 # Clone/update source
 if [ ! -d "zstd-src/.git" ]; then
   rm -rf zstd-src
-  git clone https://github.com/facebook/zstd.git zstd-src
+  git clone --depth 1 https://github.com/facebook/zstd.git zstd-src
 fi
 git -C zstd-src fetch --depth 1 origin "v${VERSION}"
 git -C zstd-src checkout --force FETCH_HEAD

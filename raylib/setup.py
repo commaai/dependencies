@@ -18,14 +18,8 @@ class BuildRaylib(build_py):
 
   def run(self):
     pkg_dir = os.path.dirname(os.path.abspath(__file__))
-    lib_dir = os.path.join(pkg_dir, "raylib", "install", "lib")
-    marker = os.path.join(lib_dir, "libraylib.a")
-    offscreen_marker = os.path.join(lib_dir, "libraylib_offscreen.a")
-    need_offscreen = platform.system() == "Linux" and platform.machine() == "x86_64"
-
-    if not os.path.exists(marker) or (need_offscreen and not os.path.exists(offscreen_marker)):
-      build_script = os.path.join(pkg_dir, "build.sh")
-      subprocess.check_call(["bash", build_script], cwd=pkg_dir)
+    build_script = os.path.join(pkg_dir, "build.sh")
+    subprocess.check_call(["bash", build_script], cwd=pkg_dir)
 
     # Build CFFI extension so it's included in the wheel
     cffi_so = glob.glob(os.path.join(pkg_dir, "raylib", "_raylib_cffi*"))

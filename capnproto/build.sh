@@ -12,7 +12,7 @@ NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 # Clone/update source
 if [ ! -d "capnproto-src/.git" ]; then
   rm -rf capnproto-src
-  git clone https://github.com/capnproto/capnproto.git capnproto-src
+  git clone --depth 1 https://github.com/capnproto/capnproto.git capnproto-src
 fi
 git -C capnproto-src fetch --depth 1 origin "v${VERSION}"
 git -C capnproto-src checkout --force FETCH_HEAD

@@ -12,7 +12,7 @@ NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 # Clone/update source
 if [ ! -d "openssl-src/.git" ]; then
   rm -rf openssl-src
-  git clone https://github.com/openssl/openssl.git openssl-src
+  git clone --depth 1 https://github.com/openssl/openssl.git openssl-src
 fi
 git -C openssl-src fetch --depth 1 origin "$VERSION"
 git -C openssl-src checkout --force FETCH_HEAD

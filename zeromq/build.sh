@@ -12,7 +12,7 @@ NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 # Clone/update source
 if [ ! -d "libzmq-src/.git" ]; then
   rm -rf libzmq-src
-  git clone https://github.com/zeromq/libzmq.git libzmq-src
+  git clone --depth 1 https://github.com/zeromq/libzmq.git libzmq-src
 fi
 git -C libzmq-src fetch --depth 1 origin "v${VERSION}"
 git -C libzmq-src checkout --force FETCH_HEAD

@@ -10,7 +10,7 @@ INSTALL_DIR="$DIR/libyuv/install"
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
 if [ ! -d "libyuv-src/.git" ]; then
-  git clone https://chromium.googlesource.com/libyuv/libyuv libyuv-src
+  git clone --depth 1 https://chromium.googlesource.com/libyuv/libyuv libyuv-src
 fi
 
 git -C libyuv-src fetch --force origin

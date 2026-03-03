@@ -16,7 +16,7 @@ RLIMGUI_COMMIT="286e11acd6c785004c9550c7ed3762add2ae3d47"
 # Clone/update imgui
 if [ ! -d "imgui-src/.git" ]; then
   rm -rf imgui-src
-  git clone https://github.com/ocornut/imgui.git imgui-src
+  git clone --depth 1 https://github.com/ocornut/imgui.git imgui-src
 fi
 git -C imgui-src fetch origin
 git -C imgui-src checkout --force "$IMGUI_COMMIT"
@@ -24,7 +24,7 @@ git -C imgui-src checkout --force "$IMGUI_COMMIT"
 # Clone/update implot
 if [ ! -d "implot-src/.git" ]; then
   rm -rf implot-src
-  git clone https://github.com/epezent/implot.git implot-src
+  git clone --depth 1 https://github.com/epezent/implot.git implot-src
 fi
 git -C implot-src fetch origin
 git -C implot-src checkout --force "$IMPLOT_COMMIT"
@@ -32,7 +32,7 @@ git -C implot-src checkout --force "$IMPLOT_COMMIT"
 # Clone/update rlimgui
 if [ ! -d "rlimgui-src/.git" ]; then
   rm -rf rlimgui-src
-  git clone https://github.com/raylib-extras/rlImGui.git rlimgui-src
+  git clone --depth 1 https://github.com/raylib-extras/rlImGui.git rlimgui-src
 fi
 git -C rlimgui-src fetch origin
 git -C rlimgui-src checkout --force "$RLIMGUI_COMMIT"

@@ -12,7 +12,7 @@ NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 # Clone/update source
 if [ ! -d "libjpeg-turbo-src/.git" ]; then
   rm -rf libjpeg-turbo-src
-  git clone https://github.com/libjpeg-turbo/libjpeg-turbo.git libjpeg-turbo-src
+  git clone --depth 1 https://github.com/libjpeg-turbo/libjpeg-turbo.git libjpeg-turbo-src
 fi
 git -C libjpeg-turbo-src fetch --depth 1 origin "${VERSION}"
 git -C libjpeg-turbo-src checkout --force FETCH_HEAD

@@ -55,7 +55,7 @@ RAYLIB_COMMIT="d9d7cc1353ec0f73c97e84ddf0973983d1ee25e2"
 
 if [ ! -d "raylib-src/.git" ]; then
   rm -rf raylib-src
-  git clone -b platform-offscreen --no-tags https://github.com/commaai/raylib.git raylib-src
+  git clone --depth 1 -b platform-offscreen --no-tags https://github.com/commaai/raylib.git raylib-src
 fi
 
 cd raylib-src
@@ -63,6 +63,7 @@ git fetch origin "$RAYLIB_COMMIT"
 git reset --hard "$RAYLIB_COMMIT"
 
 cd src
+make clean
 make -j"$NJOBS" PLATFORM="$RAYLIB_PLATFORM"
 
 cd "$DIR"

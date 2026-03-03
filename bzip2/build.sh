@@ -12,7 +12,7 @@ NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 # Clone/update source
 if [ ! -d "bzip2-src/.git" ]; then
   rm -rf bzip2-src
-  git clone https://gitlab.com/bzip2/bzip2.git bzip2-src
+  git clone --depth 1 https://gitlab.com/bzip2/bzip2.git bzip2-src
 fi
 git -C bzip2-src fetch --depth 1 origin "$VERSION"
 git -C bzip2-src checkout --force FETCH_HEAD

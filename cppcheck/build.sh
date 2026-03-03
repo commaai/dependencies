@@ -12,7 +12,7 @@ NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 # Clone/update source
 if [ ! -d "cppcheck-src/.git" ]; then
   rm -rf cppcheck-src
-  git clone https://github.com/danmar/cppcheck.git cppcheck-src
+  git clone --depth 1 https://github.com/danmar/cppcheck.git cppcheck-src
 fi
 git -C cppcheck-src fetch --depth 1 origin "$VERSION"
 git -C cppcheck-src checkout --force FETCH_HEAD

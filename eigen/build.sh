@@ -10,7 +10,7 @@ INSTALL_DIR="$DIR/eigen/install"
 # Clone/update source
 if [ ! -d "eigen-src/.git" ]; then
   rm -rf eigen-src
-  git clone https://gitlab.com/libeigen/eigen.git eigen-src
+  git clone --depth 1 https://gitlab.com/libeigen/eigen.git eigen-src
 fi
 git -C eigen-src fetch --depth 1 origin "$VERSION"
 git -C eigen-src checkout --force FETCH_HEAD
