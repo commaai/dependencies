@@ -64,7 +64,7 @@ git reset --hard "$RAYLIB_COMMIT"
 
 cd src
 make clean
-make -j"$NJOBS" PLATFORM="$RAYLIB_PLATFORM"
+make -j"$NJOBS" PLATFORM="$RAYLIB_PLATFORM" CC="${CC:-gcc}"
 
 cd "$DIR"
 
@@ -92,7 +92,7 @@ if [[ "$(uname)" == "Linux" && "$(uname -m)" == "x86_64" && "$RAYLIB_PLATFORM" !
 
   cd raylib-src/src
   make clean
-  make -j"$NJOBS" PLATFORM=PLATFORM_OFFSCREEN
+  make -j"$NJOBS" PLATFORM=PLATFORM_OFFSCREEN CC="${CC:-gcc}"
   cp libraylib.a "$INSTALL_DIR/lib/libraylib_offscreen.a"
   cd "$DIR"
 
