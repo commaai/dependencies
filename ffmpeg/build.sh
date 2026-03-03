@@ -58,6 +58,7 @@ git -C ffmpeg-src checkout --force FETCH_HEAD
 cd ffmpeg-src
 PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
 ./configure \
+  --cc="${CC:-cc}" \
   --prefix="$PREFIX" \
   --enable-gpl \
   --enable-static \
