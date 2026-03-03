@@ -18,7 +18,7 @@ if [ ! -d "zlib-src/.git" ]; then
   rm -rf zlib-src
   git clone --depth 1 https://github.com/madler/zlib.git zlib-src
 fi
-git -C zlib-src fetch origin
+git -C zlib-src fetch --depth 1 origin "$ZLIB_VERSION"
 git -C zlib-src checkout --force "$ZLIB_VERSION"
 
 cd zlib-src

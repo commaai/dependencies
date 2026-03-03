@@ -11,7 +11,7 @@ if [ ! -d "$DIR/json11-src/.git" ]; then
   git clone --depth 1 https://github.com/dropbox/json11.git json11-src
 fi
 
-git -C json11-src fetch --force origin
+git -C json11-src fetch --depth 1 origin "$VERSION"
 git -C json11-src checkout --force "$VERSION"
 
 BUILD_DIR="$DIR/build"

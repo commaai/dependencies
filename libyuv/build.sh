@@ -13,7 +13,7 @@ if [ ! -d "libyuv-src/.git" ]; then
   git clone --depth 1 https://chromium.googlesource.com/libyuv/libyuv libyuv-src
 fi
 
-git -C libyuv-src fetch --force origin
+git -C libyuv-src fetch --depth 1 origin "$VERSION"
 git -C libyuv-src checkout --force "$VERSION"
 
 BUILD_DIR="$DIR/build"

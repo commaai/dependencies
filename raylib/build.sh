@@ -59,7 +59,7 @@ if [ ! -d "raylib-src/.git" ]; then
 fi
 
 cd raylib-src
-git fetch origin "$RAYLIB_COMMIT"
+git fetch --depth 1 origin "$RAYLIB_COMMIT"
 git reset --hard "$RAYLIB_COMMIT"
 
 cd src

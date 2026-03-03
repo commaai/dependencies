@@ -1,10 +1,8 @@
 import os
 import platform
 import subprocess
-import sys
 
 from setuptools.command.build_py import build_py
-from setuptools.dist import Distribution
 
 try:
   from wheel.bdist_wheel import bdist_wheel

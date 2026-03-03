@@ -18,7 +18,7 @@ if [ ! -d "imgui-src/.git" ]; then
   rm -rf imgui-src
   git clone --depth 1 https://github.com/ocornut/imgui.git imgui-src
 fi
-git -C imgui-src fetch origin
+git -C imgui-src fetch --depth 1 origin "$IMGUI_COMMIT"
 git -C imgui-src checkout --force "$IMGUI_COMMIT"
 
 # Clone/update implot
@@ -26,7 +26,7 @@ if [ ! -d "implot-src/.git" ]; then
   rm -rf implot-src
   git clone --depth 1 https://github.com/epezent/implot.git implot-src
 fi
-git -C implot-src fetch origin
+git -C implot-src fetch --depth 1 origin "$IMPLOT_COMMIT"
 git -C implot-src checkout --force "$IMPLOT_COMMIT"
 
 # Clone/update rlimgui
@@ -34,7 +34,7 @@ if [ ! -d "rlimgui-src/.git" ]; then
   rm -rf rlimgui-src
   git clone --depth 1 https://github.com/raylib-extras/rlImGui.git rlimgui-src
 fi
-git -C rlimgui-src fetch origin
+git -C rlimgui-src fetch --depth 1 origin "$RLIMGUI_COMMIT"
 git -C rlimgui-src checkout --force "$RLIMGUI_COMMIT"
 
 # Install
