@@ -9,9 +9,9 @@ INSTALL_DIR="$DIR/raylib/install"
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 CC="ccache ${CC:-cc}"
 
-# Detect platform: PLATFORM_COMMA for aarch64 Linux (comma devices), PLATFORM_DESKTOP otherwise
+# Detect platform: PLATFORM_COMMA for comma devices, PLATFORM_DESKTOP otherwise
 RAYLIB_PLATFORM="${RAYLIB_PLATFORM:-PLATFORM_DESKTOP}"
-if [ -f /TICI ] || [[ "$(uname)" == "Linux" && "$(uname -m)" == "aarch64" ]]; then
+if [ -f /TICI ]; then
   RAYLIB_PLATFORM="PLATFORM_COMMA"
 fi
 export RAYLIB_PLATFORM
