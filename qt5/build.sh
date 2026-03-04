@@ -4,7 +4,7 @@ set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 cd "$DIR"
 
-VERSION="5.15.16"
+VERSION="5.15.18"
 INSTALL_DIR="$DIR/qt5/install"
 
 # Idempotent: skip if already built
