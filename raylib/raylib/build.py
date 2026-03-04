@@ -13,6 +13,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 RAYLIB_INCLUDE_PATH = os.path.join(HERE, "install", "include")
 RAYLIB_LIB_PATH = os.path.join(HERE, "install", "lib")
 RAYLIB_PLATFORM = os.getenv("RAYLIB_PLATFORM", "")
+if not RAYLIB_PLATFORM and platform.system() == "Linux" and platform.machine() == "aarch64":
+  RAYLIB_PLATFORM = "PLATFORM_COMMA"
 
 ffibuilder = FFI()
 
