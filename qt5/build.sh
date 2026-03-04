@@ -26,8 +26,8 @@ if [[ "$(uname)" == "Linux" ]]; then
       libxcb-devel xcb-util-devel xcb-util-image-devel xcb-util-keysyms-devel \
       xcb-util-renderutil-devel xcb-util-wm-devel libxkbcommon-devel libxkbcommon-x11-devel \
       fontconfig-devel freetype-devel mesa-libGL-devel mesa-libEGL-devel \
-      libX11-devel libXext-devel libXrender-devel libXi-devel libxkbfile-devel \
-      'perl(FindBin)' 'perl(File-Copy)'
+      libX11-devel libXext-devel libXrender-devel libXi-devel libxkbfile-devel
+      #'perl(FindBin)' 'perl(File-Copy)'
   elif command -v apt-get &>/dev/null; then
     SUDO=""
     if [ "$(id -u)" -ne 0 ]; then
