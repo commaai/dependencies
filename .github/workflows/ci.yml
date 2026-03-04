@@ -15,10 +15,13 @@ jobs:
         include:
           - platform: linux-x86_64
             runs-on: ubuntu-latest
+            container: quay.io/pypa/manylinux_2_28_x86_64
           - platform: linux-arm64
             runs-on: ubuntu-24.04-arm
+            container: quay.io/pypa/manylinux_2_28_aarch64
           - platform: macos
             runs-on: macos-latest
+    container: ${{ matrix.container || '' }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/cache@v4
@@ -34,8 +37,9 @@ jobs:
             */build
       - name: Build wheels
         env:
-          MANYLINUX: ${{ runner.os == 'Linux' && '1' || '0' }}
+          BUILD_SH_IN_MANYLINUX: ${{ matrix.container && '1' || '' }}
           UV_CACHE_DIR: ${{ github.workspace }}/.uv-cache
+          UV_PYTHON: ${{ matrix.container && '/opt/python/cp312-cp312/bin/python3' || '' }}
           BUILD_SH_REUSE_MANYLINUX_ARTIFACTS: "1"
         run: ./build.sh
       - uses: actions/upload-artifact@v4
