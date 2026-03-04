@@ -91,12 +91,15 @@ CONFIGURE_ARGS=(
   -nomake examples
   -nomake tests
   -no-dbus
-  -system-freetype
-  -fontconfig
 )
 
 if [[ "$(uname)" == "Linux" ]]; then
-  CONFIGURE_ARGS+=(-opengl desktop -xcb)
+  CONFIGURE_ARGS+=(
+    -opengl desktop
+    -xcb
+    -system-freetype
+    -fontconfig
+  )
 elif [[ "$(uname)" == "Darwin" ]]; then
   CONFIGURE_ARGS+=(-no-framework)
 fi
