@@ -36,6 +36,10 @@ if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
 
   ./setup.sh
 
+  # the repo is bind-mounted into the container, so file ownership differs
+  # from the container user — tell git to trust all directories
+  git config --global --add safe.directory '*'
+
   if [[ -z "${BUILD_SH_REUSE_MANYLINUX_ARTIFACTS:-}" ]]; then
     for toml in */pyproject.toml; do
       pkg="${toml%/pyproject.toml}"
