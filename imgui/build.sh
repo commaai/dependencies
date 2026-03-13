@@ -51,12 +51,15 @@ git -C glfw-src checkout --force "$GLFW_COMMIT"
 # Install GLFW build dependencies
 if [[ "$(uname)" == "Linux" ]]; then
   if command -v dnf &>/dev/null; then
-    dnf install -y libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel mesa-libGL-devel
+    dnf install -y libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel mesa-libGL-devel \
+                   wayland-devel wayland-protocols-devel libxkbcommon-devel
   elif command -v apt-get &>/dev/null; then
     if [ "$(id -u)" -eq 0 ]; then
-      apt-get update && apt-get install -y libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libgl-dev
+      apt-get update && apt-get install -y libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libgl-dev \
+                                           libwayland-dev wayland-protocols libxkbcommon-dev
     else
-      sudo apt-get update && sudo apt-get install -y libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libgl-dev
+      sudo apt-get update && sudo apt-get install -y libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libgl-dev \
+                                                     libwayland-dev wayland-protocols libxkbcommon-dev
     fi
   fi
 fi
@@ -67,8 +70,7 @@ cmake -B glfw-src/build -S glfw-src \
   -DBUILD_SHARED_LIBS=OFF \
   -DGLFW_BUILD_EXAMPLES=OFF \
   -DGLFW_BUILD_TESTS=OFF \
-  -DGLFW_BUILD_DOCS=OFF \
-  -DGLFW_BUILD_WAYLAND=OFF
+  -DGLFW_BUILD_DOCS=OFF
 cmake --build glfw-src/build --parallel "$NJOBS"
 
 # Install
