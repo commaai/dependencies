@@ -56,7 +56,7 @@ START_SECS=$SECONDS
 
 mkdir -p dist/
 rm -rf dist/*
-uv build --all-packages --wheel --out-dir dist --no-create-gitignore --no-build-logs
+uv build --all-packages --wheel --out-dir dist --no-create-gitignore
 
 if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
   VENV_DIR="$ROOT_DIR/.venv-manylinux"

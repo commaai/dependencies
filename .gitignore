@@ -2,6 +2,7 @@
 repo/
 .venv/
 __pycache__/
+uv.lock
 
 # agents
 .claude/
