@@ -34,6 +34,9 @@ fi
 if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
   export PATH="/opt/python/cp312-cp312/bin:$PATH"
 
+  # cached *-src repos may be owned by the host runner user; tell git to trust them
+  git config --global --add safe.directory '*'
+
   ./setup.sh
 
   if [[ -z "${BUILD_SH_REUSE_MANYLINUX_ARTIFACTS:-}" ]]; then
@@ -53,7 +56,7 @@ START_SECS=$SECONDS
 
 mkdir -p dist/
 rm -rf dist/*
-uv build --all-packages --wheel --out-dir dist --no-create-gitignore
+uv build --all-packages --wheel --out-dir dist --no-create-gitignore --no-build-logs
 
 if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
   VENV_DIR="$ROOT_DIR/.venv-manylinux"
