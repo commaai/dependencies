@@ -49,8 +49,10 @@ cp imgui-src/imgui.cpp imgui-src/imgui_draw.cpp imgui-src/imgui_tables.cpp \
    imgui-src/imgui_widgets.cpp imgui-src/imgui_demo.cpp \
    "$INSTALL_DIR/src/"
 cp imgui-src/backends/imgui_impl_opengl3.h imgui-src/backends/imgui_impl_opengl3_loader.h \
+   imgui-src/backends/imgui_impl_glfw.h \
    "$INSTALL_DIR/include/"
-cp imgui-src/backends/imgui_impl_opengl3.cpp "$INSTALL_DIR/src/"
+cp imgui-src/backends/imgui_impl_opengl3.cpp imgui-src/backends/imgui_impl_glfw.cpp \
+   "$INSTALL_DIR/src/"
 
 # implot
 cp implot-src/implot.h implot-src/implot_internal.h "$INSTALL_DIR/include/"
