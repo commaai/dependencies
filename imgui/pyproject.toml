@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "imgui"
 version = "1.92.7"
-description = "Dear ImGui + ImPlot + rlImGui (source distribution)"
+description = "Dear ImGui + ImPlot + rlImGui + GLFW 3.4 (static)"
 requires-python = ">=3.8"
 
 [tool.setuptools.packages.find]
