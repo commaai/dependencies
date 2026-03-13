@@ -11,6 +11,7 @@ members = [
   "json11",
   "libjpeg",
   "libyuv",
+  "nanosvg",
   "ncurses",
   "python3-dev",
   "raylib",

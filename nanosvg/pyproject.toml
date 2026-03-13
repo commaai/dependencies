@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nanosvg"
+version = "0.0.1"
+description = "NanoSVG: simple SVG parser and rasterizer"
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+include = ["nanosvg*"]
+
+[tool.setuptools.package-data]
+nanosvg = ["install/**/*"]
