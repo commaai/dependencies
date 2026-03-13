@@ -67,7 +67,8 @@ cmake -B glfw-src/build -S glfw-src \
   -DBUILD_SHARED_LIBS=OFF \
   -DGLFW_BUILD_EXAMPLES=OFF \
   -DGLFW_BUILD_TESTS=OFF \
-  -DGLFW_BUILD_DOCS=OFF
+  -DGLFW_BUILD_DOCS=OFF \
+  -DGLFW_BUILD_WAYLAND=OFF
 cmake --build glfw-src/build --parallel "$NJOBS"
 
 # Install
