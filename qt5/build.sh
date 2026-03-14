@@ -9,6 +9,10 @@ QT_TAG="v${QT_VERSION}-lts-lgpl"
 INSTALL_DIR="$DIR/qt5/install"
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
+# Restored install trees are not safe to reuse on macOS because Qt's framework
+# install step recreates header symlinks and fails if they already exist.
+rm -rf "$INSTALL_DIR"
+
 # Install build dependencies
 if [[ "$(uname)" == "Linux" ]]; then
   if command -v dnf &>/dev/null; then
