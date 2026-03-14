@@ -53,6 +53,29 @@ if [[ "$(uname)" == "Linux" ]]; then
   fi
 fi
 
+# On macOS, restore framework symlinks that a previous cached build's
+# symlink-to-copy step turned into real directories (breaks make install).
+if [[ "$(uname)" == "Darwin" ]]; then
+  for fw in "$INSTALL_DIR/lib/"*.framework; do
+    [ -d "$fw" ] || continue
+    if [ -d "$fw/Versions/Current" ] && [ ! -L "$fw/Versions/Current" ]; then
+      rm -rf "$fw/Versions/Current"
+      ln -s 5 "$fw/Versions/Current"
+    fi
+    for link in Headers Resources; do
+      if [ -d "$fw/$link" ] && [ ! -L "$fw/$link" ]; then
+        rm -rf "$fw/$link"
+        ln -s "Versions/Current/$link" "$fw/$link"
+      fi
+    done
+    fwname="$(basename "$fw" .framework)"
+    if [ -f "$fw/$fwname" ] && [ ! -L "$fw/$fwname" ]; then
+      rm -f "$fw/$fwname"
+      ln -s "Versions/Current/$fwname" "$fw/$fwname"
+    fi
+  done
+fi
+
 # Clone/update qtbase
 if [ ! -d "qtbase-src/.git" ]; then
   rm -rf qtbase-src
@@ -89,8 +112,9 @@ fi
 git -C qtcharts-src fetch --depth 1 origin "$QT_TAG"
 git -C qtcharts-src checkout --force FETCH_HEAD
 
-# Build qtcharts
+# Build qtcharts (remove stale PCH from cached builds that reference old header mtimes)
 cd qtcharts-src
+rm -rf src/charts/.pch
 "$INSTALL_DIR/bin/qmake"
 make -j"$NJOBS"
 make install
@@ -159,6 +183,21 @@ find "$INSTALL_DIR/lib" -maxdepth 1 -name 'lib*.so.5.15' -delete 2>/dev/null || 
 find "$INSTALL_DIR" -type f -name '*.so*' -exec strip --strip-unneeded {} + 2>/dev/null || true
 find "$INSTALL_DIR" -type f -name '*.dylib' -exec strip -x {} + 2>/dev/null || true
 find "$INSTALL_DIR/bin" -type f -exec strip --strip-unneeded {} + 2>/dev/null || true
+
+# Bundle GL/GLES headers needed by Qt's qopengl.h and cabana's cameraview.
+# These come from the build host's mesa/GL dev packages (already installed above).
+# Also create a libGL.so linker script so -lGL works without a system libgl-dev.
+if [[ "$(uname)" == "Linux" ]]; then
+  for hdr in GL/gl.h GLES3/gl3.h GLES3/gl3platform.h KHR/khrplatform.h; do
+    src="/usr/include/$hdr"
+    if [ -f "$src" ]; then
+      mkdir -p "$INSTALL_DIR/include/$(dirname "$hdr")"
+      cp "$src" "$INSTALL_DIR/include/$hdr"
+    fi
+  done
+  echo '/* GNU ld script */
+GROUP ( libGL.so.1 )' > "$INSTALL_DIR/lib/libGL.so"
+fi
 
 echo "Installed Qt5 to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"
