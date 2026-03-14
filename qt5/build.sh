@@ -64,6 +64,7 @@ if [ ! -d "qtbase-src/.git" ]; then
 fi
 git -C qtbase-src fetch --depth 1 origin "$QT_TAG"
 git -C qtbase-src checkout --force FETCH_HEAD
+git -C qtbase-src clean -fdx
 
 # Build qtbase
 cd qtbase-src
@@ -87,6 +88,7 @@ if [ ! -d "qtcharts-src/.git" ]; then
 fi
 git -C qtcharts-src fetch --depth 1 origin "$QT_TAG"
 git -C qtcharts-src checkout --force FETCH_HEAD
+git -C qtcharts-src clean -fdx
 
 # Build qtcharts
 cd qtcharts-src
