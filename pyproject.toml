@@ -13,6 +13,7 @@ members = [
   "libyuv",
   "nanosvg",
   "ncurses",
+  "qt5",
   "raylib",
   "zeromq",
   "zstd",
