@@ -3,7 +3,7 @@ name: ci
 on:
   pull_request:
   push:
-    branches: [master, t3code/split-dependency-release-branches]
+    branches: [master]
 
 jobs:
   build:
@@ -78,7 +78,7 @@ jobs:
 
   publish:
     name: publish wheels
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/t3code/split-dependency-release-branches')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: [build, test]
     runs-on: ubuntu-latest
     permissions:
