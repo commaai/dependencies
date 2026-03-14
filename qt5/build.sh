@@ -61,8 +61,12 @@ fi
 git -C qtbase-src fetch --depth 1 origin "$QT_TAG"
 git -C qtbase-src checkout --force FETCH_HEAD
 
-# Build qtbase
+# Clean install dir and build artifacts to avoid stale cache issues
+rm -rf "$INSTALL_DIR"
+
+# Build qtbase (disable modules cabana doesn't need)
 cd qtbase-src
+make distclean 2>/dev/null || true
 ./configure \
   -release \
   -prefix "$INSTALL_DIR" \
@@ -86,32 +90,70 @@ git -C qtcharts-src checkout --force FETCH_HEAD
 
 # Build qtcharts
 cd qtcharts-src
+make distclean 2>/dev/null || true
 "$INSTALL_DIR/bin/qmake"
 make -j"$NJOBS"
 make install
 cd "$DIR"
 
-# Replace symlinks with copies for wheel compatibility
-find "$INSTALL_DIR" -type l | while read -r link; do
-  target="$(readlink -f "$link")"
-  if [ -f "$target" ]; then
-    rm "$link"
-    cp "$target" "$link"
-  elif [ -d "$target" ]; then
-    rm "$link"
-    cp -r "$target" "$link"
-  fi
-done
-
-# Strip binaries and libraries
-find "$INSTALL_DIR" -type f -name '*.so*' -exec strip --strip-unneeded {} + 2>/dev/null || true
-find "$INSTALL_DIR" -type f -name '*.dylib' -exec strip -x {} + 2>/dev/null || true
-strip "$INSTALL_DIR/bin/moc" "$INSTALL_DIR/bin/rcc" "$INSTALL_DIR/bin/uic" 2>/dev/null || true
-
-# Remove unnecessary files to reduce wheel size
+# Cleanup (don't let individual failures kill the build)
+set +e
 rm -rf "$INSTALL_DIR/doc" "$INSTALL_DIR/mkspecs" "$INSTALL_DIR/lib/cmake" "$INSTALL_DIR/lib/pkgconfig"
 find "$INSTALL_DIR/lib" -name '*.prl' -delete 2>/dev/null || true
 find "$INSTALL_DIR/lib" -name '*.la' -delete 2>/dev/null || true
 
+# Remove unnecessary binaries (qmake alone is 28MB, only needed for qtcharts build above)
+find "$INSTALL_DIR/bin" -not -name moc -not -name rcc -not -name uic -not -type d -delete 2>/dev/null || true
+
+if [[ "$(uname)" == "Linux" ]]; then
+  # Remove unnecessary shared libs (keep only what cabana links)
+  KEEP_LIBS="Qt5Core Qt5Gui Qt5Widgets Qt5Charts Qt5OpenGL Qt5XcbQpa Qt5EglFSDeviceIntegration Qt5EglFsKmsSupport"
+  for f in "$INSTALL_DIR/lib/"lib*.so; do
+    name="${f##*/lib}"; name="${name%.so}"
+    echo "$KEEP_LIBS" | grep -qw "$name" || rm -f "$INSTALL_DIR/lib/lib${name}".so*
+  done
+
+  # Remove unnecessary include dirs
+  KEEP_INCLUDES="QtCore QtGui QtWidgets QtCharts QtOpenGL"
+  for d in "$INSTALL_DIR/include/"*/; do
+    name="$(basename "$d")"
+    echo "$KEEP_INCLUDES" | grep -qw "$name" || rm -rf "$d"
+  done
+
+  # Remove static libs
+  find "$INSTALL_DIR/lib" -maxdepth 1 -name '*.a' -delete
+
+  # Replace symlinks with copies (wheels can't store symlinks)
+  find "$INSTALL_DIR" -type l | while read -r link; do
+    target="$(readlink -f "$link")"
+    if [ -f "$target" ]; then
+      rm "$link"; cp "$target" "$link"
+    elif [ -d "$target" ]; then
+      rm "$link"; cp -r "$target" "$link"
+    fi
+  done
+
+  # Deduplicate versioned .so: keep only .so and .so.5 (SONAME)
+  find "$INSTALL_DIR/lib" -maxdepth 1 -name 'lib*.so.5.15.18' -delete
+  find "$INSTALL_DIR/lib" -maxdepth 1 -name 'lib*.so.5.15' -delete
+
+  # Strip
+  find "$INSTALL_DIR" -type f \( -name '*.so*' -o -path '*/bin/*' \) -exec strip --strip-unneeded {} + 2>/dev/null || true
+else
+  # macOS: replace symlinks, strip frameworks
+  find "$INSTALL_DIR" -type l | while read -r link; do
+    target="$(readlink -f "$link")"
+    if [ -f "$target" ]; then
+      rm "$link"; cp "$target" "$link"
+    elif [ -d "$target" ]; then
+      rm "$link"; cp -r "$target" "$link"
+    fi
+  done
+  find "$INSTALL_DIR" -type f -name '*.dylib' -exec strip -x {} + 2>/dev/null || true
+  find "$INSTALL_DIR/bin" -type f -exec strip -x {} + 2>/dev/null || true
+  find "$INSTALL_DIR/lib" -maxdepth 1 -name '*.a' -delete 2>/dev/null || true
+fi
+
+set -e
 echo "Installed Qt5 to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"
