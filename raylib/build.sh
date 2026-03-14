@@ -38,10 +38,8 @@ if [[ "$(uname)" == "Linux" ]]; then
       fi
     fi
   else
-    # desktop: needs X11/GL dev packages
-    if command -v dnf &>/dev/null; then
-      dnf install -y libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel mesa-libGL-devel
-    elif command -v apt-get &>/dev/null; then
+    # desktop: needs X11/GL dev packages (manylinux deps installed centrally in build.sh)
+    if command -v apt-get &>/dev/null; then
       if [ "$(id -u)" -eq 0 ]; then
         apt-get update && apt-get install -y libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libgl-dev
       else

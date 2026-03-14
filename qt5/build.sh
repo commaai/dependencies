@@ -9,24 +9,9 @@ QT_TAG="v${QT_VERSION}-lts-lgpl"
 INSTALL_DIR="$DIR/qt5/install"
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
-# Install build dependencies
+# Install build dependencies (manylinux deps installed centrally in build.sh)
 if [[ "$(uname)" == "Linux" ]]; then
-  if command -v dnf &>/dev/null; then
-    dnf install -y \
-      mesa-libGL-devel \
-      fontconfig-devel \
-      freetype-devel \
-      libxcb-devel \
-      xcb-util-devel \
-      xcb-util-image-devel \
-      xcb-util-keysyms-devel \
-      xcb-util-renderutil-devel \
-      xcb-util-wm-devel \
-      libxkbcommon-devel \
-      libxkbcommon-x11-devel \
-      libX11-devel \
-      perl-IPC-Cmd
-  elif command -v apt-get &>/dev/null; then
+  if command -v apt-get &>/dev/null; then
     if [ "$(id -u)" -eq 0 ]; then
       apt-get update && apt-get install -y \
         libgl-dev \
@@ -53,6 +38,9 @@ if [[ "$(uname)" == "Linux" ]]; then
   fi
 fi
 
+# Clean cached build artifacts (Xcode version / symlink-to-dir issues)
+rm -rf "$INSTALL_DIR"
+
 # Clone/update qtbase
 if [ ! -d "qtbase-src/.git" ]; then
   rm -rf qtbase-src
@@ -60,6 +48,7 @@ if [ ! -d "qtbase-src/.git" ]; then
 fi
 git -C qtbase-src fetch --depth 1 origin "$QT_TAG"
 git -C qtbase-src checkout --force FETCH_HEAD
+git -C qtbase-src clean -fdx .
 
 # Build qtbase
 cd qtbase-src
@@ -84,8 +73,9 @@ fi
 git -C qtcharts-src fetch --depth 1 origin "$QT_TAG"
 git -C qtcharts-src checkout --force FETCH_HEAD
 
-# Build qtcharts
+# Build qtcharts (clean stale PCH/build artifacts from cache)
 cd qtcharts-src
+git clean -fdx .
 "$INSTALL_DIR/bin/qmake"
 make -j"$NJOBS"
 make install

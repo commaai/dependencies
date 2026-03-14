@@ -46,6 +46,19 @@ if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
       rm -rf "$pkg/$module/install" "$pkg/$module/toolchain" "$pkg/$module/bin"
     done
   fi
+
+  # Install all system deps upfront — individual build.sh scripts run in
+  # parallel via uv, so concurrent dnf calls would race on the package cache.
+  if command -v dnf &>/dev/null; then
+    dnf clean all
+    dnf install -y --allowerasing \
+      libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel \
+      mesa-libGL-devel mesa-libEGL-devel libglvnd-opengl libglvnd-core-devel \
+      wayland-devel wayland-protocols-devel libxkbcommon-devel \
+      fontconfig-devel freetype-devel libxcb-devel \
+      xcb-util-devel xcb-util-image-devel xcb-util-keysyms-devel \
+      xcb-util-renderutil-devel xcb-util-wm-devel libxkbcommon-x11-devel
+  fi
 fi
 
 export CMAKE_C_COMPILER_LAUNCHER=ccache
