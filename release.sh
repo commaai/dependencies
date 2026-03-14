@@ -29,7 +29,7 @@ for toml in */pyproject.toml; do
 done
 shopt -u nullglob
 
-TOKEN="$(gh auth token 2>/dev/null)" || { echo "set GH_TOKEN to publish shim branch" >&2; exit 1; }
+TOKEN="$(gh auth token 2>/dev/null)" || { echo "set GH_TOKEN to publish shim branches" >&2; exit 1; }
 
 TMP_DIR="$(mktemp -d)"
 python3 - "$TMP_DIR" "$REPO" <<'PY'
@@ -55,7 +55,8 @@ for toml in sorted(pathlib.Path(".").glob("*/pyproject.toml")):
   datadir = patterns[0].split("/", 1)[0] if patterns and patterns[0] else ""
   scripts = data.get("project", {}).get("scripts", {}) or {}
 
-  pkg_dir = tmp_dir / pkg
+  repo_dir = tmp_dir / pkg
+  pkg_dir = repo_dir / pkg
   mod_dir = pkg_dir / module
   mod_dir.mkdir(parents=True, exist_ok=True)
 
@@ -118,14 +119,25 @@ for toml in sorted(pathlib.Path(".").glob("*/pyproject.toml")):
   (pkg_dir / "pyproject.toml").write_text("\n".join(lines) + "\n")
 PY
 
-(
-  cd "$TMP_DIR"
-  git init
-  git checkout -b releases
-  git add .
-  git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" commit -m "update shim packages"
-  git remote add origin "https://x-access-token:${TOKEN}@github.com/${REPO}.git"
-  git push -f origin releases
-)
+shopt -s nullglob
+for repo_dir in "$TMP_DIR"/*; do
+  [[ -d "$repo_dir" ]] || continue
+
+  pkg="$(basename "$repo_dir")"
+  branch="release-$pkg"
+
+  echo "[$pkg] Publishing shim branch $branch"
+
+  (
+    cd "$repo_dir"
+    git init
+    git checkout -b "$branch"
+    git add "$pkg"
+    git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" commit -m "update $pkg shim"
+    git remote add origin "https://x-access-token:${TOKEN}@github.com/${REPO}.git"
+    git push -f origin "$branch"
+  )
+done
+shopt -u nullglob
 
 rm -rf "$TMP_DIR"
