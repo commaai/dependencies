@@ -1,0 +1,2 @@
+/* GNU ld script */
+GROUP ( libGL.so.1 )
