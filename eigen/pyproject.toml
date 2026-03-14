@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64", "wheel", 'tomli; python_version < "3.11"']
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eigen"
+version = "3.4.0"
+description = "Eigen C++ linear algebra headers (pre-built)"
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+include = ["eigen*"]
+
+[tool.setuptools.package-data]
+eigen = ["install/**/*", "*.so"]
+
+[tool.shim]
+repo_url = "https://github.com/commaai/dependencies"
+tag = "eigen/v3.4.0"
+datadir = "install"

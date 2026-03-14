@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64", "wheel", 'tomli; python_version < "3.11"']
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "libusb"
+version = "1.0.29"
+description = "libusb USB device access library (static build) (pre-built)"
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+include = ["libusb*"]
+
+[tool.setuptools.package-data]
+libusb = ["install/**/*", "*.so"]
+
+[tool.shim]
+repo_url = "https://github.com/commaai/dependencies"
+tag = "libusb/v1.0.29"
+datadir = "install"

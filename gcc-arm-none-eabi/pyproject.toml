@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=64", "wheel", 'tomli; python_version < "3.11"']
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gcc-arm-none-eabi"
+version = "13.2.1"
+description = "ARM GCC toolchain for bare-metal targets (pre-built)"
+requires-python = ">=3.8"
+
+[project.scripts]
+"arm-none-eabi-gcc" = "gcc_arm_none_eabi:_run_gcc"
+"arm-none-eabi-objcopy" = "gcc_arm_none_eabi:_run_objcopy"
+"arm-none-eabi-size" = "gcc_arm_none_eabi:_run_size"
+
+[tool.setuptools.packages.find]
+include = ["gcc_arm_none_eabi*"]
+
+[tool.setuptools.package-data]
+gcc_arm_none_eabi = ["toolchain/**/*", "*.so"]
+
+[tool.shim]
+repo_url = "https://github.com/commaai/dependencies"
+tag = "gcc-arm-none-eabi/v13.2.1"
+datadir = "toolchain"
