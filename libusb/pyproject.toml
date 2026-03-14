@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "libusb"
+version = "1.0.29"
+description = "libusb USB device access library (static build)"
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+include = ["libusb*"]
+
+[tool.setuptools.package-data]
+libusb = ["install/**/*"]

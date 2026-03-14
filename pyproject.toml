@@ -9,6 +9,7 @@ members = [
   "git-lfs",
   "imgui",
   "json11",
+  "libusb",
   "libjpeg",
   "libyuv",
   "nanosvg",
