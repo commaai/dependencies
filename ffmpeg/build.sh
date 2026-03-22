@@ -118,9 +118,6 @@ cd ffmpeg-src
 HW_FLAGS=()
 if [ "$PLATFORM" = "Linux" ]; then
   HW_FLAGS+=(
-    # use --static with pkg-config so static libva/libdrm resolve transitive deps
-    --pkg-config="pkg-config --static"
-
     # NVIDIA CUDA/NVDEC (uses dlopen at runtime)
     --enable-ffnvcodec --enable-cuda --enable-cuvid --enable-nvdec
     --enable-hwaccel=h264_nvdec,hevc_nvdec
