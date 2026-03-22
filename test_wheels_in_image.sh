@@ -14,15 +14,20 @@ FROM $IMAGE
 RUN if command -v apk >/dev/null; then \
       apk add --no-cache python3 py3-pip bash; \
     elif command -v apt-get >/dev/null; then \
-      apt-get update && apt-get install -y --no-install-recommends python3 python3-pip python3-venv; \
+      apt-get update && apt-get install -y --no-install-recommends python3 python3-pip python3-venv \
+        libva2 libvdpau1 libdrm2; \
     elif command -v dnf >/dev/null; then \
-      dnf install -y python3 python3-pip; \
+      dnf install -y python3 python3-pip \
+        libva libvdpau libdrm; \
     elif command -v pacman >/dev/null; then \
-      pacman -Sy --noconfirm python python-pip; \
+      pacman -Sy --noconfirm python python-pip \
+        libva libvdpau libdrm; \
     elif command -v zypper >/dev/null; then \
-      zypper install -y python3 python3-pip; \
+      zypper install -y python3 python3-pip \
+        libva2 libvdpau1 libdrm2; \
     elif command -v xbps-install >/dev/null; then \
-      xbps-install -Sy python3 python3-pip bash; \
+      xbps-install -Sy python3 python3-pip bash \
+        libva libvdpau libdrm; \
     fi
 DOCKERFILE
 
