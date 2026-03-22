@@ -82,35 +82,27 @@ cd ffmpeg-src
 HW_FLAGS=()
 if [ "$PLATFORM" = "Linux" ]; then
   HW_FLAGS+=(
-    # NVIDIA CUDA/NVDEC (uses dlopen at runtime, no driver needed at build time)
+    # NVIDIA CUDA/NVDEC (uses dlopen at runtime)
     --enable-ffnvcodec --enable-cuda --enable-cuvid --enable-nvdec
-    --enable-hwaccel=h264_nvdec,hevc_nvdec,vp9_nvdec,av1_nvdec,mpeg2_nvdec,mpeg4_nvdec,vc1_nvdec,vp8_nvdec
-    --enable-decoder=h264_cuvid,hevc_cuvid,vp9_cuvid,av1_cuvid,mpeg2_cuvid,mpeg4_cuvid,vc1_cuvid,vp8_cuvid
-
-    # VAAPI (Intel/AMD)
-    --enable-vaapi
-    --enable-hwaccel=h264_vaapi,hevc_vaapi,vp8_vaapi,vp9_vaapi,av1_vaapi,mpeg2_vaapi
-
-    # VDPAU (NVIDIA legacy)
-    --enable-vdpau
-    --enable-hwaccel=h264_vdpau,hevc_vdpau,mpeg2_vdpau,mpeg4_vdpau,vc1_vdpau,vp9_vdpau
+    --enable-hwaccel=h264_nvdec,hevc_nvdec
+    --enable-decoder=h264_cuvid,hevc_cuvid
 
     # V4L2 Memory-to-Memory (embedded: RPi, Qualcomm, Rockchip)
     --enable-v4l2-m2m
-    --enable-decoder=h264_v4l2m2m,hevc_v4l2m2m,mpeg2_v4l2m2m,mpeg4_v4l2m2m,vp8_v4l2m2m,vp9_v4l2m2m
+    --enable-decoder=h264_v4l2m2m,hevc_v4l2m2m
     --enable-encoder=h264_v4l2m2m,hevc_v4l2m2m
 
-    # Vulkan video decode/encode
+    # Vulkan video decode/encode (uses dlopen at runtime)
     --enable-vulkan
-    --enable-hwaccel=h264_vulkan,hevc_vulkan,av1_vulkan
+    --enable-hwaccel=h264_vulkan,hevc_vulkan
     --enable-encoder=h264_vulkan,hevc_vulkan
   )
 elif [ "$PLATFORM" = "Darwin" ]; then
   HW_FLAGS+=(
     # VideoToolbox (Apple Silicon / macOS)
     --enable-videotoolbox
-    --enable-hwaccel=h264_videotoolbox,hevc_videotoolbox,vp9_videotoolbox,mpeg1_videotoolbox,mpeg2_videotoolbox,mpeg4_videotoolbox,prores_videotoolbox
-    --enable-encoder=h264_videotoolbox,hevc_videotoolbox,prores_videotoolbox
+    --enable-hwaccel=h264_videotoolbox,hevc_videotoolbox
+    --enable-encoder=h264_videotoolbox,hevc_videotoolbox
   )
 fi
 
