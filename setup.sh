@@ -17,10 +17,10 @@ run_as_root() {
 if [ "$(uname)" = "Darwin" ]; then
   brew install nasm pkg-config ccache
 elif command -v dnf &>/dev/null; then
-  dnf install -y nasm cmake gcc-c++ pkgconfig git perl-IPC-Cmd ccache libcurl-devel openssl-devel zlib-devel
+  dnf install -y nasm cmake gcc-c++ pkgconfig git perl-IPC-Cmd ccache autoconf automake libtool
 elif command -v apt-get &>/dev/null; then
   run_as_root apt-get update
-  run_as_root apt-get install -y nasm cmake g++ pkg-config curl ccache libcurl4-openssl-dev zlib1g-dev
+  run_as_root apt-get install -y nasm cmake g++ pkg-config curl ccache autoconf automake libtool
 fi
 
 if ! command -v uv &>/dev/null; then

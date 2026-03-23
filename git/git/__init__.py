@@ -14,3 +14,4 @@ def smoketest():
   import subprocess
   binary = os.path.join(BIN_DIR, "git")
   subprocess.run([binary, "--version"], check=True)
+  subprocess.run([binary, "ls-remote", "https://github.com/commaai/openpilot.git", "HEAD"], check=True)
