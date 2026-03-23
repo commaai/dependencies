@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "git"
+version = "2.47.1"
+description = "Git distributed version control system"
+requires-python = ">=3.8"
+
+[project.scripts]
+git = "git:_run"
+
+[tool.setuptools.packages.find]
+include = ["git*"]
+
+[tool.setuptools.package-data]
+git = ["install/**/*"]
