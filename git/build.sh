@@ -103,10 +103,13 @@ fi
 git -C git-src fetch --depth 1 origin "v${VERSION}"
 git -C git-src checkout --force FETCH_HEAD
 
-# Gather static link flags for curl's dependencies
-CURL_LDFLAGS="-L$PREFIX/lib -lcurl -lssl -lcrypto -lz -lpthread"
+# Gather static link flags for curl and openssl dependencies
+# CURL_LIBCURL: used by git-remote-http, git-http-fetch, git-http-push
+# LIB_4_CRYPTO: used by git-imap-send and other direct openssl consumers
+# Both need transitive deps (-ldl, -lpthread) since we link statically
+CRYPTO_DEPS="-lpthread"
 if [ "$PLATFORM" = "Linux" ]; then
-  CURL_LDFLAGS="$CURL_LDFLAGS -ldl"
+  CRYPTO_DEPS="$CRYPTO_DEPS -ldl"
 fi
 
 cd git-src
@@ -119,7 +122,9 @@ make prefix="$PREFIX" \
   NO_EXPAT=YesPlease \
   INSTALL_SYMLINKS=1 \
   CURLDIR="$PREFIX" \
-  CURL_LIBCURL="$CURL_LDFLAGS" \
+  CURL_LIBCURL="-L$PREFIX/lib -lcurl -lssl -lcrypto -lz $CRYPTO_DEPS" \
+  OPENSSL_LIBSSL="-L$PREFIX/lib -lssl" \
+  LIB_4_CRYPTO="-lcrypto $CRYPTO_DEPS" \
   ZLIB_PATH="$PREFIX" \
   -j"$NJOBS" \
   all
@@ -132,7 +137,9 @@ make prefix="$PREFIX" \
   NO_EXPAT=YesPlease \
   INSTALL_SYMLINKS=1 \
   CURLDIR="$PREFIX" \
-  CURL_LIBCURL="$CURL_LDFLAGS" \
+  CURL_LIBCURL="-L$PREFIX/lib -lcurl -lssl -lcrypto -lz $CRYPTO_DEPS" \
+  OPENSSL_LIBSSL="-L$PREFIX/lib -lssl" \
+  LIB_4_CRYPTO="-lcrypto $CRYPTO_DEPS" \
   ZLIB_PATH="$PREFIX" \
   install
 cd "$DIR"

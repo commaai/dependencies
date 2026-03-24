@@ -15,7 +15,7 @@ run_as_root() {
 }
 
 if [ "$(uname)" = "Darwin" ]; then
-  brew install nasm pkg-config ccache
+  brew install nasm pkg-config ccache autoconf automake libtool
 elif command -v dnf &>/dev/null; then
   dnf install -y nasm cmake gcc-c++ pkgconfig git perl-IPC-Cmd ccache autoconf automake libtool
 elif command -v apt-get &>/dev/null; then
