@@ -104,9 +104,9 @@ git -C git-src fetch --depth 1 origin "v${VERSION}"
 git -C git-src checkout --force FETCH_HEAD
 
 # Gather static link flags for curl's dependencies
-CURL_LDFLAGS="-L$PREFIX/lib -lcurl -lssl -lcrypto -lz"
+CURL_LDFLAGS="-L$PREFIX/lib -lcurl -lssl -lcrypto -lz -lpthread"
 if [ "$PLATFORM" = "Linux" ]; then
-  CURL_LDFLAGS="$CURL_LDFLAGS -lpthread -ldl"
+  CURL_LDFLAGS="$CURL_LDFLAGS -ldl"
 fi
 
 cd git-src
@@ -119,7 +119,7 @@ make prefix="$PREFIX" \
   NO_EXPAT=YesPlease \
   INSTALL_SYMLINKS=1 \
   CURLDIR="$PREFIX" \
-  CURL_LDFLAGS="$CURL_LDFLAGS" \
+  CURL_LIBCURL="$CURL_LDFLAGS" \
   ZLIB_PATH="$PREFIX" \
   -j"$NJOBS" \
   all
@@ -132,7 +132,7 @@ make prefix="$PREFIX" \
   NO_EXPAT=YesPlease \
   INSTALL_SYMLINKS=1 \
   CURLDIR="$PREFIX" \
-  CURL_LDFLAGS="$CURL_LDFLAGS" \
+  CURL_LIBCURL="$CURL_LDFLAGS" \
   ZLIB_PATH="$PREFIX" \
   install
 cd "$DIR"
