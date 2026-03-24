@@ -108,8 +108,11 @@ git -C git-src checkout --force FETCH_HEAD
 # LIB_4_CRYPTO: used by git-imap-send and other direct openssl consumers
 # Both need transitive deps (-ldl, -lpthread) since we link statically
 CRYPTO_DEPS="-lpthread"
+CURL_EXTRA=""
 if [ "$PLATFORM" = "Linux" ]; then
   CRYPTO_DEPS="$CRYPTO_DEPS -ldl"
+elif [ "$PLATFORM" = "Darwin" ]; then
+  CURL_EXTRA="-framework SystemConfiguration -framework Security -framework CoreFoundation"
 fi
 
 cd git-src
@@ -122,7 +125,7 @@ make prefix="$PREFIX" \
   NO_EXPAT=YesPlease \
   INSTALL_SYMLINKS=1 \
   CURLDIR="$PREFIX" \
-  CURL_LIBCURL="-L$PREFIX/lib -lcurl -lssl -lcrypto -lz $CRYPTO_DEPS" \
+  CURL_LIBCURL="-L$PREFIX/lib -lcurl -lssl -lcrypto -lz $CRYPTO_DEPS $CURL_EXTRA" \
   OPENSSL_LIBSSL="-L$PREFIX/lib -lssl" \
   LIB_4_CRYPTO="-lcrypto $CRYPTO_DEPS" \
   ZLIB_PATH="$PREFIX" \
@@ -137,7 +140,7 @@ make prefix="$PREFIX" \
   NO_EXPAT=YesPlease \
   INSTALL_SYMLINKS=1 \
   CURLDIR="$PREFIX" \
-  CURL_LIBCURL="-L$PREFIX/lib -lcurl -lssl -lcrypto -lz $CRYPTO_DEPS" \
+  CURL_LIBCURL="-L$PREFIX/lib -lcurl -lssl -lcrypto -lz $CRYPTO_DEPS $CURL_EXTRA" \
   OPENSSL_LIBSSL="-L$PREFIX/lib -lssl" \
   LIB_4_CRYPTO="-lcrypto $CRYPTO_DEPS" \
   ZLIB_PATH="$PREFIX" \
