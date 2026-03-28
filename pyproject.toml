@@ -15,6 +15,7 @@ members = [
   "libyuv",
   "nanosvg",
   "ncurses",
+  "pyzbar",
   "qt5",
   "raylib",
   "zeromq",
