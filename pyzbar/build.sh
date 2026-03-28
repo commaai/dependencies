@@ -10,6 +10,15 @@ PLATFORM="$(uname -s)"
 
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
+# Install gettext (needed by zbar's autoreconf for AM_GNU_GETTEXT macros)
+if [ "$PLATFORM" = "Linux" ]; then
+  if command -v dnf &>/dev/null; then
+    dnf install -y gettext-devel 2>/dev/null || true
+  elif command -v apt-get &>/dev/null; then
+    apt-get install -y gettext 2>/dev/null || true
+  fi
+fi
+
 # Clone/update source
 if [ ! -d "zbar-src/.git" ]; then
   rm -rf zbar-src
