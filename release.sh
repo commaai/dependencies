@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 cd "$ROOT_DIR"
 
-REPO=greatgitsby/op-dependencies
+REPO=commaai/dependencies
 
 echo
 echo "Publishing wheels to GitHub Releases ($REPO)"
