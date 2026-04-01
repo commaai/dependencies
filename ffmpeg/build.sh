@@ -161,13 +161,14 @@ PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
   --disable-autodetect \
   --disable-x86asm \
   --disable-everything \
-  --enable-encoder=libx264,aac,ffvhuff,rawvideo,png,mjpeg \
+  --enable-indev=lavfi \
+  --enable-encoder=libx264,aac,ffvhuff,rawvideo,png,mjpeg,pcm_s16le \
   --enable-decoder=h264,hevc,ffvhuff,aac,rawvideo,png,mjpeg,mp3,pcm_s16le \
-  --enable-muxer=mpegts,matroska,mp4,hevc,rawvideo,image2,null,mov,framehash \
+  --enable-muxer=wav,mpegts,matroska,mp4,hevc,rawvideo,image2,null,mov,framehash \
   --enable-demuxer=hevc,matroska,mpegts,mov,rawvideo,image2,aac,concat \
   --enable-parser=h264,hevc,aac,mpegaudio \
   --enable-protocol=file,pipe \
-  --enable-filter=blend,vflip,format,scale,aformat,anull,aresample,null \
+  --enable-filter=sine,pan,volume,blend,vflip,format,scale,aformat,anull,aresample,null \
   --enable-bsf=extract_extradata,h264_mp4toannexb,hevc_mp4toannexb \
   --extra-cflags="-I$PREFIX/include" \
   --extra-ldflags="-L$PREFIX/lib" \
