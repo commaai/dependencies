@@ -23,13 +23,10 @@ mkdir -p "$DIR/build"
 
 cmake -S llvm-src/llvm -B "$DIR/build" \
   -DCMAKE_BUILD_TYPE=MinSizeRel \
-  -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-  -DCMAKE_INSTALL_LIBDIR=lib \
   -DCMAKE_C_FLAGS="-fPIC" \
   -DCMAKE_CXX_FLAGS="-fPIC" \
   -DLLVM_TARGETS_TO_BUILD="X86;AArch64" \
   -DLLVM_BUILD_LLVM_DYLIB=ON \
-  -DLLVM_LINK_LLVM_DYLIB=ON \
   -DLLVM_ENABLE_ZLIB=OFF \
   -DLLVM_ENABLE_ZSTD=OFF \
   -DLLVM_ENABLE_TERMINFO=OFF \
@@ -40,28 +37,23 @@ cmake -S llvm-src/llvm -B "$DIR/build" \
   -DLLVM_INCLUDE_BENCHMARKS=OFF \
   -DLLVM_INCLUDE_EXAMPLES=OFF \
   -DLLVM_INCLUDE_TESTS=OFF \
-  -DLLVM_INCLUDE_DOCS=OFF \
-  -DLLVM_INCLUDE_TOOLS=OFF \
-  -DLLVM_BUILD_TOOLS=OFF \
-  -DLLVM_BUILD_UTILS=OFF
+  -DLLVM_INCLUDE_DOCS=OFF
 
-cmake --build "$DIR/build" -j"$NJOBS"
-cmake --install "$DIR/build"
+# only build the shared library target (lives in tools/llvm-shlib)
+cmake --build "$DIR/build" --target LLVM -j"$NJOBS"
 
 # Copy to package install dir
 rm -rf "$INSTALL_DIR"
 mkdir -p "$INSTALL_DIR/lib"
 
-# Copy the shared library
 UNAME="$(uname)"
 if [ "$UNAME" = "Darwin" ]; then
-  cp -P "$PREFIX/lib"/libLLVM*.dylib "$INSTALL_DIR/lib/"
+  cp -P "$DIR/build/lib"/libLLVM*.dylib "$INSTALL_DIR/lib/"
+  strip -x "$INSTALL_DIR/lib"/libLLVM*.dylib 2>/dev/null || true
 else
-  cp -P "$PREFIX/lib"/libLLVM*.so* "$INSTALL_DIR/lib/"
+  cp -P "$DIR/build/lib"/libLLVM*.so* "$INSTALL_DIR/lib/"
+  strip "$INSTALL_DIR/lib"/libLLVM*.so* 2>/dev/null || true
 fi
-
-# Strip
-strip "$INSTALL_DIR/lib"/libLLVM* 2>/dev/null || true
 
 echo "Installed llvm to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"
