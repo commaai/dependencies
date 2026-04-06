@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llvm"
+version = "20.1.4"
+description = "LLVM shared library (libLLVM) for CPU code generation"
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+include = ["llvm*"]
+
+[tool.setuptools.package-data]
+llvm = ["install/**/*"]

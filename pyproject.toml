@@ -13,6 +13,7 @@ members = [
   "libusb",
   "libjpeg",
   "libyuv",
+  "llvm",
   "nanosvg",
   "ncurses",
   "qt5",
