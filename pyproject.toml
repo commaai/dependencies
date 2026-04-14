@@ -18,5 +18,6 @@ members = [
   "qt5",
   "raylib",
   "zeromq",
+  "mdbook",
   "zstd",
 ]
