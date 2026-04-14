@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mdbook"
+version = "0.5.2"
+description = "mdBook command-line tool for creating books from Markdown"
+requires-python = ">=3.8"
+
+[project.scripts]
+mdbook = "mdbook:_run"
+
+[tool.setuptools.packages.find]
+include = ["mdbook*"]
+
+[tool.setuptools.package-data]
+mdbook = ["bin/**/*"]
