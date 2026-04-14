@@ -18,7 +18,7 @@ OS="$(uname -s)"
 ARCH="$(uname -m)"
 
 case "${OS}-${ARCH}" in
-  Linux-x86_64)   TARGET="x86_64-unknown-linux-gnu" ;;
+  Linux-x86_64)   TARGET="x86_64-unknown-linux-musl" ;;
   Linux-aarch64)  TARGET="aarch64-unknown-linux-musl" ;;
   Darwin-arm64)   TARGET="aarch64-apple-darwin" ;;
   *)
