@@ -43,20 +43,29 @@ class InstallPrebuilt(build_py):
       if plat is None:
         raise RuntimeError(f"unsupported platform: {key}")
 
-      whl_name = f"{MODULE}-{VERSION}-py3-none-{plat}.whl"
-      url = f"{REPO_URL}/releases/download/{TAG}/{whl_name}"
+      whl_names = [
+        f"{MODULE}-{VERSION}-py3-none-{plat}.whl",
+        f"{MODULE}-{VERSION}-py3-none-any.whl",
+      ]
 
-      print(f"Downloading {url} ...")
-      for attempt in range(3):
-        try:
-          raw = urlopen(url, timeout=60).read()
+      raw = None
+      for whl_name in whl_names:
+        url = f"{REPO_URL}/releases/download/{TAG}/{whl_name}"
+        print(f"Downloading {url} ...")
+        for attempt in range(3):
+          try:
+            raw = urlopen(url, timeout=60).read()
+            break
+          except (URLError, OSError) as e:
+            if attempt == 2:
+              if whl_name == whl_names[-1]:
+                raise
+              break
+            wait = 2 ** attempt
+            print(f"Download failed ({e}), retrying in {wait}s ...")
+            time.sleep(wait)
+        if raw is not None:
           break
-        except (URLError, OSError) as e:
-          if attempt == 2:
-            raise
-          wait = 2 ** attempt
-          print(f"Download failed ({e}), retrying in {wait}s ...")
-          time.sleep(wait)
 
       print(f"Extracting {DATADIR} ...")
       with zipfile.ZipFile(BytesIO(raw)) as zf:
