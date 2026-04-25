@@ -2,6 +2,7 @@
 members = [
   "bzip2",
   "capnproto",
+  "catch2",
   "cppcheck",
   "eigen",
   "ffmpeg",

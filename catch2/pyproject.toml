@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "catch2"
+version = "2.13.10"
+description = "Catch2 C++ test framework headers"
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+include = ["catch2*"]
+exclude = ["catch2-src*"]
+
+[tool.setuptools.package-data]
+catch2 = ["install/**/*"]
