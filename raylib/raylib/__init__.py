@@ -1,71 +1,111 @@
+import importlib
 import os
 import platform as _platform
 
 DIR = os.path.join(os.path.dirname(__file__), "install")
-LIB_DIR = os.path.join(DIR, "lib")
+LIB_ROOT = os.path.join(DIR, "lib")
 INCLUDE_DIR = os.path.join(DIR, "include")
+BUILD_INFO = os.path.join(DIR, "build-info.txt")
+
+_PLATFORM_BY_VARIANT = {
+  "comma": "PLATFORM_COMMA",
+  "desktop": "PLATFORM_DESKTOP",
+  "offscreen": "PLATFORM_OFFSCREEN",
+}
 
 
-def _detect_platform():
-  """Auto-detect the raylib platform. In CI on Linux x86_64, use offscreen EGL rendering."""
-  explicit = os.environ.get("RAYLIB_PLATFORM", "")
+def _normalize_variant(value):
+  if value in ("PLATFORM_COMMA", "comma"):
+    return "comma"
+  if value in ("PLATFORM_OFFSCREEN", "offscreen"):
+    return "offscreen"
+  if value in ("PLATFORM_DESKTOP", "desktop", ""):
+    return "desktop"
+  return value
+
+
+def _detect_variant():
+  explicit = os.environ.get("RAYLIB_VARIANT") or os.environ.get("RAYLIB_PLATFORM", "")
   if explicit:
-    return explicit
+    return _normalize_variant(explicit)
+  if os.path.isfile("/TICI") or os.path.isfile("/AGNOS"):
+    return "comma"
   if os.environ.get("CI") and _platform.system() == "Linux" and _platform.machine() == "x86_64":
-    return "PLATFORM_OFFSCREEN"
-  return ""
+    return "offscreen"
+  return "desktop"
+
+
+VARIANT = _detect_variant()
+LIB_DIR = os.path.join(LIB_ROOT, VARIANT)
+if not os.path.isfile(os.path.join(LIB_DIR, "libraylib.a")):
+  LIB_DIR = LIB_ROOT
+
+
+def _module_name(variant):
+  return f"_raylib_cffi_{variant}" if variant else "_raylib_cffi"
+
+
+def _import_cffi_module():
+  names = [_module_name(VARIANT), "_raylib_cffi"]
+  seen = set()
+  for name in names:
+    if name in seen:
+      continue
+    seen.add(name)
+    try:
+      return importlib.import_module(f".{name}", __name__)
+    except ImportError:
+      continue
+  return None
 
 
 def smoketest():
   assert os.path.isfile(os.path.join(LIB_DIR, "libraylib.a")), "libraylib.a not found"
   assert os.path.isfile(os.path.join(INCLUDE_DIR, "raylib.h")), "raylib.h not found"
+  assert os.path.isfile(os.path.join(INCLUDE_DIR, "raymath.h")), "raymath.h not found"
+  assert os.path.isfile(os.path.join(INCLUDE_DIR, "rlgl.h")), "rlgl.h not found"
+  assert os.path.isfile(os.path.join(INCLUDE_DIR, "raygui.h")), "raygui.h not found"
+  assert os.path.isfile(BUILD_INFO), "build-info.txt not found"
+  try:
+    import _cffi_backend  # noqa: F401
+  except ModuleNotFoundError:
+    return
+  assert _import_cffi_module() is not None, f"CFFI module for {VARIANT} not found"
+  import pyray  # noqa: F401
 
 
-# Build CFFI extension on first import if not already compiled,
-# or rebuild if the target platform changed since last build.
 def _ensure_cffi_built():
-  import glob
   import subprocess
   import sys
-  pkg_dir = os.path.dirname(__file__)
-  platform_marker = os.path.join(pkg_dir, ".raylib_platform")
-  requested = _detect_platform()
 
-  # Export so build.py picks it up
-  if requested:
-    os.environ["RAYLIB_PLATFORM"] = requested
-    # Mesa llvmpipe for software rendering in headless CI
-    if requested == "PLATFORM_OFFSCREEN":
-      os.environ.setdefault("LIBGL_ALWAYS_SOFTWARE", "1")
+  if _import_cffi_module() is not None:
+    return
 
-  cffi_files = glob.glob(os.path.join(pkg_dir, "_raylib_cffi*"))
+  build_script = os.path.join(os.path.dirname(__file__), "build.py")
+  if not os.path.isfile(build_script) or not os.path.isfile(os.path.join(LIB_DIR, "libraylib.a")):
+    return
 
-  # Rebuild if platform changed
-  if cffi_files and requested:
-    built_for = open(platform_marker).read().strip() if os.path.isfile(platform_marker) else ""
-    if built_for != requested:
-      for f in cffi_files:
-        os.remove(f)
-      cffi_files = []
+  env = os.environ.copy()
+  env["RAYLIB_VARIANT"] = VARIANT
+  env["RAYLIB_PLATFORM"] = _PLATFORM_BY_VARIANT.get(VARIANT, "PLATFORM_DESKTOP")
+  env["RAYLIB_CFFI_MODULE"] = f"raylib.{_module_name(VARIANT)}"
 
-  if not cffi_files:
-    build_script = os.path.join(pkg_dir, "build.py")
-    if os.path.isfile(build_script) and os.path.isfile(os.path.join(LIB_DIR, "libraylib.a")):
-      try:
-        subprocess.check_call([sys.executable, build_script], cwd=os.path.dirname(pkg_dir))
-        with open(platform_marker, "w") as f:
-          f.write(requested)
-      except subprocess.CalledProcessError:
-        pass
+  try:
+    subprocess.check_call([sys.executable, build_script], cwd=os.path.dirname(os.path.dirname(__file__)), env=env)
+  except subprocess.CalledProcessError:
+    pass
+
 
 _ensure_cffi_built()
 
-# CFFI bindings (available when graphics libraries are present)
-try:
-  from ._raylib_cffi import ffi, lib as rl
-  from raylib._raylib_cffi.lib import *  # noqa: F403
+_cffi_module = _import_cffi_module()
+if _cffi_module is not None:
+  ffi = _cffi_module.ffi
+  rl = _cffi_module.lib
+  for _name in dir(rl):
+    if not _name.startswith("_"):
+      globals()[_name] = getattr(rl, _name)
+
   from raylib.colors import *  # noqa: F403
   from raylib.defines import *  # noqa: F403
   from .version import __version__
-except (ImportError, OSError):
-  pass

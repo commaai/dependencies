@@ -18,15 +18,37 @@ class BuildRaylib(build_py):
 
   def run(self):
     pkg_dir = os.path.dirname(os.path.abspath(__file__))
+    raylib_pkg_dir = os.path.join(pkg_dir, "raylib")
     build_script = os.path.join(pkg_dir, "build.sh")
     subprocess.check_call(["bash", build_script], cwd=pkg_dir)
 
-    # Build CFFI extension so it's included in the wheel
-    cffi_so = glob.glob(os.path.join(pkg_dir, "raylib", "_raylib_cffi*"))
-    if not cffi_so:
-      build_cffi = os.path.join(pkg_dir, "raylib", "build.py")
-      if os.path.isfile(build_cffi):
-        subprocess.check_call([sys.executable, build_cffi], cwd=pkg_dir)
+    # Build CFFI extensions so they are included in the wheel, and make sure stale
+    # local extensions from another raylib platform do not leak into the wheel.
+    for path in glob.glob(os.path.join(raylib_pkg_dir, "_raylib_cffi*")):
+      os.remove(path)
+
+    build_cffi = os.path.join(raylib_pkg_dir, "build.py")
+    if os.path.isfile(build_cffi):
+      variants = [
+        os.path.basename(path)
+        for path in sorted(glob.glob(os.path.join(raylib_pkg_dir, "install", "lib", "*")))
+        if os.path.isfile(os.path.join(path, "libraylib.a"))
+      ]
+      if not variants:
+        variants = [""]
+
+      platform_by_variant = {
+        "comma": "PLATFORM_COMMA",
+        "desktop": "PLATFORM_DESKTOP",
+        "offscreen": "PLATFORM_OFFSCREEN",
+        "": os.environ.get("RAYLIB_PLATFORM", ""),
+      }
+      for variant in variants:
+        env = os.environ.copy()
+        env["RAYLIB_VARIANT"] = variant
+        env["RAYLIB_PLATFORM"] = platform_by_variant.get(variant, "PLATFORM_DESKTOP")
+        env["RAYLIB_CFFI_MODULE"] = f"raylib._raylib_cffi_{variant}" if variant else "raylib._raylib_cffi"
+        subprocess.check_call([sys.executable, build_cffi], cwd=pkg_dir, env=env)
 
     super().run()
 

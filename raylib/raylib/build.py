@@ -11,8 +11,11 @@ from cffi import FFI
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 RAYLIB_INCLUDE_PATH = os.path.join(HERE, "install", "include")
-RAYLIB_LIB_PATH = os.path.join(HERE, "install", "lib")
+RAYLIB_VARIANT = os.getenv("RAYLIB_VARIANT", "")
+RAYLIB_LIB_ROOT = os.path.join(HERE, "install", "lib")
+RAYLIB_LIB_PATH = os.path.join(RAYLIB_LIB_ROOT, RAYLIB_VARIANT) if RAYLIB_VARIANT else RAYLIB_LIB_ROOT
 RAYLIB_PLATFORM = os.getenv("RAYLIB_PLATFORM", "")
+RAYLIB_CFFI_MODULE = os.getenv("RAYLIB_CFFI_MODULE", "raylib._raylib_cffi")
 
 ffibuilder = FFI()
 
@@ -105,13 +108,9 @@ def build_ffi():
       extra_link_args.remove('-lGL')
       extra_link_args += ['-lGLESv2', '-lEGL', '-lgbm', '-ldrm']
     elif RAYLIB_PLATFORM == "PLATFORM_OFFSCREEN":
-      # Use offscreen variant if available, otherwise fall back to default
-      offscreen_lib = os.path.join(RAYLIB_LIB_PATH, 'libraylib_offscreen.a')
-      if os.path.isfile(offscreen_lib):
-        extra_link_args[extra_link_args.index('-lraylib')] = '-lraylib_offscreen'
       extra_link_args.remove('-lGL')
       # Use bundled GLVND dispatchers if available, with RPATH for runtime
-      mesa_dir = os.path.join(RAYLIB_LIB_PATH, 'mesa')
+      mesa_dir = os.path.join(RAYLIB_LIB_ROOT, 'mesa')
       if os.path.isdir(mesa_dir):
         extra_link_args += [f'-L{mesa_dir}', f'-Wl,-rpath,$ORIGIN/install/lib/mesa']
       extra_link_args += ['-lOpenGL', '-lEGL']
@@ -121,7 +120,7 @@ def build_ffi():
     libraries = []
 
   print("extra_link_args: " + str(extra_link_args))
-  ffibuilder.set_source("raylib._raylib_cffi",
+  ffibuilder.set_source(RAYLIB_CFFI_MODULE,
                         ffi_includes,
                         py_limited_api=True,
                         include_dirs=[RAYLIB_INCLUDE_PATH],
