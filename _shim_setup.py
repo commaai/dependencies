@@ -25,8 +25,15 @@ DATADIR = _cfg["tool"]["shim"]["datadir"]
 VERSION = _cfg["project"]["version"]
 MODULE = _cfg["project"]["name"].replace("-", "_")
 
-# all top-level packages bundled in this wheel (e.g. acados + casadi)
-_INCLUDE = _cfg.get("tool", {}).get("setuptools", {}).get("packages", {}).get("find", {}).get("include", [f"{MODULE}*"])
+# all top-level packages bundled in this wheel (e.g. acados + casadi).
+# `packages` may be a flat list or a dict with find.include patterns.
+_pkgs = _cfg.get("tool", {}).get("setuptools", {}).get("packages", [f"{MODULE}*"])
+if isinstance(_pkgs, list):
+  _INCLUDE = _pkgs
+elif isinstance(_pkgs, dict):
+  _INCLUDE = _pkgs.get("find", {}).get("include", [f"{MODULE}*"])
+else:
+  _INCLUDE = [f"{MODULE}*"]
 TOP_PACKAGES = sorted({p.rstrip("*").rstrip("/") for p in _INCLUDE if p.rstrip("*").rstrip("/")})
 
 PLATFORM_MAP = {

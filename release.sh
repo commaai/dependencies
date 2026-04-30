@@ -71,8 +71,15 @@ for toml in sorted(pathlib.Path(".").glob("*/pyproject.toml")):
   def _ignore_binaries(_dir, names):
     return [n for n in names if n.endswith((".so", ".dylib", ".a")) or ".so." in n or n == "__pycache__"]
 
-  pkgs_val = data.get("tool", {}).get("setuptools", {}).get("packages", {})
-  include_patterns = pkgs_val.get("find", {}).get("include", []) if isinstance(pkgs_val, dict) else []
+  # `packages` is either a flat list (["acados", "casadi"]) or a dict with
+  # `find.include` patterns (["acados*", "casadi*"]) — handle both
+  pkgs_val = data.get("tool", {}).get("setuptools", {}).get("packages", [])
+  if isinstance(pkgs_val, list):
+    include_patterns = list(pkgs_val)
+  elif isinstance(pkgs_val, dict):
+    include_patterns = pkgs_val.get("find", {}).get("include", [])
+  else:
+    include_patterns = []
   extra_packages = []
   for pattern in include_patterns:
     p = pattern.rstrip("*")
