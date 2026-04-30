@@ -7,6 +7,10 @@ name = "acados"
 version = "0.2.2"
 description = "acados solvers + Python interface, with a slimmed casadi vendored alongside"
 requires-python = ">=3.8"
+dependencies = [
+  # the vendored casadi.py shim imports numpy at module load time
+  "numpy",
+]
 
 [tool.setuptools.packages.find]
 include = ["acados*", "casadi*"]
