@@ -7,6 +7,11 @@ name = "acados"
 version = "0.2.2"
 description = "acados solvers, headers, and Python interface (acados_template)"
 requires-python = ">=3.8"
+dependencies = [
+  # acados_template (and openpilot's MPC code) imports casadi directly.
+  # 3.6.6 is the first release with python 3.12 support.
+  "casadi >=3.6.6",
+]
 
 [tool.setuptools.packages.find]
 include = ["acados*"]
