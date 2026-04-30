@@ -12,10 +12,12 @@ dependencies = [
   "numpy",
 ]
 
-[tool.setuptools.packages.find]
-include = ["acados*", "casadi*"]
-exclude = ["acados-src*", "casadi-wheel*"]
+# `find` runs at setup() init time, before build.sh creates these dirs, so
+# enumerate packages explicitly. acados.acados_template + casadi.tools are
+# subpackages and ship via package-data.
+[tool.setuptools]
+packages = ["acados", "casadi"]
 
 [tool.setuptools.package-data]
 acados = ["install/**/*", "acados_template/**/*"]
-casadi = ["**/*.so", "**/*.so.*", "**/*.dylib"]
+casadi = ["**/*"]
