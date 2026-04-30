@@ -118,43 +118,18 @@ fi
 unzip -q casadi-wheel/casadi-*.whl -d casadi-wheel/extracted
 mv casadi-wheel/extracted/casadi "$CASADI_DIR"
 
-# drop everything we don't need: solver plugins, dev headers, build glue
+# drop everything except the bits openpilot actually needs:
+#   - __init__.py, casadi.py, tools/  (Python wrapper)
+#   - _casadi.so                       (CPython extension; same name on linux+darwin)
+#   - libcasadi.{so,dylib}*            (the C++ runtime that _casadi.so links to)
+# openpilot only uses symbolic SX/MX/Function/jacobian etc., which live in
+# libcasadi + _casadi. Solver plugins (conic_*, nlpsol_*, integrator_*, ...)
+# and their third-party backends (ipopt, bonmin, hpipm, fatrop, ...) are
+# loaded lazily via dlopen and never reached.
 cd "$CASADI_DIR"
-rm -rf include lib64 cmake casadi-cli cbc clp highs pkgconfig
-find . -maxdepth 1 -name '*.la' -delete
-find . -maxdepth 1 -name '*.a' -delete
-# casadi solver plugins are loaded lazily via dlopen; openpilot only uses
-# symbolic SX/MX, vertcat, jacobian, etc., which live in libcasadi.so + _casadi.so.
-find . -maxdepth 1 \( \
-    -name 'libcasadi_conic_*.so*' -o \
-    -name 'libcasadi_nlpsol_*.so*' -o \
-    -name 'libcasadi_integrator_*.so*' -o \
-    -name 'libcasadi_linsol_*.so*' -o \
-    -name 'libcasadi_rootfinder_*.so*' -o \
-    -name 'libcasadi_interpolant_*.so*' -o \
-    -name 'libcasadi_xmlfile_*.so*' -o \
-    -name 'libcasadi_importer_*.so*' -o \
-    -name 'libcasadi_sundials_common.so*' -o \
-    -name 'libcasadi-tp-*.so*' \
-  \) -delete
-# third-party solver libraries (not referenced by libcasadi.so directly)
-find . -maxdepth 1 \( \
-    -name 'libalpaqa*.so*' -o -name 'libbonmin*.so*' -o \
-    -name 'libcoin*.so*' -o -name 'libCbc*.so*' -o -name 'libClp*.so*' -o \
-    -name 'libCgl*.so*' -o -name 'libCoinUtils*.so*' -o -name 'libOsi*.so*' -o \
-    -name 'libcplex_adaptor.so' -o -name 'libgurobi_adaptor.so' -o \
-    -name 'libhighs*.so*' -o -name 'libhpipm*.so*' -o \
-    -name 'libipopt*.so*' -o -name 'libsipopt*.so*' -o \
-    -name 'libdaqp*.so*' -o -name 'libfatrop*.so*' -o \
-    -name 'libosqp*.so*' -o -name 'libqdldl*.so*' -o \
-    -name 'libsleqp*.so*' -o -name 'libtrlib*.so*' -o \
-    -name 'libknitro*.so*' -o -name 'libmadnlp*.so*' -o \
-    -name 'libsnopt*.so*' -o -name 'libworhp*.so*' -o \
-    -name 'libampl*.so*' -o -name 'libsuperscs*.so*' -o \
-    -name 'libproxqp*.so*' -o -name 'libqpoases*.so*' -o \
-    -name 'libgfortran*.so*' -o -name 'libquadmath*.so*' -o \
-    -name 'libblasfeo.so*' -o -name 'libmatlab_ipc.so' \
-  \) -delete
+shopt -s extglob
+rm -rf !(__init__.py|casadi.py|_casadi.so|tools|libcasadi.*)
+shopt -u extglob
 
 cd "$DIR"
 rm -rf casadi-wheel
