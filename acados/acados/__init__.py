@@ -27,13 +27,15 @@ def smoketest():
   assert os.path.isfile(os.path.join(TEMPLATE_DIR, "acados_layout.json"))
   assert os.path.isdir(os.path.join(TEMPLATE_DIR, "c_templates_tera"))
 
-  # vendored slim casadi must be importable and usable for the ops openpilot needs
-  from casadi import SX, MX, DM, Function, CasadiMeta, vertcat, jacobian, sin, cos, n_nodes  # noqa: F401
+  # the vendored slim casadi shipped in this wheel is built against cpython 3.12
+  # (matching openpilot's runtime), so only exercise it when running cp312
+  if sys.version_info[:2] == (3, 12):
+    from casadi import SX, MX, DM, Function, CasadiMeta, vertcat, jacobian, sin, cos, n_nodes  # noqa: F401
 
-  x = SX.sym("x")
-  y = SX.sym("y")
-  expr = vertcat(sin(x), cos(y))
-  J = jacobian(expr, vertcat(x, y))
-  assert J.shape == (2, 2)
-  assert n_nodes(J) > 0
-  assert isinstance(CasadiMeta.version(), str)
+    x = SX.sym("x")
+    y = SX.sym("y")
+    expr = vertcat(sin(x), cos(y))
+    J = jacobian(expr, vertcat(x, y))
+    assert J.shape == (2, 2)
+    assert n_nodes(J) > 0
+    assert isinstance(CasadiMeta.version(), str)
