@@ -36,8 +36,10 @@ ACADOS_FLAGS=(
   -DCMAKE_POLICY_VERSION_MINIMUM=3.5
   # qpOASES + blasfeo both call malloc()/posix_memalign() without including
   # <stdlib.h>. C99/C2x and modern gcc/clang reject implicit declarations as
-  # errors; downgrade them so the upstream sources keep compiling.
-  "-DCMAKE_C_FLAGS=-Wno-implicit-function-declaration"
+  # errors. qpOASES also has a real Constraints*/Constraints** pointer bug
+  # that gcc 14+ now flags as an error too. Downgrade both so the upstream
+  # (pinned) sources keep compiling.
+  "-DCMAKE_C_FLAGS=-Wno-implicit-function-declaration -Wno-incompatible-pointer-types"
 )
 if [[ "$OSTYPE" == "darwin"* ]]; then
   ACADOS_FLAGS+=(
