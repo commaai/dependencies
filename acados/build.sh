@@ -34,14 +34,15 @@ ACADOS_FLAGS=(
   # acados (and several of its submodules) still pin cmake_minimum_required <3.5;
   # CMake 4 removed that compatibility, so re-enable it here.
   -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+  # qpOASES + blasfeo both call malloc()/posix_memalign() without including
+  # <stdlib.h>. C99/C2x and modern gcc/clang reject implicit declarations as
+  # errors; downgrade them so the upstream sources keep compiling.
+  "-DCMAKE_C_FLAGS=-Wno-implicit-function-declaration"
 )
 if [[ "$OSTYPE" == "darwin"* ]]; then
   ACADOS_FLAGS+=(
     -DCMAKE_OSX_ARCHITECTURES=arm64
     -DCMAKE_MACOSX_RPATH=1
-    # qpOASES C code uses malloc() without including <stdlib.h>; macOS clang
-    # rejects implicit function declarations as errors by default.
-    "-DCMAKE_C_FLAGS=-Wno-implicit-function-declaration"
   )
 fi
 
@@ -92,32 +93,15 @@ fi
 
 cd "$DIR"
 
-# vendor a slim casadi: take the upstream wheel, strip the solver plugins/
-# include headers/static archives that openpilot's MPC code never touches.
+# vendor a slim casadi: install the upstream wheel into a throwaway cp312 venv
+# (uv resolves the right platform wheel automatically), then move the casadi/
+# tree out and slim it.
 echo "vendoring casadi $CASADI_VERSION ..."
-rm -rf "$CASADI_DIR" casadi-wheel
-mkdir -p casadi-wheel
-
-if [[ "$OSTYPE" == "darwin"* ]]; then
-  CASADI_PLAT_FLAGS=(--platform macosx_11_0_arm64)
-elif [[ "$ARCH" == "aarch64" ]]; then
-  CASADI_PLAT_FLAGS=(--platform manylinux_2_17_aarch64 --platform manylinux2014_aarch64)
-else
-  CASADI_PLAT_FLAGS=(--platform manylinux_2_17_x86_64 --platform manylinux2014_x86_64)
-fi
-
-# pip is available inside the manylinux container; outside we use uv-managed pip
-PIP=(python3 -m pip)
-if ! python3 -m pip --version >/dev/null 2>&1; then
-  PIP=(uv pip)
-fi
-
-"${PIP[@]}" download --only-binary :all: --no-deps \
-  --python-version 3.12 "${CASADI_PLAT_FLAGS[@]}" \
-  "casadi==$CASADI_VERSION" -d casadi-wheel
-
-unzip -q casadi-wheel/casadi-*.whl -d casadi-wheel/extracted
-mv casadi-wheel/extracted/casadi "$CASADI_DIR"
+rm -rf "$CASADI_DIR" casadi-venv
+uv venv --python 3.12 --quiet casadi-venv
+uv pip install --python casadi-venv/bin/python --no-deps --quiet "casadi==$CASADI_VERSION"
+mv casadi-venv/lib/python3.12/site-packages/casadi "$CASADI_DIR"
+rm -rf casadi-venv
 
 # drop everything except the bits openpilot actually needs:
 #   - __init__.py, casadi.py, tools/  (Python wrapper)
