@@ -31,6 +31,9 @@ ACADOS_FLAGS=(
   -UBLASFEO_TARGET
   -DBLASFEO_TARGET="$BLAS_TARGET"
   -DACADOS_INSTALL_DIR="$INSTALL_DIR"
+  # acados (and several of its submodules) still pin cmake_minimum_required <3.5;
+  # CMake 4 removed that compatibility, so re-enable it here.
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 )
 if [[ "$OSTYPE" == "darwin"* ]]; then
   ACADOS_FLAGS+=(-DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_MACOSX_RPATH=1)
