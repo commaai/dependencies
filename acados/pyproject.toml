@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "acados"
+version = "0.2.2"
+description = "acados solvers, headers, and Python interface (acados_template)"
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+include = ["acados*"]
+exclude = ["acados-src*"]
+
+[tool.setuptools.package-data]
+acados = ["install/**/*", "acados_template/**/*"]

@@ -1,5 +1,6 @@
 [tool.uv.workspace]
 members = [
+  "acados",
   "bzip2",
   "capnproto",
   "catch2",
