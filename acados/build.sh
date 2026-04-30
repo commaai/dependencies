@@ -75,6 +75,15 @@ cp -r acados-src/interfaces/acados_template/acados_template "$TEMPLATE_DIR"
 find "$TEMPLATE_DIR" -type f -name '*.py' -exec sed -i.bak '/future.fstrings/d' {} +
 find "$TEMPLATE_DIR" -name '*.bak' -delete
 
+# acados_template's gnsf/check_reformulation.py uses an absolute `from
+# acados_template.utils import ...` that only worked when acados_template was
+# itself a top-level package on the path. We ship it as `acados.acados_template`,
+# so rewrite to the relative form the rest of gnsf already uses.
+if [ -f "$TEMPLATE_DIR/gnsf/check_reformulation.py" ]; then
+  sed -i.bak 's/^from acados_template\.utils /from ..utils /' "$TEMPLATE_DIR/gnsf/check_reformulation.py"
+  rm -f "$TEMPLATE_DIR/gnsf/check_reformulation.py.bak"
+fi
+
 # build tera renderer (needs cargo)
 if ! command -v cargo >/dev/null 2>&1; then
   echo "installing rust toolchain (needed for tera_renderer)..."
@@ -115,7 +124,8 @@ rm -rf casadi-venv
 # loaded lazily via dlopen and never reached.
 cd "$CASADI_DIR"
 shopt -s extglob
-rm -rf !(__init__.py|casadi.py|_casadi.so|tools|libcasadi.*)
+# libc++.*.dylib only exists on darwin and is needed by _casadi.so via @rpath
+rm -rf !(__init__.py|casadi.py|_casadi.so|tools|libcasadi.*|libc++.*)
 shopt -u extglob
 
 cd "$DIR"
