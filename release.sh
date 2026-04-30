@@ -121,14 +121,28 @@ for toml in sorted(pathlib.Path(".").glob("*/pyproject.toml")):
     for name, target in scripts.items():
       lines.append(f'"{name}" = {json.dumps(target)}')
 
-  find_include = [f"{module}*"] + extra_packages
+  # propagate the workspace's package-data so the shim wheel knows to ship
+  # everything the upstream wheel ships (e.g. acados_template/, casadi/*.so).
+  workspace_pkgdata = data.get("tool", {}).get("setuptools", {}).get("package-data", {})
+
+  # extra_packages may be plain names (["casadi"]) or globs (["casadi*"]).
+  # Normalise to plain package names for both `packages` and `package-data`.
+  extra_pkg_names = [p.rstrip("*").rstrip("/") for p in extra_packages]
+
   lines += [
     "",
-    "[tool.setuptools.packages.find]",
-    f"include = {json.dumps(find_include)}",
+    "[tool.setuptools]",
+    f"packages = {json.dumps([module] + extra_pkg_names)}",
     "",
     "[tool.setuptools.package-data]",
-    f'{module} = ["{datadir}/**/*", "*.so"]',
+  ]
+  module_data = sorted(set(workspace_pkgdata.get(module, [f"{datadir}/**/*"]) + ["*.so"]))
+  lines.append(f"{module} = {json.dumps(module_data)}")
+  for name in extra_pkg_names:
+    extra_data = workspace_pkgdata.get(name, ["**/*"])
+    lines.append(f"{name} = {json.dumps(list(extra_data))}")
+
+  lines += [
     "",
     "[tool.shim]",
     f'repo_url = "{repo_url}"',
