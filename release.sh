@@ -65,7 +65,12 @@ for toml in sorted(pathlib.Path(".").glob("*/pyproject.toml")):
   for py_file in src_mod.glob("*.py"):
     shutil.copy2(py_file, mod_dir / py_file.name)
 
-  # copy extra packages (e.g. pyray for raylib)
+  # copy extra packages (e.g. pyray for raylib, slim casadi for acados)
+  # binaries (.so/.dylib) are fetched from the wheel at install time, so the
+  # shim repo only carries Python sources to keep it small
+  def _ignore_binaries(_dir, names):
+    return [n for n in names if n.endswith((".so", ".dylib", ".a")) or ".so." in n]
+
   pkgs_val = data.get("tool", {}).get("setuptools", {}).get("packages", {})
   include_patterns = pkgs_val.get("find", {}).get("include", []) if isinstance(pkgs_val, dict) else []
   extra_packages = []
@@ -75,7 +80,7 @@ for toml in sorted(pathlib.Path(".").glob("*/pyproject.toml")):
       src_extra = pathlib.Path(pkg) / p
       if src_extra.is_dir():
         dst_extra = pkg_dir / p
-        shutil.copytree(src_extra, dst_extra, dirs_exist_ok=True)
+        shutil.copytree(src_extra, dst_extra, dirs_exist_ok=True, ignore=_ignore_binaries)
         extra_packages.append(pattern)
 
   shutil.copy2(shim_setup, pkg_dir / "setup.py")
