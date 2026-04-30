@@ -71,8 +71,10 @@ rm -f "$INSTALL_DIR"/lib/*.json
 rm -rf "$TEMPLATE_DIR"
 cp -r acados-src/interfaces/acados_template/acados_template "$TEMPLATE_DIR"
 
-# strip future_fstrings (avoids needing the compatibility package on py>=3.6)
-find "$TEMPLATE_DIR" -type f -name '*.py' -exec sed -i.bak '/future.fstrings/d' {} +
+# strip future_fstrings (avoids needing the compatibility package on py>=3.6).
+# Cython chokes on the unknown encoding in .pyx/.pxd too, not just .py.
+find "$TEMPLATE_DIR" -type f \( -name '*.py' -o -name '*.pyx' -o -name '*.pxd' \) \
+  -exec sed -i.bak '/future.fstrings/d' {} +
 find "$TEMPLATE_DIR" -name '*.bak' -delete
 
 # acados_template's gnsf/check_reformulation.py uses an absolute `from
