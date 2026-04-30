@@ -28,14 +28,21 @@ def smoketest():
   assert os.path.isdir(os.path.join(TEMPLATE_DIR, "c_templates_tera"))
 
   # the vendored slim casadi shipped in this wheel is built against cpython 3.12
-  # (matching openpilot's runtime), so only exercise it when running cp312
-  if sys.version_info[:2] == (3, 12):
-    from casadi import SX, MX, DM, Function, CasadiMeta, vertcat, jacobian, sin, cos, n_nodes  # noqa: F401
+  # and pulls in numpy; only exercise it when both are available (real consumers
+  # like openpilot install via the shim, which declares numpy as a dep).
+  try:
+    import numpy  # noqa: F401
+  except ImportError:
+    return
+  if sys.version_info[:2] != (3, 12):
+    return
 
-    x = SX.sym("x")
-    y = SX.sym("y")
-    expr = vertcat(sin(x), cos(y))
-    J = jacobian(expr, vertcat(x, y))
-    assert J.shape == (2, 2)
-    assert n_nodes(J) > 0
-    assert isinstance(CasadiMeta.version(), str)
+  from casadi import SX, MX, DM, Function, CasadiMeta, vertcat, jacobian, sin, cos, n_nodes  # noqa: F401
+
+  x = SX.sym("x")
+  y = SX.sym("y")
+  expr = vertcat(sin(x), cos(y))
+  J = jacobian(expr, vertcat(x, y))
+  assert J.shape == (2, 2)
+  assert n_nodes(J) > 0
+  assert isinstance(CasadiMeta.version(), str)
