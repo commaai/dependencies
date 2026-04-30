@@ -78,10 +78,17 @@ for toml in sorted(pathlib.Path(".").glob("*/pyproject.toml")):
     p = pattern.rstrip("*")
     if p and p != module and p != f"{module}/":
       src_extra = pathlib.Path(pkg) / p
+      dst_extra = pkg_dir / p
       if src_extra.is_dir():
-        dst_extra = pkg_dir / p
         shutil.copytree(src_extra, dst_extra, dirs_exist_ok=True, ignore=_ignore_binaries)
-        extra_packages.append(pattern)
+      else:
+        # source not in the workspace (typically built lazily by build.sh and
+        # not cached into the publish job). Drop a placeholder __init__.py so
+        # setuptools.packages.find picks it up; the shim's setup.py overwrites
+        # it from the wheel at install time.
+        dst_extra.mkdir(parents=True, exist_ok=True)
+        (dst_extra / "__init__.py").write_text("")
+      extra_packages.append(pattern)
 
   shutil.copy2(shim_setup, pkg_dir / "setup.py")
 
