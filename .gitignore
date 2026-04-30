@@ -31,6 +31,8 @@ git-lfs/git_lfs/bin/
 # downloaded mdbook
 mdbook/mdbook/bin/
 
-# vendored slim casadi (fetched at build time)
+# vendored at build time
+acados/acados/acados_template/
 acados/casadi/
+acados/casadi-venv/
 acados/casadi-wheel/
