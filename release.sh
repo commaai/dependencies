@@ -69,7 +69,7 @@ for toml in sorted(pathlib.Path(".").glob("*/pyproject.toml")):
   # binaries (.so/.dylib) are fetched from the wheel at install time, so the
   # shim repo only carries Python sources to keep it small
   def _ignore_binaries(_dir, names):
-    return [n for n in names if n.endswith((".so", ".dylib", ".a")) or ".so." in n]
+    return [n for n in names if n.endswith((".so", ".dylib", ".a")) or ".so." in n or n == "__pycache__"]
 
   pkgs_val = data.get("tool", {}).get("setuptools", {}).get("packages", {})
   include_patterns = pkgs_val.get("find", {}).get("include", []) if isinstance(pkgs_val, dict) else []
