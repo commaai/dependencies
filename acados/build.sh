@@ -13,12 +13,10 @@ CASADI_VERSION="3.6.7"
 
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
-# pick BLAS target per host arch — matches openpilot's vendored build
+# pick BLAS target per host arch
 ARCH="$(uname -m)"
 if [[ "$OSTYPE" == "darwin"* ]]; then
-  # openpilot's prebuilt darwin binaries used X64_AUTOMATIC; BLASFEO selects
-  # ARM features when arch is forced via CMAKE_OSX_ARCHITECTURES
-  BLAS_TARGET="X64_AUTOMATIC"
+  BLAS_TARGET="ARMV8A_APPLE_M1"
 elif [[ "$ARCH" == "aarch64" ]]; then
   # Cortex-A57 = TICI baseline; safe for any modern aarch64
   BLAS_TARGET="ARMV8A_ARM_CORTEX_A57"
@@ -36,7 +34,13 @@ ACADOS_FLAGS=(
   -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 )
 if [[ "$OSTYPE" == "darwin"* ]]; then
-  ACADOS_FLAGS+=(-DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_MACOSX_RPATH=1)
+  ACADOS_FLAGS+=(
+    -DCMAKE_OSX_ARCHITECTURES=arm64
+    -DCMAKE_MACOSX_RPATH=1
+    # qpOASES C code uses malloc() without including <stdlib.h>; macOS clang
+    # rejects implicit function declarations as errors by default.
+    "-DCMAKE_C_FLAGS=-Wno-implicit-function-declaration"
+  )
 fi
 
 # clone/update source
