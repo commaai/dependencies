@@ -80,6 +80,7 @@ if ! command -v cargo >/dev/null 2>&1; then
   source "$HOME/.cargo/env"
 fi
 
+mkdir -p "$INSTALL_DIR/bin"
 cd "$DIR/acados-src/interfaces/acados_template/tera_renderer/"
 if [[ "$OSTYPE" == "darwin"* ]]; then
   cargo build --release --target aarch64-apple-darwin
