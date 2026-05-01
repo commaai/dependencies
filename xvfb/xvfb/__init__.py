@@ -10,12 +10,30 @@ XVFB_BIN = os.path.join(BIN_DIR, "Xvfb")
 XKBCOMP_BIN = os.path.join(BIN_DIR, "xkbcomp")
 
 
+# Common host paths where Mesa DRI drivers (e.g. swrast_dri.so) live. Xvfb
+# was built on AlmaLinux 8 with /usr/lib64/dri baked in; on other distros
+# (Debian/Ubuntu in particular) the drivers are elsewhere, and without them
+# Xvfb fails to bring up a GL provider and silently disables the GLX
+# extension. Probing the standard locations lets the host's drivers be
+# found regardless of distro.
+_DRI_PATHS = (
+  "/usr/lib64/dri",
+  "/usr/lib/x86_64-linux-gnu/dri",
+  "/usr/lib/aarch64-linux-gnu/dri",
+  "/usr/lib/dri",
+)
+
+
 def _run_xvfb():
   # The bundled Xvfb has its compile-time XkbBinDirectory blanked out so it
   # invokes xkbcomp via PATH lookup; prepend our bin dir so the bundled
   # xkbcomp wins. -xkbdir points the server at the bundled keymap data.
   env = os.environ.copy()
   env["PATH"] = BIN_DIR + os.pathsep + env.get("PATH", "")
+  if "LIBGL_DRIVERS_PATH" not in env:
+    found = [p for p in _DRI_PATHS if os.path.isdir(p)]
+    if found:
+      env["LIBGL_DRIVERS_PATH"] = os.pathsep.join(found)
   args = sys.argv[1:]
   if not any(a == "-xkbdir" for a in args):
     args = ["-xkbdir", XKB_DIR] + args
