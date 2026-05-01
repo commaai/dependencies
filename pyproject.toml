@@ -19,6 +19,7 @@ members = [
   "ncurses",
   "qt5",
   "raylib",
+  "xvfb",
   "zeromq",
   "zstd",
 ]

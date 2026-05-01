@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xvfb"
+version = "1.20.11"
+description = "Xvfb (X virtual framebuffer) headless X server"
+requires-python = ">=3.8"
+
+[project.scripts]
+Xvfb = "xvfb:_run_xvfb"
+
+[tool.setuptools.packages.find]
+include = ["xvfb*"]
+
+[tool.setuptools.package-data]
+xvfb = ["install/**/*"]
