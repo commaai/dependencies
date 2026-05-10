@@ -68,6 +68,19 @@ echo
 echo "Running smoketests"
 
 uv venv --allow-existing --quiet "$VENV_DIR"
+runtime_deps="$(mktemp)"
+python3 - <<'PY' > "$runtime_deps"
+import pathlib
+import tomllib
+
+for toml in sorted(pathlib.Path(".").glob("*/pyproject.toml")):
+  for dep in tomllib.load(toml.open("rb")).get("project", {}).get("dependencies", []):
+    print(dep)
+PY
+if [[ -s "$runtime_deps" ]]; then
+  uv pip install --python "$VENV_DIR/bin/python" --quiet -r "$runtime_deps" >/dev/null
+fi
+rm -f "$runtime_deps"
 uv pip install --python "$VENV_DIR/bin/python" --reinstall --no-deps --quiet dist/*.whl >/dev/null
 
 for toml in */pyproject.toml; do

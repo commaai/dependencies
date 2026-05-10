@@ -12,7 +12,7 @@ from setuptools.command.bdist_wheel import bdist_wheel
 
 
 class BuildRaylib(build_py):
-  """Run build.sh to compile the C library and CFFI extension before collecting package data."""
+  """Run build.sh to compile raylib artifacts before collecting package data."""
 
   @staticmethod
   def _backend_config(pkg_dir):
@@ -30,7 +30,7 @@ class BuildRaylib(build_py):
   def _build_cffi(pkg_dir, backend_config, backend):
     build_cffi = os.path.join(pkg_dir, "build_cffi.py")
     if not os.path.isfile(build_cffi):
-      return
+      raise FileNotFoundError(build_cffi)
 
     env = os.environ.copy()
     env["RAYLIB_BACKEND"] = backend
@@ -53,16 +53,14 @@ class BuildRaylib(build_py):
     else:
       self._build_cffi(pkg_dir, backend_config, backend_config.detect_backend())
 
-    staged_pkg = os.path.join(self.build_lib, "raylib")
-    shutil.rmtree(os.path.join(staged_pkg, "install"), ignore_errors=True)
-    for old_cffi in glob.glob(os.path.join(staged_pkg, "_raylib_cffi*")):
-      os.remove(old_cffi)
+    for package in ("raylib", "pyray"):
+      shutil.rmtree(os.path.join(self.build_lib, package), ignore_errors=True)
 
     super().run()
 
 
 class PlatformWheel(bdist_wheel):
-  """Produce a platform-specific wheel (contains native .a library)."""
+  """Produce a platform-specific wheel with native raylib artifacts."""
 
   def finalize_options(self):
     super().finalize_options()
