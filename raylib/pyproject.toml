@@ -13,7 +13,8 @@ dependencies = ["cffi>=1.17.1"]
 include-package-data = false
 
 [tool.setuptools.packages.find]
-include = ["raylib*", "pyray*"]
+include = ["raylib", "pyray"]
+namespaces = false
 
 [tool.setuptools.package-data]
 raylib = ["_raylib_cffi*.so"]
