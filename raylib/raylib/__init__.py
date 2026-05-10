@@ -7,12 +7,12 @@ INCLUDE_DIR = os.path.join(DIR, "include")
 
 
 def _detect_platform():
-  """Auto-detect the raylib platform. In CI on Linux x86_64, use offscreen EGL rendering."""
+  """Auto-detect the raylib platform. In CI on Linux x86_64, use memory rendering."""
   explicit = os.environ.get("RAYLIB_PLATFORM", "")
   if explicit:
-    return explicit
+    return "PLATFORM_MEMORY" if explicit == "PLATFORM_OFFSCREEN" else explicit
   if os.environ.get("CI") and _platform.system() == "Linux" and _platform.machine() == "x86_64":
-    return "PLATFORM_OFFSCREEN"
+    return "PLATFORM_MEMORY"
   return ""
 
 
@@ -34,9 +34,6 @@ def _ensure_cffi_built():
   # Export so build.py picks it up
   if requested:
     os.environ["RAYLIB_PLATFORM"] = requested
-    # Mesa llvmpipe for software rendering in headless CI
-    if requested == "PLATFORM_OFFSCREEN":
-      os.environ.setdefault("LIBGL_ALWAYS_SOFTWARE", "1")
 
   cffi_files = glob.glob(os.path.join(pkg_dir, "_raylib_cffi*"))
 

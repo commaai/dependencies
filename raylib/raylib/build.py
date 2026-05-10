@@ -1,4 +1,4 @@
-# Based on commaai/raylib-python-cffi (commit ab0191f)
+# Based on commaai/raylib-python-cffi (commit a32e910)
 # Modified to use local install paths and compile standalone (no cffi_modules)
 
 import re
@@ -13,6 +13,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 RAYLIB_INCLUDE_PATH = os.path.join(HERE, "install", "include")
 RAYLIB_LIB_PATH = os.path.join(HERE, "install", "lib")
 RAYLIB_PLATFORM = os.getenv("RAYLIB_PLATFORM", "")
+if RAYLIB_PLATFORM == "PLATFORM_OFFSCREEN":
+  RAYLIB_PLATFORM = "PLATFORM_MEMORY"
 
 ffibuilder = FFI()
 
@@ -104,17 +106,12 @@ def build_ffi():
     if RAYLIB_PLATFORM == "PLATFORM_COMMA":
       extra_link_args.remove('-lGL')
       extra_link_args += ['-lGLESv2', '-lEGL', '-lgbm', '-ldrm']
-    elif RAYLIB_PLATFORM == "PLATFORM_OFFSCREEN":
-      # Use offscreen variant if available, otherwise fall back to default
-      offscreen_lib = os.path.join(RAYLIB_LIB_PATH, 'libraylib_offscreen.a')
-      if os.path.isfile(offscreen_lib):
-        extra_link_args[extra_link_args.index('-lraylib')] = '-lraylib_offscreen'
+    elif RAYLIB_PLATFORM == "PLATFORM_MEMORY":
+      # Use memory/software variant if available, otherwise fall back to default
+      memory_lib = os.path.join(RAYLIB_LIB_PATH, 'libraylib_memory.a')
+      if os.path.isfile(memory_lib):
+        extra_link_args[extra_link_args.index('-lraylib')] = '-lraylib_memory'
       extra_link_args.remove('-lGL')
-      # Use bundled GLVND dispatchers if available, with RPATH for runtime
-      mesa_dir = os.path.join(RAYLIB_LIB_PATH, 'mesa')
-      if os.path.isdir(mesa_dir):
-        extra_link_args += [f'-L{mesa_dir}', f'-Wl,-rpath,$ORIGIN/install/lib/mesa']
-      extra_link_args += ['-lOpenGL', '-lEGL']
     else:
       extra_link_args += ['-lX11']
     extra_compile_args = ["-Wno-incompatible-pointer-types"]

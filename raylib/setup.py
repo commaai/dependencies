@@ -1,6 +1,7 @@
 import glob
 import os
 import platform
+import shutil
 import subprocess
 import sys
 
@@ -21,12 +22,20 @@ class BuildRaylib(build_py):
     build_script = os.path.join(pkg_dir, "build.sh")
     subprocess.check_call(["bash", build_script], cwd=pkg_dir)
 
-    # Build CFFI extension so it's included in the wheel
-    cffi_so = glob.glob(os.path.join(pkg_dir, "raylib", "_raylib_cffi*"))
-    if not cffi_so:
-      build_cffi = os.path.join(pkg_dir, "raylib", "build.py")
-      if os.path.isfile(build_cffi):
-        subprocess.check_call([sys.executable, build_cffi], cwd=pkg_dir)
+    # Build CFFI extension so it's included in the wheel. Always regenerate it
+    # after build.sh because the cached raylib source pin may have changed.
+    for old_cffi in glob.glob(os.path.join(pkg_dir, "raylib", "_raylib_cffi*")):
+      os.remove(old_cffi)
+    for modified_header in glob.glob(os.path.join(pkg_dir, "raylib", "*.modified")):
+      os.remove(modified_header)
+    build_cffi = os.path.join(pkg_dir, "raylib", "build.py")
+    if os.path.isfile(build_cffi):
+      subprocess.check_call([sys.executable, build_cffi], cwd=pkg_dir)
+
+    staged_pkg = os.path.join(self.build_lib, "raylib")
+    shutil.rmtree(os.path.join(staged_pkg, "install"), ignore_errors=True)
+    for old_cffi in glob.glob(os.path.join(staged_pkg, "_raylib_cffi*")):
+      os.remove(old_cffi)
 
     super().run()
 

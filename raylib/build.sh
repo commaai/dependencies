@@ -14,6 +14,9 @@ RAYLIB_PLATFORM="${RAYLIB_PLATFORM:-PLATFORM_DESKTOP}"
 if [ -f /TICI ]; then
   RAYLIB_PLATFORM="PLATFORM_COMMA"
 fi
+if [ "$RAYLIB_PLATFORM" = "PLATFORM_OFFSCREEN" ]; then
+  RAYLIB_PLATFORM="PLATFORM_MEMORY"
+fi
 export RAYLIB_PLATFORM
 
 # Install build dependencies
@@ -28,15 +31,9 @@ if [[ "$(uname)" == "Linux" ]]; then
         sudo apt-get update && sudo apt-get install -y libdrm-dev libgbm-dev libgles2-mesa-dev libegl1-mesa-dev || true
       fi
     fi
-  elif [ "$RAYLIB_PLATFORM" = "PLATFORM_OFFSCREEN" ]; then
-    # offscreen (CI): needs EGL/GL dev packages (no X11)
-    if command -v apt-get &>/dev/null; then
-      if [ "$(id -u)" -eq 0 ]; then
-        apt-get update && apt-get install -y libegl-dev libgl-dev
-      else
-        sudo apt-get update && sudo apt-get install -y libegl-dev libgl-dev
-      fi
-    fi
+  elif [ "$RAYLIB_PLATFORM" = "PLATFORM_MEMORY" ]; then
+    # memory platform: software renderer, no window-system dev packages needed
+    true
   else
     # desktop: needs X11/GL dev packages
     if command -v dnf &>/dev/null; then
@@ -52,20 +49,25 @@ if [[ "$(uname)" == "Linux" ]]; then
 fi
 
 # Clone and build raylib C library
-RAYLIB_COMMIT="d9d7cc1353ec0f73c97e84ddf0973983d1ee25e2"
+RAYLIB_COMMIT="dff603f4f122163900469e73d113deacd9ec9817"
 
 if [ ! -d "raylib-src/.git" ]; then
   rm -rf raylib-src
-  git clone --depth 1 -b platform-offscreen --no-tags https://github.com/commaai/raylib.git raylib-src
+  git clone --depth 1 -b master --no-tags https://github.com/commaai/raylib.git raylib-src
 fi
 
 cd raylib-src
+git remote set-url origin https://github.com/commaai/raylib.git
 git fetch --depth 1 origin "$RAYLIB_COMMIT"
 git reset --hard "$RAYLIB_COMMIT"
 
 cd src
 make clean
-make -j"$NJOBS" PLATFORM="$RAYLIB_PLATFORM" CC="${CC:-gcc}"
+if [ "$RAYLIB_PLATFORM" = "PLATFORM_MEMORY" ]; then
+  make -j"$NJOBS" PLATFORM="$RAYLIB_PLATFORM" CC="${CC:-gcc}" CUSTOM_CFLAGS="${CUSTOM_CFLAGS:-} -fPIC"
+else
+  make -j"$NJOBS" PLATFORM="$RAYLIB_PLATFORM" CC="${CC:-gcc}"
+fi
 
 cd "$DIR"
 
@@ -76,44 +78,18 @@ mkdir -p "$INSTALL_DIR"/{lib,include}
 cp raylib-src/src/libraylib.a "$INSTALL_DIR/lib/"
 cp raylib-src/src/raylib.h raylib-src/src/raymath.h raylib-src/src/rlgl.h "$INSTALL_DIR/include/"
 
-# On x86_64 Linux, also build the offscreen variant for CI headless rendering
-if [[ "$(uname)" == "Linux" && "$(uname -m)" == "x86_64" && "$RAYLIB_PLATFORM" != "PLATFORM_OFFSCREEN" ]]; then
-  echo "Building offscreen variant..."
-
-  # Install EGL/GL dev packages needed for offscreen build + bundling
-  if command -v dnf &>/dev/null; then
-    dnf install -y mesa-libEGL-devel mesa-libGL-devel libglvnd-opengl libglvnd-core-devel 2>/dev/null || true
-  elif command -v apt-get &>/dev/null; then
-    if [ "$(id -u)" -eq 0 ]; then
-      apt-get update && apt-get install -y libegl-dev libgl-dev
-    else
-      sudo apt-get update && sudo apt-get install -y libegl-dev libgl-dev
-    fi
-  fi
-
+# On x86_64 Linux, also build the memory variant for CI headless rendering
+if [[ "$(uname)" == "Linux" && "$(uname -m)" == "x86_64" && "$RAYLIB_PLATFORM" != "PLATFORM_MEMORY" ]]; then
+  echo "Building memory variant..."
   cd raylib-src/src
   make clean
-  make -j"$NJOBS" PLATFORM=PLATFORM_OFFSCREEN CC="${CC:-gcc}"
-  cp libraylib.a "$INSTALL_DIR/lib/libraylib_offscreen.a"
+  make -j"$NJOBS" PLATFORM=PLATFORM_MEMORY CC="${CC:-gcc}" CUSTOM_CFLAGS="${CUSTOM_CFLAGS:-} -fPIC"
+  cp libraylib.a "$INSTALL_DIR/lib/libraylib_memory.a"
   cd "$DIR"
-
-  # Bundle GLVND dispatchers so offscreen rendering works without extra system packages
-  MESA_DIR="$INSTALL_DIR/lib/mesa"
-  mkdir -p "$MESA_DIR"
-  ldconfig 2>/dev/null || true
-  for lib in libEGL.so.1 libOpenGL.so.0 libGLdispatch.so.0; do
-    src="$(ldconfig -p 2>/dev/null | grep "$lib" | grep -E 'x86.64|libc6,' | awk '{print $NF}' | head -1)"
-    if [ -n "$src" ] && [ -f "$src" ]; then
-      cp -L "$src" "$MESA_DIR/"
-      # Create unversioned symlink for the linker
-      base="${lib%%.so.*}"
-      ln -sf "$lib" "$MESA_DIR/${base}.so"
-    fi
-  done
 fi
 
 # Download raygui header
-RAYGUI_COMMIT="76b36b597edb70ffaf96f046076adc20d67e7827"
+RAYGUI_COMMIT="1e03efca48c50c5ea4b4a053d5bf04bad58d3e43"
 curl -fsSLo "$INSTALL_DIR/include/raygui.h" \
   "https://raw.githubusercontent.com/raysan5/raygui/$RAYGUI_COMMIT/src/raygui.h"
 
