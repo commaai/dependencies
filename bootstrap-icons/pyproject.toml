@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=64", "wheel", "fonttools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bootstrap-icons"
+version = "1.10.5.0"
+description = "Bootstrap Icons SVG sprite and TTF font"
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+include = ["bootstrap_icons*"]
+
+[tool.setuptools.package-data]
+bootstrap_icons = ["install/**/*"]

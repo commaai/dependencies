@@ -2,6 +2,7 @@
 members = [
   "acados",
   "bzip2",
+  "bootstrap-icons",
   "capnproto",
   "catch2",
   "cppcheck",
