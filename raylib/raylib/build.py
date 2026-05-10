@@ -13,12 +13,37 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 RAYLIB_INCLUDE_PATH = os.path.join(HERE, "install", "include")
 RAYLIB_LIB_PATH = os.path.join(HERE, "install", "lib")
 RAYLIB_PLATFORM = os.getenv("RAYLIB_PLATFORM", "")
+RAYLIB_BACKEND = os.getenv("RAYLIB_BACKEND", "").lower()
+RAYLIB_CFFI_MODULE = os.getenv("RAYLIB_CFFI_MODULE", "raylib._raylib_cffi")
+
+if RAYLIB_BACKEND:
+  if RAYLIB_BACKEND == "comma":
+    RAYLIB_PLATFORM = "PLATFORM_COMMA"
+  elif RAYLIB_BACKEND == "desktop":
+    RAYLIB_PLATFORM = "PLATFORM_DESKTOP"
+  else:
+    raise ValueError(f"unsupported RAYLIB_BACKEND: {RAYLIB_BACKEND}")
 
 ffibuilder = FFI()
 
 
 def check_raylib_installed():
-  return os.path.isfile(os.path.join(RAYLIB_LIB_PATH, 'libraylib.a'))
+  return os.path.isfile(_raylib_archive())
+
+
+def _raylib_archive():
+  if RAYLIB_PLATFORM == "PLATFORM_COMMA":
+    candidates = ("libraylib_comma.a", "libraylib.a")
+  elif RAYLIB_PLATFORM == "PLATFORM_MEMORY":
+    candidates = ("libraylib_memory.a", "libraylib.a")
+  else:
+    candidates = ("libraylib_desktop.a", "libraylib.a")
+
+  for candidate in candidates:
+    path = os.path.join(RAYLIB_LIB_PATH, candidate)
+    if os.path.isfile(path):
+      return path
+  return os.path.join(RAYLIB_LIB_PATH, candidates[0])
 
 
 def pre_process_header(filename, remove_function_bodies=False):
@@ -97,26 +122,21 @@ def build_ffi():
   else:
     print("BUILDING FOR LINUX")
     extra_link_args = [
-      f'-L{RAYLIB_LIB_PATH}', '-lraylib',
-      '-lm', '-lpthread', '-lGL',
+      _raylib_archive(),
+      '-lm', '-lpthread',
       '-lrt', '-ldl', '-lpthread', '-latomic',
     ]
     if RAYLIB_PLATFORM == "PLATFORM_COMMA":
-      extra_link_args.remove('-lGL')
       extra_link_args += ['-lGLESv2', '-lEGL', '-lgbm', '-ldrm']
     elif RAYLIB_PLATFORM == "PLATFORM_MEMORY":
-      # Use memory/software variant if available, otherwise fall back to default
-      memory_lib = os.path.join(RAYLIB_LIB_PATH, 'libraylib_memory.a')
-      if os.path.isfile(memory_lib):
-        extra_link_args[extra_link_args.index('-lraylib')] = '-lraylib_memory'
-      extra_link_args.remove('-lGL')
+      pass
     else:
-      extra_link_args += ['-lX11']
+      extra_link_args += ['-lGL', '-lX11']
     extra_compile_args = ["-Wno-incompatible-pointer-types"]
     libraries = []
 
   print("extra_link_args: " + str(extra_link_args))
-  ffibuilder.set_source("raylib._raylib_cffi",
+  ffibuilder.set_source(RAYLIB_CFFI_MODULE,
                         ffi_includes,
                         py_limited_api=True,
                         include_dirs=[RAYLIB_INCLUDE_PATH],

@@ -17,6 +17,22 @@ except ImportError:
 class BuildRaylib(build_py):
   """Run build.sh to compile the C library and CFFI extension before collecting package data."""
 
+  @staticmethod
+  def _is_linux_aarch64():
+    return platform.system() == "Linux" and platform.machine() in ("aarch64", "arm64")
+
+  @staticmethod
+  def _build_cffi(pkg_dir, backend=None):
+    build_cffi = os.path.join(pkg_dir, "raylib", "build.py")
+    if not os.path.isfile(build_cffi):
+      return
+
+    env = os.environ.copy()
+    if backend is not None:
+      env["RAYLIB_BACKEND"] = backend
+      env["RAYLIB_CFFI_MODULE"] = f"raylib._raylib_cffi_{backend}"
+    subprocess.check_call([sys.executable, build_cffi], cwd=pkg_dir, env=env)
+
   def run(self):
     pkg_dir = os.path.dirname(os.path.abspath(__file__))
     build_script = os.path.join(pkg_dir, "build.sh")
@@ -28,9 +44,11 @@ class BuildRaylib(build_py):
       os.remove(old_cffi)
     for modified_header in glob.glob(os.path.join(pkg_dir, "raylib", "*.modified")):
       os.remove(modified_header)
-    build_cffi = os.path.join(pkg_dir, "raylib", "build.py")
-    if os.path.isfile(build_cffi):
-      subprocess.check_call([sys.executable, build_cffi], cwd=pkg_dir)
+    if self._is_linux_aarch64():
+      for backend in ("desktop", "comma"):
+        self._build_cffi(pkg_dir, backend)
+    else:
+      self._build_cffi(pkg_dir)
 
     staged_pkg = os.path.join(self.build_lib, "raylib")
     shutil.rmtree(os.path.join(staged_pkg, "install"), ignore_errors=True)
