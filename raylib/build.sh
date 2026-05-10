@@ -20,49 +20,6 @@ if [ -f /AGNOS ] || [ -f /TICI ]; then
 fi
 export RAYLIB_PLATFORM
 
-# Install build dependencies
-if [[ "$(uname)" == "Linux" ]]; then
-  if is_linux_aarch64; then
-    # Linux/aarch64 wheels include both desktop and comma backends.
-    if command -v dnf &>/dev/null; then
-      dnf install -y libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel \
-        mesa-libGL-devel libdrm-devel mesa-libgbm-devel mesa-libEGL-devel mesa-libGLES-devel
-    elif command -v apt-get &>/dev/null; then
-      if [ "$(id -u)" -eq 0 ]; then
-        apt-get update && apt-get install -y libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libgl-dev \
-          libdrm-dev libgbm-dev libgles2-mesa-dev libegl1-mesa-dev
-      else
-        sudo apt-get update && sudo apt-get install -y libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libgl-dev \
-          libdrm-dev libgbm-dev libgles2-mesa-dev libegl1-mesa-dev
-      fi
-    fi
-  elif [ "$RAYLIB_PLATFORM" = "PLATFORM_COMMA" ]; then
-    # comma device: needs DRM/EGL/GLES headers (usually already present on AGNOS)
-    # apt may fail on devices due to read-only rootfs or package conflicts — that's OK
-    if command -v apt-get &>/dev/null; then
-      if [ "$(id -u)" -eq 0 ]; then
-        apt-get update && apt-get install -y libdrm-dev libgbm-dev libgles2-mesa-dev libegl1-mesa-dev || true
-      else
-        sudo apt-get update && sudo apt-get install -y libdrm-dev libgbm-dev libgles2-mesa-dev libegl1-mesa-dev || true
-      fi
-    fi
-  elif [ "$RAYLIB_PLATFORM" = "PLATFORM_MEMORY" ]; then
-    # memory platform: software renderer, no window-system dev packages needed
-    true
-  else
-    # desktop: needs X11/GL dev packages
-    if command -v dnf &>/dev/null; then
-      dnf install -y libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel mesa-libGL-devel
-    elif command -v apt-get &>/dev/null; then
-      if [ "$(id -u)" -eq 0 ]; then
-        apt-get update && apt-get install -y libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libgl-dev
-      else
-        sudo apt-get update && sudo apt-get install -y libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libgl-dev
-      fi
-    fi
-  fi
-fi
-
 # Clone and build raylib C library
 RAYLIB_COMMIT="dff603f4f122163900469e73d113deacd9ec9817"
 
