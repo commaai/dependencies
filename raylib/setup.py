@@ -1,5 +1,4 @@
 import glob
-import importlib.util
 import os
 import platform
 import shutil
@@ -10,49 +9,33 @@ from setuptools import setup
 from setuptools.command.build_py import build_py
 from setuptools.command.bdist_wheel import bdist_wheel
 
+PKG_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(PKG_DIR, "raylib"))
+from _backend import BACKENDS, BACKEND_CFFI_MODULES, detect_backend, is_dual_backend_host  # noqa: E402
+
 
 class BuildRaylib(build_py):
   """Run build.sh to compile raylib artifacts before collecting package data."""
 
   @staticmethod
-  def _backend_config(pkg_dir):
-    backend_config = os.path.join(pkg_dir, "raylib", "_backend.py")
-    spec = importlib.util.spec_from_file_location("_raylib_backend_config", backend_config)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-  @staticmethod
-  def _is_linux_aarch64():
-    return platform.system() == "Linux" and platform.machine() in ("aarch64", "arm64")
-
-  @staticmethod
-  def _build_cffi(pkg_dir, backend_config, backend):
-    build_cffi = os.path.join(pkg_dir, "build_cffi.py")
-    if not os.path.isfile(build_cffi):
-      raise FileNotFoundError(build_cffi)
-
+  def _build_cffi(backend):
     env = os.environ.copy()
     env["RAYLIB_BACKEND"] = backend
-    env["RAYLIB_CFFI_MODULE"] = f"raylib.{backend_config.BACKEND_CFFI_MODULES[backend]}"
-    subprocess.check_call([sys.executable, build_cffi], cwd=pkg_dir, env=env)
+    env["RAYLIB_CFFI_MODULE"] = f"raylib.{BACKEND_CFFI_MODULES[backend]}"
+    subprocess.check_call([sys.executable, "build_cffi.py"], cwd=PKG_DIR, env=env)
 
   def run(self):
-    pkg_dir = os.path.dirname(os.path.abspath(__file__))
-    backend_config = self._backend_config(pkg_dir)
-    build_script = os.path.join(pkg_dir, "build.sh")
-    subprocess.check_call(["bash", build_script], cwd=pkg_dir)
+    subprocess.check_call(["bash", "build.sh"], cwd=PKG_DIR)
 
-    # Build CFFI extension so it's included in the wheel. Always regenerate it
-    # after build.sh because the cached raylib source pin may have changed.
-    for old_cffi in glob.glob(os.path.join(pkg_dir, "raylib", "_raylib_cffi*")):
+    # Always regenerate CFFI extensions: the cached raylib source pin may have changed.
+    for old_cffi in glob.glob(os.path.join(PKG_DIR, "raylib", "_raylib_cffi*")):
       os.remove(old_cffi)
-    if self._is_linux_aarch64():
-      for backend in backend_config.BACKENDS:
-        self._build_cffi(pkg_dir, backend_config, backend)
-    else:
-      self._build_cffi(pkg_dir, backend_config, backend_config.detect_backend())
+    backends = BACKENDS if is_dual_backend_host() else (detect_backend(),)
+    for backend in backends:
+      self._build_cffi(backend)
 
+    # Wipe build_lib package dirs so deleted/renamed files (e.g. old _raylib_cffi*
+    # backends, removed modules) don't get packaged from the cached build/ tree.
     for package in ("raylib", "pyray"):
       shutil.rmtree(os.path.join(self.build_lib, package), ignore_errors=True)
 
@@ -73,7 +56,4 @@ class PlatformWheel(bdist_wheel):
     return "py3", "none", plat_tag
 
 
-cmdclass = {"build_py": BuildRaylib, "bdist_wheel": PlatformWheel}
-
-
-setup(cmdclass=cmdclass)
+setup(cmdclass={"build_py": BuildRaylib, "bdist_wheel": PlatformWheel})

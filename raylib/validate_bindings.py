@@ -47,12 +47,10 @@ def _eval_c_enum_expr(expr, symbols):
   return int(eval(expr.replace("!", " not "), {"__builtins__": {}}, symbols))
 
 
-def _read_c_enums(paths):
+def _read_c_enums(header_texts):
   symbols = {}
   enums = {}
-  for path in paths:
-    with open(path, "r") as f:
-      text = _strip_c_comments(f.read())
+  for text in header_texts:
     for match in re.finditer(r'typedef\s+enum(?:\s+\w+)?\s*\{(.*?)\}\s*(\w+)\s*;', text, re.S):
       body, enum_name = match.groups()
       value = -1
@@ -75,28 +73,28 @@ def _read_c_enums(paths):
 
 
 def validate_static_bindings(package_dir, include_dir):
-  raylib_h = os.path.join(include_dir, "raylib.h")
-  rlgl_h = os.path.join(include_dir, "rlgl.h")
-  raygui_h = os.path.join(include_dir, "raygui.h")
+  headers = {}
+  for name in ("raylib.h", "rlgl.h", "raygui.h"):
+    with open(os.path.join(include_dir, name), "r") as f:
+      headers[name] = _strip_c_comments(f.read())
 
   defines = _read_python_assignments(os.path.join(package_dir, "defines.py"))
-  for header, names in (
-    (raylib_h, ("RAYLIB_VERSION_MAJOR", "RAYLIB_VERSION_MINOR", "RAYLIB_VERSION_PATCH", "RAYLIB_VERSION")),
-    (rlgl_h, ("RLGL_VERSION",)),
+  for header_name, names in (
+    ("raylib.h", ("RAYLIB_VERSION_MAJOR", "RAYLIB_VERSION_MINOR", "RAYLIB_VERSION_PATCH", "RAYLIB_VERSION")),
+    ("rlgl.h", ("RLGL_VERSION",)),
   ):
-    with open(header, "r") as f:
-      text = f.read()
+    text = headers[header_name]
     for name in names:
       match = re.search(rf"#define\s+{name}\s+(.+)", text)
       if not match:
         continue
-      expected = match.group(1).split("//", 1)[0].strip().strip('"')
+      expected = match.group(1).strip().strip('"')
       actual = str(defines[name])
       if actual != expected:
         raise ValueError(f"{name} in defines.py is {actual}, expected {expected}")
 
   py_enums = _read_python_enums(os.path.join(package_dir, "enums.py"))
-  c_enums = _read_c_enums((raylib_h, raygui_h))
+  c_enums = _read_c_enums((headers["raylib.h"], headers["raygui.h"]))
   missing_classes = sorted(set(c_enums) - set(py_enums) - {"bool"})
   extra_classes = sorted(set(py_enums) - set(c_enums))
   if missing_classes or extra_classes:

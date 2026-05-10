@@ -1,4 +1,5 @@
 import os
+import platform
 
 DESKTOP = "desktop"
 COMMA = "comma"
@@ -23,10 +24,8 @@ BACKEND_LINK_ARGS = {
 COMMA_DEVICE_MARKERS = ("/AGNOS", "/TICI")
 
 
-def validate_backend(backend):
-  if backend not in BACKENDS:
-    raise ValueError("RAYLIB_BACKEND must be 'comma' or 'desktop'")
-  return backend
+def is_dual_backend_host():
+  return platform.system() == "Linux" and platform.machine() in ("aarch64", "arm64")
 
 
 def detect_backend(environ=None, exists=os.path.exists):
@@ -36,7 +35,9 @@ def detect_backend(environ=None, exists=os.path.exists):
 
   explicit = environ.get("RAYLIB_BACKEND", "").strip().lower()
   if explicit:
-    return validate_backend(explicit)
+    if explicit not in BACKENDS:
+      raise ValueError("RAYLIB_BACKEND must be 'comma' or 'desktop'")
+    return explicit
 
   if any(exists(marker) for marker in COMMA_DEVICE_MARKERS):
     return COMMA
