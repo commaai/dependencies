@@ -8,19 +8,30 @@ on:
 jobs:
   build:
     name: build (${{ matrix.platform }})
-    runs-on: ${{ matrix.runs-on }}
+    runs-on: ${{ (github.repository == 'commaai/dependencies' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == 'commaai/dependencies')) && matrix.runs-on-namespace || matrix.runs-on }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - platform: linux-x86_64
             runs-on: ubuntu-latest
+            runs-on-namespace: namespace-profile-amd64-8x16
           - platform: linux-arm64
             runs-on: ubuntu-24.04-arm
+            runs-on-namespace: namespace-profile-arm64-big
           - platform: macos
             runs-on: macos-latest
+            runs-on-namespace: namespace-profile-macos-8x14
     steps:
       - uses: actions/checkout@v6
+      - name: Select Xcode 16
+        if: runner.os == 'macOS'
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_16*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$XCODE" ]; then
+            echo "Selected: $XCODE"
+            sudo xcode-select -s "$XCODE"
+          fi
       - uses: actions/cache@v4
         with:
           key: build-cache-v2-${{ matrix.platform }}-${{ hashFiles('build.sh', 'setup.sh', '*/pyproject.toml', '*/setup.py', '*/build.sh') }}
