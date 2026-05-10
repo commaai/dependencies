@@ -53,6 +53,8 @@ class PlatformWheel(bdist_wheel):
     _, _, plat_tag = super().get_tag()
     if platform.system() == "Linux":
       plat_tag = f"linux_{platform.machine()}"
+    elif platform.system() == "Darwin":
+      plat_tag = "macosx_11_0_arm64"
     return "py3", "none", plat_tag
 
 
