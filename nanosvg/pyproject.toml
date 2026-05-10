@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64", "wheel", 'tomli; python_version < "3.11"']
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nanosvg"
+version = "0.0.1"
+description = "NanoSVG: simple SVG parser and rasterizer (pre-built)"
+requires-python = ">=3.8"
+
+[tool.setuptools]
+packages = ["nanosvg"]
+
+[tool.setuptools.package-data]
+nanosvg = ["*.so", "install/**/*"]
+
+[tool.shim]
+repo_url = "https://github.com/commaai/dependencies"
+tag = "nanosvg/v0.0.1"
+datadir = "install"
