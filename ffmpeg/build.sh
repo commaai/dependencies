@@ -159,7 +159,6 @@ PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
   --disable-doc \
   --disable-ffplay \
   --disable-autodetect \
-  --disable-x86asm \
   --disable-everything \
   --enable-encoder=libx264,aac,ffvhuff,rawvideo,png,mjpeg \
   --enable-decoder=h264,hevc,ffvhuff,aac,rawvideo,png,mjpeg,mp3,pcm_s16le \
