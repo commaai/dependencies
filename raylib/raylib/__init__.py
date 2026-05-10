@@ -3,37 +3,11 @@ import importlib.machinery
 import os
 import platform as _platform
 
+from ._backend import cffi_module_for_backend, detect_backend, platform_for_backend
+
 DIR = os.path.join(os.path.dirname(__file__), "install")
 LIB_DIR = os.path.join(DIR, "lib")
 INCLUDE_DIR = os.path.join(DIR, "include")
-
-
-def _detect_backend():
-  explicit = os.environ.get("RAYLIB_BACKEND", "").strip().lower()
-  if explicit:
-    if explicit not in ("comma", "desktop"):
-      raise ValueError("RAYLIB_BACKEND must be 'comma' or 'desktop'")
-    return explicit
-  if os.path.exists("/AGNOS") or os.path.exists("/TICI"):
-    return "comma"
-  platform_override = os.environ.get("RAYLIB_PLATFORM", "")
-  if platform_override == "PLATFORM_COMMA":
-    return "comma"
-  if platform_override == "PLATFORM_MEMORY":
-    return "memory"
-  if platform_override == "PLATFORM_DESKTOP":
-    return "desktop"
-  if os.environ.get("CI") and _platform.system() == "Linux" and _platform.machine() == "x86_64":
-    return "memory"
-  return "desktop"
-
-
-def _backend_platform(backend):
-  if backend == "comma":
-    return "PLATFORM_COMMA"
-  if backend == "memory":
-    return "PLATFORM_MEMORY"
-  return "PLATFORM_DESKTOP"
 
 
 def _has_extension(pkg_dir, module_name):
@@ -57,17 +31,15 @@ def _ensure_cffi_built():
   import sys
   pkg_dir = os.path.dirname(__file__)
   backend_marker = os.path.join(pkg_dir, ".raylib_backend")
-  backend = _detect_backend()
+  backend = detect_backend()
 
-  if backend in ("desktop", "comma"):
-    backend_module = f"_raylib_cffi_{backend}"
-    if _has_extension(pkg_dir, backend_module):
-      return backend_module
+  backend_module = cffi_module_for_backend(backend)
+  if _has_extension(pkg_dir, backend_module):
+    return backend_module
 
   # Export so build.py picks it up
-  os.environ["RAYLIB_PLATFORM"] = _backend_platform(backend)
-  if backend in ("desktop", "comma"):
-    os.environ["RAYLIB_BACKEND"] = backend
+  os.environ["RAYLIB_PLATFORM"] = platform_for_backend(backend)
+  os.environ["RAYLIB_BACKEND"] = backend
 
   default_module = "_raylib_cffi"
   cffi_files = glob.glob(os.path.join(pkg_dir, "_raylib_cffi.*"))

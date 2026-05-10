@@ -18,6 +18,14 @@ RAYLIB_PLATFORM="${RAYLIB_PLATFORM:-PLATFORM_DESKTOP}"
 if [ -f /AGNOS ] || [ -f /TICI ]; then
   RAYLIB_PLATFORM="PLATFORM_COMMA"
 fi
+
+case "$RAYLIB_PLATFORM" in
+  PLATFORM_DESKTOP|PLATFORM_COMMA) ;;
+  *)
+    echo "Unsupported RAYLIB_PLATFORM=$RAYLIB_PLATFORM; expected PLATFORM_DESKTOP or PLATFORM_COMMA" >&2
+    exit 1
+    ;;
+esac
 export RAYLIB_PLATFORM
 
 # Clone and build raylib C library
@@ -47,11 +55,7 @@ build_raylib() {
 
   cd "$DIR/raylib-src/src"
   make clean
-  if [ "$platform" = "PLATFORM_MEMORY" ]; then
-    make -j"$NJOBS" PLATFORM="$platform" CC="${CC:-gcc}" CUSTOM_CFLAGS="${CUSTOM_CFLAGS:-} -fPIC"
-  else
-    make -j"$NJOBS" PLATFORM="$platform" CC="${CC:-gcc}"
-  fi
+  make -j"$NJOBS" PLATFORM="$platform" CC="${CC:-gcc}"
   cp libraylib.a "$INSTALL_DIR/lib/$output"
   cd "$DIR"
 }
@@ -65,12 +69,6 @@ if is_linux_aarch64; then
   build_raylib PLATFORM_COMMA libraylib_comma.a
 else
   build_raylib "$RAYLIB_PLATFORM" libraylib.a
-fi
-
-# On x86_64 Linux, also build the memory variant for CI headless rendering
-if [[ "$(uname)" == "Linux" && "$(uname -m)" == "x86_64" && "$RAYLIB_PLATFORM" != "PLATFORM_MEMORY" ]]; then
-  echo "Building memory variant..."
-  build_raylib PLATFORM_MEMORY libraylib_memory.a
 fi
 
 # Download raygui header

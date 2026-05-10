@@ -9,20 +9,16 @@ import time
 
 from cffi import FFI
 
+try:
+  from ._backend import archive_candidates_for_backend, detect_backend, link_args_for_backend
+except ImportError:
+  from _backend import archive_candidates_for_backend, detect_backend, link_args_for_backend
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 RAYLIB_INCLUDE_PATH = os.path.join(HERE, "install", "include")
 RAYLIB_LIB_PATH = os.path.join(HERE, "install", "lib")
-RAYLIB_PLATFORM = os.getenv("RAYLIB_PLATFORM", "")
-RAYLIB_BACKEND = os.getenv("RAYLIB_BACKEND", "").lower()
+RAYLIB_BACKEND = detect_backend()
 RAYLIB_CFFI_MODULE = os.getenv("RAYLIB_CFFI_MODULE", "raylib._raylib_cffi")
-
-if RAYLIB_BACKEND:
-  if RAYLIB_BACKEND == "comma":
-    RAYLIB_PLATFORM = "PLATFORM_COMMA"
-  elif RAYLIB_BACKEND == "desktop":
-    RAYLIB_PLATFORM = "PLATFORM_DESKTOP"
-  else:
-    raise ValueError(f"unsupported RAYLIB_BACKEND: {RAYLIB_BACKEND}")
 
 ffibuilder = FFI()
 
@@ -32,18 +28,11 @@ def check_raylib_installed():
 
 
 def _raylib_archive():
-  if RAYLIB_PLATFORM == "PLATFORM_COMMA":
-    candidates = ("libraylib_comma.a", "libraylib.a")
-  elif RAYLIB_PLATFORM == "PLATFORM_MEMORY":
-    candidates = ("libraylib_memory.a", "libraylib.a")
-  else:
-    candidates = ("libraylib_desktop.a", "libraylib.a")
-
-  for candidate in candidates:
+  for candidate in archive_candidates_for_backend(RAYLIB_BACKEND):
     path = os.path.join(RAYLIB_LIB_PATH, candidate)
     if os.path.isfile(path):
       return path
-  return os.path.join(RAYLIB_LIB_PATH, candidates[0])
+  return os.path.join(RAYLIB_LIB_PATH, archive_candidates_for_backend(RAYLIB_BACKEND)[0])
 
 
 def pre_process_header(filename, remove_function_bodies=False):
@@ -126,12 +115,7 @@ def build_ffi():
       '-lm', '-lpthread',
       '-lrt', '-ldl', '-lpthread', '-latomic',
     ]
-    if RAYLIB_PLATFORM == "PLATFORM_COMMA":
-      extra_link_args += ['-lGLESv2', '-lEGL', '-lgbm', '-ldrm']
-    elif RAYLIB_PLATFORM == "PLATFORM_MEMORY":
-      pass
-    else:
-      extra_link_args += ['-lGL', '-lX11']
+    extra_link_args += link_args_for_backend(RAYLIB_BACKEND)
     extra_compile_args = ["-Wno-incompatible-pointer-types"]
     libraries = []
 
