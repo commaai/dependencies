@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=64", "wheel", "cffi>=1.17.1"]
+requires = ["setuptools>=70.1", "cffi>=1.17.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,10 +7,13 @@ name = "raylib"
 version = "6.0.0.0"
 description = "raylib + pyray Python bindings (commaai fork)"
 requires-python = ">=3.8"
-dependencies = ["cffi>=1.17.1", "setuptools>=64"]
+dependencies = ["cffi>=1.17.1"]
+
+[tool.setuptools]
+include-package-data = false
 
 [tool.setuptools.packages.find]
 include = ["raylib*", "pyray*"]
 
 [tool.setuptools.package-data]
-raylib = ["install/**/*", "_raylib_cffi*.so"]
+raylib = ["_raylib_cffi*.so"]

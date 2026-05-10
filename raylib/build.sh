@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 cd "$DIR"
@@ -7,26 +7,36 @@ cd "$DIR"
 INSTALL_DIR="$DIR/raylib/install"
 
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
-CC="ccache ${CC:-cc}"
+if command -v ccache &>/dev/null; then
+  CC="ccache ${CC:-cc}"
+else
+  CC="${CC:-cc}"
+fi
 
 is_linux_aarch64() {
   [[ "$(uname)" == "Linux" && ( "$(uname -m)" == "aarch64" || "$(uname -m)" == "arm64" ) ]]
 }
 
-# Detect platform: PLATFORM_COMMA for comma devices, PLATFORM_DESKTOP otherwise
-RAYLIB_PLATFORM="${RAYLIB_PLATFORM:-PLATFORM_DESKTOP}"
-if [ -f /AGNOS ] || [ -f /TICI ]; then
-  RAYLIB_PLATFORM="PLATFORM_COMMA"
+if [ -n "${RAYLIB_PLATFORM:-}" ]; then
+  echo "RAYLIB_PLATFORM is no longer supported; use RAYLIB_BACKEND=desktop or RAYLIB_BACKEND=comma" >&2
+  exit 1
 fi
 
-case "$RAYLIB_PLATFORM" in
-  PLATFORM_DESKTOP|PLATFORM_COMMA) ;;
+RAYLIB_BACKEND="${RAYLIB_BACKEND:-}"
+if [ -z "$RAYLIB_BACKEND" ]; then
+  RAYLIB_BACKEND="desktop"
+  if [ -f /AGNOS ] || [ -f /TICI ]; then
+    RAYLIB_BACKEND="comma"
+  fi
+fi
+
+case "$RAYLIB_BACKEND" in
+  desktop|comma) ;;
   *)
-    echo "Unsupported RAYLIB_PLATFORM=$RAYLIB_PLATFORM; expected PLATFORM_DESKTOP or PLATFORM_COMMA" >&2
+    echo "Unsupported RAYLIB_BACKEND=$RAYLIB_BACKEND; expected desktop or comma" >&2
     exit 1
     ;;
 esac
-export RAYLIB_PLATFORM
 
 # Clone and build raylib C library
 RAYLIB_COMMIT="dff603f4f122163900469e73d113deacd9ec9817"
@@ -63,12 +73,15 @@ build_raylib() {
 if is_linux_aarch64; then
   echo "Building desktop backend..."
   build_raylib PLATFORM_DESKTOP libraylib_desktop.a
-  cp "$INSTALL_DIR/lib/libraylib_desktop.a" "$INSTALL_DIR/lib/libraylib.a"
 
   echo "Building comma backend..."
   build_raylib PLATFORM_COMMA libraylib_comma.a
 else
-  build_raylib "$RAYLIB_PLATFORM" libraylib.a
+  if [ "$RAYLIB_BACKEND" = "comma" ]; then
+    build_raylib PLATFORM_COMMA libraylib_comma.a
+  else
+    build_raylib PLATFORM_DESKTOP libraylib_desktop.a
+  fi
 fi
 
 # Download raygui header

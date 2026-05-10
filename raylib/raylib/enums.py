@@ -232,7 +232,8 @@ class ShaderLocationIndex(IntEnum):
     SHADER_LOC_MAP_BRDF = 25
     SHADER_LOC_VERTEX_BONEIDS = 26
     SHADER_LOC_VERTEX_BONEWEIGHTS = 27
-    SHADER_LOC_BONE_MATRICES = 28
+    SHADER_LOC_MATRIX_BONETRANSFORMS = 28
+    SHADER_LOC_VERTEX_INSTANCETRANSFORM = 29
 
 class ShaderUniformDataType(IntEnum):
     SHADER_UNIFORM_FLOAT = 0
@@ -243,7 +244,11 @@ class ShaderUniformDataType(IntEnum):
     SHADER_UNIFORM_IVEC2 = 5
     SHADER_UNIFORM_IVEC3 = 6
     SHADER_UNIFORM_IVEC4 = 7
-    SHADER_UNIFORM_SAMPLER2D = 8
+    SHADER_UNIFORM_UINT = 8
+    SHADER_UNIFORM_UIVEC2 = 9
+    SHADER_UNIFORM_UIVEC3 = 10
+    SHADER_UNIFORM_UIVEC4 = 11
+    SHADER_UNIFORM_SAMPLER2D = 12
 
 class ShaderAttributeDataType(IntEnum):
     SHADER_ATTRIB_FLOAT = 0
@@ -347,6 +352,12 @@ class GuiState(IntEnum):
     STATE_FOCUSED = 1
     STATE_PRESSED = 2
     STATE_DISABLED = 3
+
+class GuiPropertyElement(IntEnum):
+    BORDER = 0
+    BASE = 1
+    TEXT = 2
+    OTHER = 3
 
 class GuiTextAlignment(IntEnum):
     TEXT_ALIGN_LEFT = 0
@@ -716,4 +727,3 @@ class GuiIconName(IntEnum):
     ICON_253 = 253
     ICON_254 = 254
     ICON_255 = 255
-

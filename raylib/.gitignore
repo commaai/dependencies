@@ -1,5 +1,3 @@
 raylib-src/
 raylib/install/
-raylib/*.modified
 raylib/_raylib_cffi*
-raylib/.raylib_backend
