@@ -10,7 +10,7 @@ def _detect_platform():
   """Auto-detect the raylib platform. In CI on Linux x86_64, use memory rendering."""
   explicit = os.environ.get("RAYLIB_PLATFORM", "")
   if explicit:
-    return "PLATFORM_MEMORY" if explicit == "PLATFORM_OFFSCREEN" else explicit
+    return explicit
   if os.environ.get("CI") and _platform.system() == "Linux" and _platform.machine() == "x86_64":
     return "PLATFORM_MEMORY"
   return ""
