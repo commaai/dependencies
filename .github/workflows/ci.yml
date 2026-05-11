@@ -99,8 +99,9 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           pattern: wheels-*
-          merge-multiple: true
-          path: dist
+          path: wheel-artifacts
+      - name: Merge wheel artifacts
+        run: python3 merge_wheel_artifacts.py wheel-artifacts dist
       - uses: actions/cache/restore@v4
         with:
           key: build-cache-v2-${{ matrix.platform }}-${{ hashFiles('build.sh', 'setup.sh', '*/pyproject.toml', '*/setup.py', '*/build.sh') }}
