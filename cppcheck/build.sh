@@ -4,7 +4,7 @@ set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 cd "$DIR"
 
-VERSION="2.16.0"
+VERSION="2.21.0"
 INSTALL_DIR="$DIR/cppcheck/install"
 
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
