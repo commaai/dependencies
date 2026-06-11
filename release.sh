@@ -175,3 +175,19 @@ done
 shopt -u nullglob
 
 rm -rf "$TMP_DIR"
+
+echo
+echo "Publishing PEP 503 index to GitHub Pages"
+
+PAGES_DIR="$(mktemp -d)"
+GH_TOKEN="$TOKEN" python3 make_index.py "$PAGES_DIR"
+(
+  cd "$PAGES_DIR"
+  git init
+  git checkout -b gh-pages
+  git add -A
+  git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" commit -m "update simple index"
+  git remote add origin "https://x-access-token:${TOKEN}@github.com/${REPO}.git"
+  git push -f origin gh-pages
+)
+rm -rf "$PAGES_DIR"

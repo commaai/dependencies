@@ -40,15 +40,31 @@ contributions welcome for other platforms!
 
 ## usage
 
+pre-built wheels are served from a [PEP 503 index](https://commaai.github.io/dependencies/simple/) backed by GitHub Releases:
+
+```toml
+dependencies = [
+  "capnproto==1.0.1",
+  "ffmpeg==7.1.0",
+]
+
+[[tool.uv.index]]
+name = "comma-dependencies"
+url = "https://commaai.github.io/dependencies/simple/"
+explicit = true
+
+[tool.uv.sources]
+capnproto = { index = "comma-dependencies" }
+ffmpeg = { index = "comma-dependencies" }
+```
+
+with plain pip, pass the index explicitly: `pip install --extra-index-url https://commaai.github.io/dependencies/simple/ capnproto`
+
+to build a package from source instead, use the master branch directly:
+
 ```python
 dependencies = [
-  # use per-package release branches for pre-built wheels
-  "capnproto @ git+https://github.com/commaai/dependencies.git@release-capnproto#subdirectory=capnproto",
-  "ffmpeg @ git+https://github.com/commaai/dependencies.git@release-ffmpeg#subdirectory=ffmpeg",
-
-  # use the master branch to build the package on pip install
   "capnproto @ git+https://github.com/commaai/dependencies.git@master#subdirectory=capnproto",
-  "ffmpeg @ git+https://github.com/commaai/dependencies.git@master#subdirectory=ffmpeg",
 ]
 ```
 
@@ -57,5 +73,6 @@ dependencies = [
 to add a new package:
 * start a new top-level directory as a new package
 * `./test.sh` tests the building of all packages
-*  on pushes to `master`, wheels are built for our target platforms and pushed to a GitHub release
-*  each `release-<package>` branch contains a single shim package, so old lockfiles keep resolving even as new packages are added
+* on pushes to `master`, wheels are built for our target platforms and pushed to a GitHub release
+* `make_index.py` regenerates the index from all GitHub releases and publishes it to the `gh-pages` branch, so old lockfiles keep resolving even as new packages are added
+* each `release-<package>` branch contains a single shim package (legacy; superseded by the index)
