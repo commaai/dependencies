@@ -160,6 +160,7 @@ PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
   --disable-ffplay \
   --disable-autodetect \
   --disable-everything \
+  --disable-debug \
   --enable-encoder=libx264,aac,ffvhuff,rawvideo,png,mjpeg \
   --enable-decoder=h264,hevc,ffvhuff,aac,rawvideo,png,mjpeg,mp3,pcm_s16le \
   --enable-muxer=mpegts,matroska,mp4,hevc,rawvideo,image2,null,mov,framehash \
@@ -197,8 +198,11 @@ for dir in libavformat libavcodec libavutil libswresample; do
   cp -r "$PREFIX/include/$dir" "$INSTALL_DIR/include/"
 done
 
-# Strip binaries
+# Strip binaries and debug info from static libraries
 strip "$INSTALL_DIR/bin/ffmpeg" "$INSTALL_DIR/bin/ffprobe" 2>/dev/null || true
+for lib in "$INSTALL_DIR"/lib/*.a; do
+  strip --strip-debug "$lib" 2>/dev/null || true
+done
 
 echo "Installed ffmpeg to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"
