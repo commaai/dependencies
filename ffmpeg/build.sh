@@ -146,13 +146,15 @@ elif [ "$PLATFORM" = "Darwin" ]; then
   )
 fi
 
+RPATH='$ORIGIN/../lib'
+
 PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
 ./configure \
   --cc="${CC:-cc}" \
   --prefix="$PREFIX" \
   --enable-gpl \
-  --enable-static \
-  --disable-shared \
+  --enable-shared \
+  --disable-static \
   --enable-zlib \
   --enable-libx264 \
   --enable-pic \
@@ -184,25 +186,24 @@ mkdir -p "$INSTALL_DIR"/{bin,lib,include}
 cp "$PREFIX/bin/ffmpeg" "$INSTALL_DIR/bin/"
 cp "$PREFIX/bin/ffprobe" "$INSTALL_DIR/bin/"
 
-# Libraries
-LIBS="libavformat.a libavcodec.a libavutil.a libswresample.a libx264.a libz.a"
-if [ "$PLATFORM" = "Linux" ]; then
-  LIBS="$LIBS libva.a libva-drm.a libdrm.a"
-fi
-for lib in $LIBS; do
-  cp "$PREFIX/lib/$lib" "$INSTALL_DIR/lib/"
-done
+# Shared libraries (preserve symlinks)
+cp -a "$PREFIX"/lib/libav*.so* "$INSTALL_DIR/lib/" 2>/dev/null || true
+cp -a "$PREFIX"/lib/libsw*.so* "$INSTALL_DIR/lib/" 2>/dev/null || true
+cp -a "$PREFIX"/lib/libpost*.so* "$INSTALL_DIR/lib/" 2>/dev/null || true
 
 # Headers
 for dir in libavformat libavcodec libavutil libswresample; do
   cp -r "$PREFIX/include/$dir" "$INSTALL_DIR/include/"
 done
 
-# Strip binaries and debug info from static libraries
+# Strip binaries and shared libraries
 strip "$INSTALL_DIR/bin/ffmpeg" "$INSTALL_DIR/bin/ffprobe" 2>/dev/null || true
-for lib in "$INSTALL_DIR"/lib/*.a; do
-  strip --strip-debug "$lib" 2>/dev/null || true
+for lib in "$INSTALL_DIR"/lib/*.so.*; do
+  strip --strip-unneeded "$lib" 2>/dev/null || true
 done
+
+# Set RPATH so binaries find shared libs relative to their own location
+patchelf --set-rpath '$ORIGIN/../lib' "$INSTALL_DIR/bin/ffmpeg" "$INSTALL_DIR/bin/ffprobe" 2>/dev/null || true
 
 echo "Installed ffmpeg to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"
