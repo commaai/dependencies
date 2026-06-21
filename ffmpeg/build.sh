@@ -13,7 +13,10 @@ LIBVA_VERSION="2.22.0"
 INSTALL_DIR="$DIR/ffmpeg/install"
 
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
-CC="ccache ${CC:-cc}"
+CC="${CC:-cc}"
+if command -v ccache &>/dev/null; then
+  CC="ccache $CC"
+fi
 PREFIX="$DIR/build/prefix"
 mkdir -p "$DIR/build"
 
@@ -40,16 +43,29 @@ git -C x264-src fetch --depth 1 origin "$X264_BRANCH"
 git -C x264-src checkout --force FETCH_HEAD
 
 cd x264-src
-CFLAGS="-fno-finite-math-only" ./configure \
-  --prefix="$PREFIX" \
-  --enable-static \
-  --disable-shared \
-  --disable-cli \
-  --disable-opencl \
-  --enable-pic
+X264_FLAGS=(--prefix="$PREFIX" --enable-static --disable-shared --disable-cli --disable-opencl --enable-pic)
+if ! command -v nasm &>/dev/null; then
+  X264_FLAGS+=(--disable-asm)
+fi
+CFLAGS="-fno-finite-math-only" ./configure "${X264_FLAGS[@]}"
 make -j"$NJOBS"
 make install
 cd "$DIR"
+
+# Ensure pkg-config is available (macOS doesn't have it by default)
+if ! command -v pkg-config &>/dev/null; then
+  if [ "$PLATFORM" = "Darwin" ]; then
+    for p in /opt/homebrew/bin /usr/local/bin; do
+      [ -x "$p/pkg-config" ] && export PATH="$p:$PATH"
+    done
+  fi
+  if ! command -v pkg-config &>/dev/null && command -v brew &>/dev/null; then
+    brew install pkg-config
+    for p in /opt/homebrew/bin /usr/local/bin; do
+      [ -x "$p/pkg-config" ] && export PATH="$p:$PATH"
+    done
+  fi
+fi
 
 # --- Build nv-codec-headers (Linux only, for CUDA/NVDEC) ---
 if [ "$PLATFORM" = "Linux" ]; then
@@ -71,37 +87,40 @@ if [ "$PLATFORM" = "Linux" ]; then
 fi
 
 # --- Build libdrm + libva statically (Linux only, for VAAPI without runtime deps) ---
+HAVE_VAAPI=no
 if [ "$PLATFORM" = "Linux" ]; then
   if ! command -v meson &>/dev/null; then
-    pip3 install --quiet meson ninja 2>/dev/null || python3 -m pip install --quiet meson ninja 2>/dev/null || true
-    command -v meson &>/dev/null || { echo "error: meson is required (apt install meson or pip install meson)" >&2; exit 1; }
+    pip3 install --quiet --break-system-packages meson ninja 2>/dev/null || python3 -m pip install --quiet meson ninja 2>/dev/null || true
   fi
 
-  if [ ! -d "libdrm-src/.git" ]; then
-    rm -rf libdrm-src
-    git clone --depth 1 --branch "$LIBDRM_VERSION" https://gitlab.freedesktop.org/mesa/drm.git libdrm-src
-  fi
-  rm -rf libdrm-src/builddir
-  meson setup libdrm-src/builddir libdrm-src \
-    --prefix="$PREFIX" --libdir=lib --default-library=static \
-    -Dintel=disabled -Dradeon=disabled -Damdgpu=disabled -Dnouveau=disabled \
-    -Dvmwgfx=disabled -Dtests=false -Dman-pages=disabled -Dcairo-tests=disabled \
-    -Dvalgrind=disabled
-  ninja -C libdrm-src/builddir install
+  if command -v meson &>/dev/null; then
+    HAVE_VAAPI=yes
+    if [ ! -d "libdrm-src/.git" ]; then
+      rm -rf libdrm-src
+      git clone --depth 1 --branch "$LIBDRM_VERSION" https://gitlab.freedesktop.org/mesa/drm.git libdrm-src
+    fi
+    rm -rf libdrm-src/builddir
+    meson setup libdrm-src/builddir libdrm-src \
+      --prefix="$PREFIX" --libdir=lib --default-library=static \
+      -Dintel=disabled -Dradeon=disabled -Damdgpu=disabled -Dnouveau=disabled \
+      -Dvmwgfx=disabled -Dtests=false -Dman-pages=disabled -Dcairo-tests=disabled \
+      -Dvalgrind=disabled
+    ninja -C libdrm-src/builddir install
 
-  if [ ! -d "libva-src/.git" ]; then
-    rm -rf libva-src
-    git clone --depth 1 --branch "$LIBVA_VERSION" https://github.com/intel/libva.git libva-src
+    if [ ! -d "libva-src/.git" ]; then
+      rm -rf libva-src
+      git clone --depth 1 --branch "$LIBVA_VERSION" https://github.com/intel/libva.git libva-src
+    fi
+    rm -rf libva-src/builddir
+    # libva hardcodes shared_library(); patch to library() so --default-library=static works
+    sed -i 's/shared_library(/library(/g' libva-src/va/meson.build
+    PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
+    meson setup libva-src/builddir libva-src \
+      --prefix="$PREFIX" --libdir=lib --default-library=static \
+      -Ddisable_drm=false -Dwith_x11=no -Dwith_glx=no -Dwith_wayland=no \
+      -Dwith_win32=no -Denable_docs=false
+    ninja -C libva-src/builddir install
   fi
-  rm -rf libva-src/builddir
-  # libva hardcodes shared_library(); patch to library() so --default-library=static works
-  sed -i 's/shared_library(/library(/g' libva-src/va/meson.build
-  PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
-  meson setup libva-src/builddir libva-src \
-    --prefix="$PREFIX" --libdir=lib --default-library=static \
-    -Ddisable_drm=false -Dwith_x11=no -Dwith_glx=no -Dwith_wayland=no \
-    -Dwith_win32=no -Denable_docs=false
-  ninja -C libva-src/builddir install
 fi
 
 # --- Build FFmpeg ---
@@ -123,10 +142,6 @@ if [ "$PLATFORM" = "Linux" ]; then
     --enable-hwaccel=h264_nvdec,hevc_nvdec
     --enable-decoder=h264_cuvid,hevc_cuvid
 
-    # VAAPI (Intel/AMD — libva linked statically, driver loaded via dlopen at runtime)
-    --enable-vaapi
-    --enable-hwaccel=h264_vaapi,hevc_vaapi
-
     # V4L2 Memory-to-Memory (embedded: RPi, Qualcomm, Rockchip)
     --enable-v4l2-m2m
     --enable-decoder=h264_v4l2m2m,hevc_v4l2m2m
@@ -137,6 +152,13 @@ if [ "$PLATFORM" = "Linux" ]; then
     --enable-hwaccel=h264_vulkan,hevc_vulkan
     --enable-encoder=h264_vulkan,hevc_vulkan
   )
+  if [ "$HAVE_VAAPI" = "yes" ]; then
+    HW_FLAGS+=(
+      # VAAPI (Intel/AMD — libva linked statically, driver loaded via dlopen at runtime)
+      --enable-vaapi
+      --enable-hwaccel=h264_vaapi,hevc_vaapi
+    )
+  fi
 elif [ "$PLATFORM" = "Darwin" ]; then
   HW_FLAGS+=(
     # VideoToolbox (Apple Silicon / macOS)
@@ -148,8 +170,7 @@ fi
 
 RPATH='$ORIGIN/../lib'
 
-PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
-./configure \
+FFMPEG_FLAGS=(
   --cc="${CC:-cc}" \
   --prefix="$PREFIX" \
   --enable-gpl \
@@ -174,6 +195,13 @@ PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
   --extra-cflags="-I$PREFIX/include" \
   --extra-ldflags="-L$PREFIX/lib" \
   "${HW_FLAGS[@]}"
+)
+if ! command -v nasm &>/dev/null; then
+  FFMPEG_FLAGS+=(--disable-x86asm)
+fi
+
+PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
+./configure "${FFMPEG_FLAGS[@]}"
 make -j"$NJOBS"
 make install
 cd "$DIR"
@@ -186,10 +214,16 @@ mkdir -p "$INSTALL_DIR"/{bin,lib,include}
 cp "$PREFIX/bin/ffmpeg" "$INSTALL_DIR/bin/"
 cp "$PREFIX/bin/ffprobe" "$INSTALL_DIR/bin/"
 
-# Shared libraries (preserve symlinks)
-cp -a "$PREFIX"/lib/libav*.so* "$INSTALL_DIR/lib/" 2>/dev/null || true
-cp -a "$PREFIX"/lib/libsw*.so* "$INSTALL_DIR/lib/" 2>/dev/null || true
-cp -a "$PREFIX"/lib/libpost*.so* "$INSTALL_DIR/lib/" 2>/dev/null || true
+# Shared libraries (only the real versioned files, symlinks created at install time)
+if [ "$PLATFORM" = "Darwin" ]; then
+  for lib in "$PREFIX"/lib/libav*.*.*.dylib "$PREFIX"/lib/libsw*.*.*.dylib "$PREFIX"/lib/libpost*.*.*.dylib; do
+    [ -f "$lib" ] && cp "$lib" "$INSTALL_DIR/lib/"
+  done
+else
+  for lib in "$PREFIX"/lib/libav*.so.*.* "$PREFIX"/lib/libsw*.so.*.* "$PREFIX"/lib/libpost*.so.*.*; do
+    [ -f "$lib" ] && cp "$lib" "$INSTALL_DIR/lib/"
+  done
+fi
 
 # Headers
 for dir in libavformat libavcodec libavutil libswresample; do
@@ -198,12 +232,16 @@ done
 
 # Strip binaries and shared libraries
 strip "$INSTALL_DIR/bin/ffmpeg" "$INSTALL_DIR/bin/ffprobe" 2>/dev/null || true
-for lib in "$INSTALL_DIR"/lib/*.so.*; do
-  strip --strip-unneeded "$lib" 2>/dev/null || true
+for lib in "$INSTALL_DIR"/lib/*.so.* "$INSTALL_DIR"/lib/*.dylib.*; do
+  [ -f "$lib" ] && strip -x "$lib" 2>/dev/null || true
 done
 
-# Set RPATH so binaries find shared libs relative to their own location
-patchelf --set-rpath '$ORIGIN/../lib' "$INSTALL_DIR/bin/ffmpeg" "$INSTALL_DIR/bin/ffprobe" 2>/dev/null || true
+# Set RPATH/RPATH so binaries find shared libs relative to their own location
+if [ "$PLATFORM" = "Darwin" ]; then
+  install_name_tool -add_rpath @loader_path/../lib "$INSTALL_DIR/bin/ffmpeg" "$INSTALL_DIR/bin/ffprobe" 2>/dev/null || true
+elif command -v patchelf &>/dev/null; then
+  patchelf --set-rpath '$ORIGIN/../lib' "$INSTALL_DIR/bin/ffmpeg" "$INSTALL_DIR/bin/ffprobe"
+fi
 
 echo "Installed ffmpeg to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"
