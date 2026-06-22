@@ -83,7 +83,7 @@ if [ "$PLATFORM" = "Linux" ]; then
   fi
   rm -rf libdrm-src/builddir
   meson setup libdrm-src/builddir libdrm-src \
-    --prefix="$PREFIX" --libdir=lib --default-library=static \
+    --prefix="$PREFIX" --libdir=lib --default-library=static -Ddebug=false \
     -Dintel=disabled -Dradeon=disabled -Damdgpu=disabled -Dnouveau=disabled \
     -Dvmwgfx=disabled -Dtests=false -Dman-pages=disabled -Dcairo-tests=disabled \
     -Dvalgrind=disabled
@@ -98,7 +98,7 @@ if [ "$PLATFORM" = "Linux" ]; then
   sed -i 's/shared_library(/library(/g' libva-src/va/meson.build
   PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
   meson setup libva-src/builddir libva-src \
-    --prefix="$PREFIX" --libdir=lib --default-library=static \
+    --prefix="$PREFIX" --libdir=lib --default-library=static -Ddebug=false \
     -Ddisable_drm=false -Dwith_x11=no -Dwith_glx=no -Dwith_wayland=no \
     -Dwith_win32=no -Denable_docs=false
   ninja -C libva-src/builddir install
@@ -157,6 +157,7 @@ PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
   --enable-libx264 \
   --enable-pic \
   --disable-doc \
+  --disable-debug \
   --disable-ffplay \
   --disable-autodetect \
   --disable-everything \
