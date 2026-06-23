@@ -15,7 +15,8 @@ INSTALL_DIR="$DIR/ffmpeg/install"
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 CC="ccache ${CC:-cc}"
 PREFIX="$DIR/build/prefix"
-mkdir -p "$DIR/build"
+rm -rf "$PREFIX" "$DIR/build/lib"
+mkdir -p "$DIR/build" "$PREFIX"
 
 # --- Build zlib (static) ---
 if [ ! -d "zlib-src/.git" ]; then
@@ -113,6 +114,7 @@ git -C ffmpeg-src fetch --depth 1 origin "n${FFMPEG_VERSION}"
 git -C ffmpeg-src checkout --force FETCH_HEAD
 
 cd ffmpeg-src
+make distclean >/dev/null 2>&1 || true
 
 # Platform-specific hardware acceleration flags
 HW_FLAGS=()
@@ -151,8 +153,8 @@ PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
   --cc="${CC:-cc}" \
   --prefix="$PREFIX" \
   --enable-gpl \
-  --enable-static \
-  --disable-shared \
+  --disable-static \
+  --enable-shared \
   --enable-zlib \
   --enable-libx264 \
   --enable-pic \
@@ -171,6 +173,7 @@ PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
   --enable-bsf=extract_extradata,h264_mp4toannexb,hevc_mp4toannexb \
   --extra-cflags="-I$PREFIX/include" \
   --extra-ldflags="-L$PREFIX/lib" \
+  --install-name-dir=@rpath \
   "${HW_FLAGS[@]}"
 make -j"$NJOBS"
 make install
@@ -184,22 +187,25 @@ mkdir -p "$INSTALL_DIR"/{bin,lib,include}
 cp "$PREFIX/bin/ffmpeg" "$INSTALL_DIR/bin/"
 cp "$PREFIX/bin/ffprobe" "$INSTALL_DIR/bin/"
 
-# Libraries
-LIBS="libavformat.a libavcodec.a libavutil.a libswresample.a libx264.a libz.a"
 if [ "$PLATFORM" = "Linux" ]; then
-  LIBS="$LIBS libva.a libva-drm.a libdrm.a"
+  find "$PREFIX/lib" -maxdepth 1 -type l \( -name 'libav*.so.[0-9]*' -o -name 'libsw*.so.[0-9]*' -o -name 'libpostproc.so.[0-9]*' \) |
+    while read -r lib; do name="$(basename "$lib")"; cp -L "$lib" "$INSTALL_DIR/lib/$name"; printf 'INPUT(%s)\n' "$name" > "$INSTALL_DIR/lib/${name%%.so.*}.so"; done
+  for bin in "$INSTALL_DIR/bin/"*; do patchelf --set-rpath '$ORIGIN/../lib' "$bin"; done
+  for lib in "$INSTALL_DIR/lib/"*.so.*; do patchelf --set-rpath '$ORIGIN' "$lib"; done
+elif [ "$PLATFORM" = "Darwin" ]; then
+  find "$PREFIX/lib" -maxdepth 1 -type l \( -name 'libav*.[0-9]*.dylib' -o -name 'libsw*.[0-9]*.dylib' -o -name 'libpostproc*.[0-9]*.dylib' \) |
+    while read -r lib; do cp -L "$lib" "$INSTALL_DIR/lib/$(basename "$lib")"; done
+  for bin in "$INSTALL_DIR/bin/"*; do install_name_tool -add_rpath "@loader_path/../lib" "$bin" 2>/dev/null || true; done
+  for lib in "$INSTALL_DIR/lib/"*.dylib; do install_name_tool -id "@rpath/$(basename "$lib")" "$lib"; done
 fi
-for lib in $LIBS; do
-  cp "$PREFIX/lib/$lib" "$INSTALL_DIR/lib/"
-done
 
 # Headers
 for dir in libavformat libavcodec libavutil libswresample; do
   cp -r "$PREFIX/include/$dir" "$INSTALL_DIR/include/"
 done
 
-# Strip binaries
-strip "$INSTALL_DIR/bin/ffmpeg" "$INSTALL_DIR/bin/ffprobe" 2>/dev/null || true
+# Strip binaries and shared libraries
+strip "$INSTALL_DIR/bin/ffmpeg" "$INSTALL_DIR/bin/ffprobe" "$INSTALL_DIR/lib/"*.so.* "$INSTALL_DIR/lib/"*.dylib 2>/dev/null || true
 
 echo "Installed ffmpeg to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"
