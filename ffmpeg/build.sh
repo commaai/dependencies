@@ -13,10 +13,18 @@ LIBVA_VERSION="2.22.0"
 INSTALL_DIR="$DIR/ffmpeg/install"
 
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
-CC="ccache ${CC:-cc}"
+CC="${CC:-cc}"
 PREFIX="$DIR/build/prefix"
 rm -rf "$PREFIX" "$DIR/build/lib"
 mkdir -p "$DIR/build" "$PREFIX"
+
+if command -v ccache &>/dev/null; then
+  CCACHE_TEST="$DIR/build/ccache-test"
+  if printf 'int main(void){return 0;}\n' | ccache $CC -x c - -o "$CCACHE_TEST" >/dev/null 2>&1; then
+    CC="ccache $CC"
+  fi
+  rm -f "$CCACHE_TEST"
+fi
 
 # --- Build zlib (static) ---
 if [ ! -d "zlib-src/.git" ]; then
@@ -122,6 +130,9 @@ LOADER_FLAGS=()
 FFMPEG_LDEXEFLAGS=
 FFMPEG_LDSOFLAGS=
 if [ "$PLATFORM" = "Linux" ]; then
+  # rpath so ffmpeg/ffprobe find sibling libs in ../lib and the libs find each
+  # other in the same dir. LDSOFLAGS needs twice the $-escaping of LDEXEFLAGS
+  # because ffmpeg expands it through an extra make recipe ($$(LD)) substitution.
   FFMPEG_LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/../lib -Wl,-z,origin'
   FFMPEG_LDSOFLAGS='-Wl,-rpath,\$$$$ORIGIN -Wl,-z,origin'
 
