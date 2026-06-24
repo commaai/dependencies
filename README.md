@@ -42,6 +42,7 @@ contributions welcome for other platforms!
 
 pre-built wheels are published to PyPI under the `comma-deps-` prefix. the import name
 is unchanged (e.g. `import capnproto`), only the distribution name is prefixed.
+packages require Python 3.12 or newer.
 
 ```python
 dependencies = [

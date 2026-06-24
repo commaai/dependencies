@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "comma-deps-ncurses"
 version = "6.5"
 description = "ncurses terminal library (static build)"
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 
 [tool.setuptools.packages.find]
 include = ["ncurses*"]

@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "comma-deps-bootstrap-icons"
 version = "1.10.5.0"
 description = "Bootstrap Icons SVG sprite and TTF font"
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 
 [tool.setuptools.packages.find]
 include = ["bootstrap_icons*"]

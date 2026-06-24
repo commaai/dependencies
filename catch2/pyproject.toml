@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "comma-deps-catch2"
 version = "2.13.10"
 description = "Catch2 C++ test framework headers"
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 
 [tool.setuptools.packages.find]
 include = ["catch2*"]

@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "comma-deps-gcc-arm-none-eabi"
 version = "13.2.1"
 description = "ARM GCC toolchain for bare-metal targets"
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 
 [project.scripts]
 arm-none-eabi-gcc = "gcc_arm_none_eabi:_run_gcc"

@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "comma-deps-zstd"
 version = "1.5.6"
 description = "Zstandard compression library (static build)"
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 
 [tool.setuptools.packages.find]
 include = ["zstd*"]

@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "comma-deps-eigen"
 version = "3.4.0"
 description = "Eigen C++ linear algebra headers"
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 
 [tool.setuptools.packages.find]
 include = ["eigen*"]

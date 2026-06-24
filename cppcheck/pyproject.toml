@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "comma-deps-cppcheck"
 version = "2.21.0"
 description = "Cppcheck static analysis tool"
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 
 [project.scripts]
 cppcheck = "cppcheck:_run"

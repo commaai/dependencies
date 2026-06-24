@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "comma-deps-ffmpeg"
 version = "7.1.0"
 description = "FFmpeg media tools and libraries (minimal build for openpilot)"
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 
 [project.scripts]
 ffmpeg = "ffmpeg:_run_ffmpeg"
