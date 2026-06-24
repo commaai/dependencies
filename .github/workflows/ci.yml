@@ -3,7 +3,7 @@ name: ci
 on:
   pull_request:
   push:
-    branches: [master, pypi] # TODO: remove pypi after publish testing
+    branches: [master]
 
 jobs:
   build:
@@ -89,7 +89,7 @@ jobs:
 
   publish:
     name: publish wheels
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/pypi')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: [build, test]
     runs-on: ubuntu-latest
     steps:
