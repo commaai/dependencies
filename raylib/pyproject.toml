@@ -3,7 +3,7 @@ requires = ["setuptools>=70.1", "cffi>=1.17.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "raylib"
+name = "comma-deps-raylib"
 version = "6.0.0.0"
 description = "raylib + pyray Python bindings (commaai fork)"
 requires-python = ">=3.8"

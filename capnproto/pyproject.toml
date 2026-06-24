@@ -3,7 +3,7 @@ requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "capnproto"
+name = "comma-deps-capnproto"
 version = "1.0.1"
 description = "Cap'n Proto serialization library and compiler"
 requires-python = ">=3.8"

@@ -3,7 +3,7 @@ requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "xvfb"
+name = "comma-deps-xvfb"
 version = "1.20.11.post1"
 description = "Xvfb (X virtual framebuffer) headless X server"
 requires-python = ">=3.8"

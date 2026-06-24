@@ -40,15 +40,22 @@ contributions welcome for other platforms!
 
 ## usage
 
+pre-built wheels are published to PyPI under the `comma-deps-` prefix. the import name
+is unchanged (e.g. `import capnproto`), only the distribution name is prefixed.
+
 ```python
 dependencies = [
-  # use per-package release branches for pre-built wheels
-  "capnproto @ git+https://github.com/commaai/dependencies.git@release-capnproto#subdirectory=capnproto",
-  "ffmpeg @ git+https://github.com/commaai/dependencies.git@release-ffmpeg#subdirectory=ffmpeg",
+  "comma-deps-capnproto==1.0.1",
+  "comma-deps-ffmpeg==7.1.0",
+]
+```
 
-  # use the master branch to build the package on pip install
-  "capnproto @ git+https://github.com/commaai/dependencies.git@master#subdirectory=capnproto",
-  "ffmpeg @ git+https://github.com/commaai/dependencies.git@master#subdirectory=ffmpeg",
+to build from source instead, point at the master branch of this repo:
+
+```python
+dependencies = [
+  "comma-deps-capnproto @ git+https://github.com/commaai/dependencies.git@master#subdirectory=capnproto",
+  "comma-deps-ffmpeg @ git+https://github.com/commaai/dependencies.git@master#subdirectory=ffmpeg",
 ]
 ```
 
@@ -56,6 +63,9 @@ dependencies = [
 
 to add a new package:
 * start a new top-level directory as a new package
-* `./test.sh` tests the building of all packages
-*  on pushes to `master`, wheels are built for our target platforms and pushed to a GitHub release
-*  each `release-<package>` branch contains a single shim package, so old lockfiles keep resolving even as new packages are added
+* `./build.sh` builds all packages, `./test_wheels_in_image.sh` tests the built wheels in a range of distros
+*  on pushes to `master`, wheels are built for our target platforms, tested, and published to PyPI
+
+> [!NOTE]
+> PyPI does not allow overwriting an uploaded file. to republish a build, bump
+> the version in the package's `pyproject.toml` rather than reusing one.

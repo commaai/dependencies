@@ -3,7 +3,7 @@ requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "libjpeg"
+name = "comma-deps-libjpeg"
 version = "3.1.0"
 description = "libjpeg-turbo JPEG library (static build)"
 requires-python = ">=3.8"
