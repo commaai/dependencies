@@ -43,9 +43,11 @@ fi
 rm -rf "$INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"/{bin,lib,share/X11/xkb}
 
-# Xvfb may live in /usr/bin (RPM/Debian) — just locate it.
-XVFB_SRC="$(command -v Xvfb || true)"
-XKBCOMP_SRC="$(command -v xkbcomp || true)"
+# Prefer package-manager binaries; PATH may contain Python wrappers.
+XVFB_SRC="/usr/bin/Xvfb"
+[[ -x "$XVFB_SRC" ]] || XVFB_SRC="$(command -v Xvfb || true)"
+XKBCOMP_SRC="/usr/bin/xkbcomp"
+[[ -x "$XKBCOMP_SRC" ]] || XKBCOMP_SRC="$(command -v xkbcomp || true)"
 if [[ -z "$XVFB_SRC" || -z "$XKBCOMP_SRC" ]]; then
   echo "xvfb: Xvfb or xkbcomp not found after install" >&2
   exit 1

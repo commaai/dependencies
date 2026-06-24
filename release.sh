@@ -15,7 +15,37 @@ if [[ ${#wheels[@]} -eq 0 ]]; then
   exit 1
 fi
 
-echo "Uploading ${#wheels[@]} wheel(s):"
+echo "Found ${#wheels[@]} wheel(s):"
 printf '  %s\n' "${wheels[@]}"
 
-uvx twine upload "${wheels[@]}"
+upload_dir="$(mktemp -d)"
+trap 'rm -rf "$upload_dir"' EXIT
+cp "${wheels[@]}" "$upload_dir"/
+
+retag_linux_wheels() {
+  local from_platform="$1"
+  local to_platform="$2"
+
+  shopt -s nullglob
+  local platform_wheels=("$upload_dir"/*-"$from_platform".whl)
+  shopt -u nullglob
+
+  if [[ ${#platform_wheels[@]} -gt 0 ]]; then
+    uvx --from wheel wheel tags --remove --platform-tag "$to_platform" "${platform_wheels[@]}"
+  fi
+}
+
+# PyPI rejects generic linux_* binary wheel tags. The packages are built in
+# manylinux_2_28 containers in CI, so only rewrite the upload copies.
+retag_linux_wheels linux_x86_64 manylinux_2_28_x86_64
+retag_linux_wheels linux_aarch64 manylinux_2_28_aarch64
+retag_linux_wheels linux_arm64 manylinux_2_28_aarch64
+
+shopt -s nullglob
+upload_wheels=("$upload_dir"/*.whl)
+shopt -u nullglob
+
+echo "Uploading ${#upload_wheels[@]} PyPI wheel(s):"
+printf '  %s\n' "${upload_wheels[@]}"
+
+uvx twine upload "${upload_wheels[@]}"

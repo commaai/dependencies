@@ -16,6 +16,8 @@ NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 CC="ccache ${CC:-cc}"
 PREFIX="$DIR/build/prefix"
 mkdir -p "$DIR/build"
+rm -rf "$PREFIX"
+mkdir -p "$PREFIX"
 
 # --- Build zlib (static) ---
 if [ ! -d "zlib-src/.git" ]; then
@@ -111,6 +113,7 @@ if [ ! -d "ffmpeg-src/.git" ]; then
 fi
 git -C ffmpeg-src fetch --depth 1 origin "n${FFMPEG_VERSION}"
 git -C ffmpeg-src checkout --force FETCH_HEAD
+git -C ffmpeg-src clean -xffd
 
 cd ffmpeg-src
 

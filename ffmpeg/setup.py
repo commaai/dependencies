@@ -1,5 +1,6 @@
 import os
 import platform
+import shutil
 import subprocess
 
 from setuptools.command.build_py import build_py
@@ -18,6 +19,7 @@ class BuildFFmpeg(build_py):
     build_script = os.path.join(pkg_dir, "build.sh")
     subprocess.check_call(["bash", build_script], cwd=pkg_dir)
 
+    shutil.rmtree(os.path.join(self.build_lib, "ffmpeg"), ignore_errors=True)
     super().run()
 
 
