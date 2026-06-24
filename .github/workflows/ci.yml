@@ -68,8 +68,6 @@ jobs:
             runs-on: ubuntu-latest
           - image: ubuntu:24.04
             runs-on: ubuntu-latest
-          - image: ubuntu:20.04
-            runs-on: ubuntu-latest
           - image: fedora:41
             runs-on: ubuntu-latest
           - image: archlinux:latest
