@@ -24,6 +24,8 @@ jobs:
             runs-on-namespace: namespace-profile-macos-8x14
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - name: Select Xcode 16
         if: runner.os == 'macOS'
         run: |

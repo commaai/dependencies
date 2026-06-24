@@ -6,6 +6,13 @@ cd "$ROOT_DIR"
 
 echo "Publishing wheels to PyPI"
 
+if ! command -v uvx >/dev/null 2>&1; then
+  UV_BIN_DIR="$HOME/.local/bin"
+  mkdir -p "$UV_BIN_DIR"
+  curl -LsSf https://astral.sh/uv/install.sh | env UV_UNMANAGED_INSTALL="$UV_BIN_DIR" sh
+  export PATH="$UV_BIN_DIR:$PATH"
+fi
+
 shopt -s nullglob
 wheels=(dist/*.whl)
 shopt -u nullglob
