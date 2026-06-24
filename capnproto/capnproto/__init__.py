@@ -1,4 +1,5 @@
 import os
+import tempfile
 import sys
 
 DIR = os.path.join(os.path.dirname(__file__), "install")
@@ -42,3 +43,9 @@ def smoketest():
   subprocess.run([capnp, "--version"], check=True, env=env)
   subprocess.run([capnpc, "--version"], check=True, env=env)
   subprocess.run([capnpc_cpp, "--version"], check=True, env=env)
+  with tempfile.TemporaryDirectory() as temp_dir:
+    schema = os.path.join(temp_dir, "test.capnp")
+    with open(schema, "w") as f:
+      f.write("@0xd12f9faaa6e3fdec; struct Test { value @0 :UInt32; }\n")
+    env["PWD"] = temp_dir
+    subprocess.run([capnp, "compile", "-oc++", schema], cwd=temp_dir, check=True, env=env)
