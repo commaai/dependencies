@@ -48,4 +48,4 @@ shopt -u nullglob
 echo "Uploading ${#upload_wheels[@]} PyPI wheel(s):"
 printf '  %s\n' "${upload_wheels[@]}"
 
-uvx twine upload "${upload_wheels[@]}"
+uvx twine upload --skip-existing "${upload_wheels[@]}"

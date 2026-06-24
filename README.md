@@ -45,8 +45,8 @@ is unchanged (e.g. `import capnproto`), only the distribution name is prefixed.
 
 ```python
 dependencies = [
-  "comma-deps-capnproto==1.0.1",
-  "comma-deps-ffmpeg==7.1.0",
+  "comma-deps-capnproto>=1.0.1,<1.0.2",
+  "comma-deps-ffmpeg>=7.1.0,<7.1.1",
 ]
 ```
 
@@ -67,5 +67,8 @@ to add a new package:
 *  on pushes to `master`, wheels are built for our target platforms, tested, and published to PyPI
 
 > [!NOTE]
-> PyPI does not allow overwriting an uploaded file. to republish a build, bump
-> the version in the package's `pyproject.toml` rather than reusing one.
+> PyPI does not allow overwriting an uploaded file. each build publishes
+> versions as `<package version>.postN`, where `N` is `git rev-list --count HEAD`
+> for the commit being built. package `pyproject.toml` files keep the upstream
+> base version; `./build.sh` applies the `.postN` suffix only while building
+> wheels. existing `.postM` suffixes are replaced by the build suffix.

@@ -62,12 +62,23 @@ fi
 export CMAKE_C_COMPILER_LAUNCHER=ccache
 export CMAKE_CXX_COMPILER_LAUNCHER=ccache
 
+restore_build_versions() {
+  python3 build_versions.py restore */pyproject.toml
+}
+
+trap restore_build_versions EXIT
+
 echo "Building workspace packages into dist"
 START_SECS=$SECONDS
 
 mkdir -p dist/
 rm -rf dist/*
+
+POST_N="${DEPENDENCIES_POST_VERSION_N:-$(git rev-list --count HEAD)}"
+echo "Applying .post$POST_N package versions for this build"
+python3 build_versions.py apply "$POST_N" */pyproject.toml
 uv build --all-packages --wheel --out-dir dist --no-create-gitignore
+restore_build_versions
 
 if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
   VENV_DIR="$ROOT_DIR/.venv-manylinux"
