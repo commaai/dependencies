@@ -23,4 +23,18 @@ fi
 echo "Publishing ${#wheels[@]} wheel(s) to PyPI:"
 printf '  %s\n' "${wheels[@]}"
 
-uvx twine upload --skip-existing "${wheels[@]}"
+# PyPI rate-limits new project creation (429), and --skip-existing makes
+# retries idempotent, so back off and retry until the window resets.
+for wait_secs in 60 120 300 600 900 0; do
+  if uvx twine upload --skip-existing "${wheels[@]}"; then
+    exit 0
+  fi
+  if [[ $wait_secs -eq 0 ]]; then
+    break
+  fi
+  echo "upload failed; retrying in ${wait_secs}s"
+  sleep "$wait_secs"
+done
+
+echo "upload failed after all retries" >&2
+exit 1
