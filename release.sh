@@ -23,18 +23,30 @@ fi
 echo "Publishing ${#wheels[@]} wheel(s) to PyPI:"
 printf '  %s\n' "${wheels[@]}"
 
-# PyPI rate-limits new project creation (429), and --skip-existing makes
-# retries idempotent, so back off and retry until the window resets.
-for wait_secs in 60 120 300 600 900 0; do
-  if uvx twine upload --skip-existing "${wheels[@]}"; then
+# PyPI rate-limits new project creation (~20/hour/user), and twine aborts a
+# batch at the first 429 — so upload one wheel at a time, let throttled ones
+# fail without blocking the rest, and retry the failures once the rate-limit
+# window has reset. --skip-existing makes all of this idempotent.
+remaining=("${wheels[@]}")
+for pass in 1 2 3 4 5 6; do
+  failed=()
+  for whl in "${remaining[@]}"; do
+    if ! uvx twine upload --skip-existing "$whl"; then
+      failed+=("$whl")
+    fi
+    sleep 2
+  done
+
+  if [[ ${#failed[@]} -eq 0 ]]; then
+    echo "all wheels published"
     exit 0
   fi
-  if [[ $wait_secs -eq 0 ]]; then
-    break
-  fi
-  echo "upload failed; retrying in ${wait_secs}s"
-  sleep "$wait_secs"
+
+  remaining=("${failed[@]}")
+  echo "pass $pass: ${#remaining[@]} wheel(s) rate-limited; waiting 15m for the window to reset"
+  sleep 900
 done
 
-echo "upload failed after all retries" >&2
+echo "upload failed after all retries:" >&2
+printf '  %s\n' "${remaining[@]}" >&2
 exit 1
