@@ -47,7 +47,9 @@ if bdist_wheel is not None:
       machine = platform.machine()
 
       if system == "Linux":
-        plat = f"linux_{machine}"
+        # manylinux images set AUDITWHEEL_PLAT (e.g. manylinux_2_28_x86_64);
+        # PyPI rejects bare linux_* tags, so use it when building in one.
+        plat = os.environ.get("AUDITWHEEL_PLAT", f"linux_{machine}")
       elif system == "Darwin":
         plat = "macosx_11_0_arm64"
       else:

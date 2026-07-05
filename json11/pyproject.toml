@@ -3,10 +3,10 @@ requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "json11"
+name = "comma-deps-json11"
 version = "20170411.0"
 description = "json11 JSON parser library (static build)"
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 
 [tool.setuptools.packages.find]
 include = ["json11*"]

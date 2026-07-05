@@ -3,10 +3,10 @@ requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "zeromq"
+name = "comma-deps-zeromq"
 version = "4.3.5"
 description = "ZeroMQ messaging library (static build)"
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 
 [tool.setuptools.packages.find]
 include = ["zeromq*"]

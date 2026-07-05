@@ -3,10 +3,10 @@ requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "libyuv"
+name = "comma-deps-libyuv"
 version = "1922.0"
 description = "libyuv image processing library (static build)"
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 
 [tool.setuptools.packages.find]
 include = ["libyuv*"]

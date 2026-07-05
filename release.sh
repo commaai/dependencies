@@ -4,174 +4,23 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 cd "$ROOT_DIR"
 
-REPO=commaai/dependencies
-
-echo
-echo "Publishing wheels to GitHub Releases ($REPO)"
-
-shopt -s nullglob
-for toml in */pyproject.toml; do
-  pkg="$(dirname "$toml")"
-  module="${pkg//-/_}"
-  version="$(python3 -c "import tomllib; print(tomllib.load(open('$toml', 'rb'))['project']['version'])")"
-  tag="${pkg}/v${version}"
-
-  wheels=("dist/${module}-${version}-"*.whl)
-  if [[ ${#wheels[@]} -eq 0 ]]; then
-    echo "missing wheel for $pkg ($module-$version) in dist" >&2
-    exit 1
-  fi
-
-  echo "[$pkg] Uploading ${#wheels[@]} wheel(s) to $tag"
-
-  gh release create "$tag" "${wheels[@]}" --repo "$REPO" --title "$pkg v$version" --notes "Platform wheels for $pkg $version" 2>/dev/null ||
-    gh release upload "$tag" "${wheels[@]}" --repo "$REPO" --clobber
-done
-shopt -u nullglob
-
-TOKEN="$(gh auth token 2>/dev/null)" || { echo "set GH_TOKEN to publish shim branches" >&2; exit 1; }
-
-TMP_DIR="$(mktemp -d)"
-python3 - "$TMP_DIR" "$REPO" <<'PY'
-import json
-import pathlib
-import shutil
-import tomllib
-import sys
-
-tmp_dir = pathlib.Path(sys.argv[1])
-repo = sys.argv[2]
-repo_url = f"https://github.com/{repo}"
-shim_setup = pathlib.Path("_shim_setup.py")
-
-for toml in sorted(pathlib.Path(".").glob("*/pyproject.toml")):
-  pkg = toml.parent.name
-  module = pkg.replace("-", "_")
-  data = tomllib.load(toml.open("rb"))
-  version = str(data["project"]["version"])
-  tag = f"{pkg}/v{version}"
-  description = data["project"]["description"]
-  patterns = data.get("tool", {}).get("setuptools", {}).get("package-data", {}).get(module, [""])
-  datadir = patterns[0].split("/", 1)[0] if patterns and patterns[0] else ""
-  scripts = data.get("project", {}).get("scripts", {}) or {}
-
-  repo_dir = tmp_dir / pkg
-  pkg_dir = repo_dir / pkg
-  mod_dir = pkg_dir / module
-  mod_dir.mkdir(parents=True, exist_ok=True)
-
-  # copy all .py files from the main module
-  src_mod = pathlib.Path(pkg) / module
-  for py_file in src_mod.glob("*.py"):
-    shutil.copy2(py_file, mod_dir / py_file.name)
-
-  # copy extra packages (e.g. pyray for raylib, slim casadi for acados)
-  # binaries (.so/.dylib) are fetched from the wheel at install time, so the
-  # shim repo only carries Python sources to keep it small
-  def _ignore_binaries(_dir, names):
-    return [n for n in names if n.endswith((".so", ".dylib", ".a")) or ".so." in n or n == "__pycache__"]
-
-  # `packages` is either a flat list (["acados", "casadi"]) or a dict with
-  # `find.include` patterns (["acados*", "casadi*"]) — handle both
-  pkgs_val = data.get("tool", {}).get("setuptools", {}).get("packages", [])
-  if isinstance(pkgs_val, list):
-    include_patterns = list(pkgs_val)
-  elif isinstance(pkgs_val, dict):
-    include_patterns = pkgs_val.get("find", {}).get("include", [])
-  else:
-    include_patterns = []
-  extra_packages = []
-  for pattern in include_patterns:
-    p = pattern.rstrip("*")
-    if p and p != module and p != f"{module}/":
-      src_extra = pathlib.Path(pkg) / p
-      dst_extra = pkg_dir / p
-      if src_extra.is_dir():
-        shutil.copytree(src_extra, dst_extra, dirs_exist_ok=True, ignore=_ignore_binaries)
-      else:
-        # source not in the workspace (typically built lazily by build.sh and
-        # not cached into the publish job). Drop a placeholder __init__.py so
-        # setuptools.packages.find picks it up; the shim's setup.py overwrites
-        # it from the wheel at install time.
-        dst_extra.mkdir(parents=True, exist_ok=True)
-        (dst_extra / "__init__.py").write_text("")
-      extra_packages.append(pattern)
-
-  shutil.copy2(shim_setup, pkg_dir / "setup.py")
-
-  deps = data.get("project", {}).get("dependencies", [])
-
-  lines = [
-    "[build-system]",
-    'requires = ["setuptools>=64", "wheel", \'tomli; python_version < \"3.11\"\']',
-    'build-backend = "setuptools.build_meta"',
-    "",
-    "[project]",
-    f'name = "{pkg}"',
-    f'version = "{version}"',
-    f"description = {json.dumps(description + ' (pre-built)')}",
-    'requires-python = ">=3.8"',
-  ]
-
-  if deps:
-    lines.append(f"dependencies = {json.dumps(deps)}")
-
-  if scripts:
-    lines += ["", "[project.scripts]"]
-    for name, target in scripts.items():
-      lines.append(f'"{name}" = {json.dumps(target)}')
-
-  # propagate the workspace's package-data so the shim wheel knows to ship
-  # everything the upstream wheel ships (e.g. acados_template/, casadi/*.so).
-  workspace_pkgdata = data.get("tool", {}).get("setuptools", {}).get("package-data", {})
-
-  # extra_packages may be plain names (["casadi"]) or globs (["casadi*"]).
-  # Normalise to plain package names for both `packages` and `package-data`.
-  extra_pkg_names = [p.rstrip("*").rstrip("/") for p in extra_packages]
-
-  lines += [
-    "",
-    "[tool.setuptools]",
-    f"packages = {json.dumps([module] + extra_pkg_names)}",
-    "",
-    "[tool.setuptools.package-data]",
-  ]
-  module_data = sorted(set(workspace_pkgdata.get(module, [f"{datadir}/**/*"]) + ["*.so"]))
-  lines.append(f"{module} = {json.dumps(module_data)}")
-  for name in extra_pkg_names:
-    extra_data = workspace_pkgdata.get(name, ["**/*"])
-    lines.append(f"{name} = {json.dumps(list(extra_data))}")
-
-  lines += [
-    "",
-    "[tool.shim]",
-    f'repo_url = "{repo_url}"',
-    f'tag = "{tag}"',
-    f'datadir = "{datadir}"',
-  ]
-
-  (pkg_dir / "pyproject.toml").write_text("\n".join(lines) + "\n")
-PY
+if ! command -v uvx >/dev/null 2>&1; then
+  UV_BIN_DIR="$HOME/.local/bin"
+  mkdir -p "$UV_BIN_DIR"
+  curl -LsSf https://astral.sh/uv/install.sh | env UV_UNMANAGED_INSTALL="$UV_BIN_DIR" sh
+  export PATH="$UV_BIN_DIR:$PATH"
+fi
 
 shopt -s nullglob
-for repo_dir in "$TMP_DIR"/*; do
-  [[ -d "$repo_dir" ]] || continue
-
-  pkg="$(basename "$repo_dir")"
-  branch="release-$pkg"
-
-  echo "[$pkg] Publishing shim branch $branch"
-
-  (
-    cd "$repo_dir"
-    git init
-    git checkout -b "$branch"
-    git add "$pkg"
-    git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" commit -m "update $pkg shim"
-    git remote add origin "https://x-access-token:${TOKEN}@github.com/${REPO}.git"
-    git push -f origin "$branch"
-  )
-done
+wheels=(dist/*.whl)
 shopt -u nullglob
 
-rm -rf "$TMP_DIR"
+if [[ ${#wheels[@]} -eq 0 ]]; then
+  echo "no wheels in dist/" >&2
+  exit 1
+fi
+
+echo "Publishing ${#wheels[@]} wheel(s) to PyPI:"
+printf '  %s\n' "${wheels[@]}"
+
+uvx twine upload --skip-existing "${wheels[@]}"
