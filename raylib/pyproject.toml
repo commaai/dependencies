@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "raylib"
-version = "6.0.0.0"
+version = "6.0.0.1"
 description = "raylib + pyray Python bindings (commaai fork)"
 requires-python = ">=3.8"
 dependencies = ["cffi>=1.17.1"]
