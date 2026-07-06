@@ -22,24 +22,19 @@ if [ -n "${RAYLIB_PLATFORM:-}" ]; then
   exit 1
 fi
 
+# An explicit RAYLIB_BACKEND builds only that backend; otherwise all of the
+# host's backends are built (matches host_backends() in raylib/_backend.py)
 RAYLIB_BACKEND="${RAYLIB_BACKEND:-}"
-if [ -z "$RAYLIB_BACKEND" ]; then
-  RAYLIB_BACKEND="desktop"
-  if [ -f /AGNOS ] || [ -f /TICI ]; then
-    RAYLIB_BACKEND="comma"
-  fi
-fi
-
 case "$RAYLIB_BACKEND" in
-  desktop|comma) ;;
+  ""|desktop|comma|headless) ;;
   *)
-    echo "Unsupported RAYLIB_BACKEND=$RAYLIB_BACKEND; expected desktop or comma" >&2
+    echo "Unsupported RAYLIB_BACKEND=$RAYLIB_BACKEND; expected desktop, comma or headless" >&2
     exit 1
     ;;
 esac
 
 # Clone and build raylib C library
-RAYLIB_COMMIT="c2fb96ea0ebfceae28ccf7cb436a33a7d7857244"
+RAYLIB_COMMIT="caa64e15ac20a47804a8048029c921ac091fef12"
 
 if [ ! -d "raylib-src/.git" ]; then
   rm -rf raylib-src
@@ -48,7 +43,9 @@ fi
 
 cd raylib-src
 git remote set-url origin https://github.com/commaai/raylib.git
-git fetch --depth 1 origin "$RAYLIB_COMMIT"
+if ! git cat-file -e "$RAYLIB_COMMIT" 2>/dev/null; then
+  git fetch --depth 1 origin "$RAYLIB_COMMIT"
+fi
 git reset --hard "$RAYLIB_COMMIT"
 
 cd "$DIR"
@@ -70,19 +67,29 @@ build_raylib() {
   cd "$DIR"
 }
 
-if is_linux_aarch64; then
-  echo "Building desktop backend..."
-  build_raylib PLATFORM_DESKTOP libraylib_desktop.a
+backend_platform() {
+  case "$1" in
+    desktop) echo PLATFORM_DESKTOP ;;
+    comma) echo PLATFORM_COMMA ;;
+    headless) echo PLATFORM_HEADLESS ;;
+  esac
+}
 
-  echo "Building comma backend..."
-  build_raylib PLATFORM_COMMA libraylib_comma.a
-else
-  if [ "$RAYLIB_BACKEND" = "comma" ]; then
-    build_raylib PLATFORM_COMMA libraylib_comma.a
-  else
-    build_raylib PLATFORM_DESKTOP libraylib_desktop.a
+if [ -n "$RAYLIB_BACKEND" ]; then
+  BACKENDS="$RAYLIB_BACKEND"
+elif [ "$(uname)" == "Linux" ]; then
+  BACKENDS="desktop headless"
+  if is_linux_aarch64; then
+    BACKENDS="$BACKENDS comma"
   fi
+else
+  BACKENDS="desktop"
 fi
+
+for backend in $BACKENDS; do
+  echo "Building $backend backend..."
+  build_raylib "$(backend_platform "$backend")" "libraylib_${backend}.a"
+done
 
 # Download raygui header
 RAYGUI_COMMIT="1e03efca48c50c5ea4b4a053d5bf04bad58d3e43"

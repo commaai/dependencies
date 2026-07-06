@@ -11,7 +11,7 @@ from setuptools.command.bdist_wheel import bdist_wheel
 
 PKG_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(PKG_DIR, "raylib"))
-from _backend import BACKENDS, BACKEND_CFFI_MODULES, detect_backend, is_dual_backend_host  # noqa: E402
+from _backend import BACKEND_CFFI_MODULES, detect_backend, host_backends  # noqa: E402
 
 
 class BuildRaylib(build_py):
@@ -30,7 +30,8 @@ class BuildRaylib(build_py):
     # Always regenerate CFFI extensions: the cached raylib source pin may have changed.
     for old_cffi in glob.glob(os.path.join(PKG_DIR, "raylib", "_raylib_cffi*")):
       os.remove(old_cffi)
-    backends = BACKENDS if is_dual_backend_host() else (detect_backend(),)
+    # explicit RAYLIB_BACKEND builds only that backend (matches build.sh)
+    backends = (detect_backend(),) if os.environ.get("RAYLIB_BACKEND") else host_backends()
     for backend in backends:
       self._build_cffi(backend)
 

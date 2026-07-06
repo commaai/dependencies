@@ -54,7 +54,8 @@ if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
   if command -v dnf &>/dev/null; then
     dnf install -y -q \
       libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel \
-      mesa-libGL-devel wayland-devel wayland-protocols-devel libxkbcommon-devel \
+      mesa-libGL-devel mesa-libEGL-devel mesa-libGLES-devel \
+      wayland-devel wayland-protocols-devel libxkbcommon-devel \
       xorg-x11-server-Xvfb xorg-x11-xkb-utils xkeyboard-config
   fi
 fi

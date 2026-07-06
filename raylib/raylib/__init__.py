@@ -1,7 +1,7 @@
 import importlib
 import os
 
-from ._backend import BACKEND_ARCHIVES, BACKEND_CFFI_MODULES, detect_backend, is_dual_backend_host
+from ._backend import BACKEND_ARCHIVES, BACKEND_CFFI_MODULES, detect_backend, host_backends
 from .version import __version__
 
 DIR = os.path.join(os.path.dirname(__file__), "install")
@@ -12,9 +12,10 @@ _BACKEND = detect_backend()
 
 
 def _expected_archives():
-  if is_dual_backend_host():
-    return BACKEND_ARCHIVES.values()
-  return (BACKEND_ARCHIVES[_BACKEND],)
+  # explicit RAYLIB_BACKEND also selects a single-backend build (see setup.py)
+  if os.environ.get("RAYLIB_BACKEND"):
+    return (BACKEND_ARCHIVES[_BACKEND],)
+  return tuple(BACKEND_ARCHIVES[b] for b in host_backends())
 
 
 def smoketest():
