@@ -34,8 +34,7 @@ case "$RAYLIB_BACKEND" in
 esac
 
 # Clone and build raylib C library
-# TODO: point at commaai/raylib master once the headless-backend PR lands
-RAYLIB_COMMIT="124253519b30afb130af375a5bd583c55513f33b"
+RAYLIB_COMMIT="caa64e15ac20a47804a8048029c921ac091fef12"
 
 if [ ! -d "raylib-src/.git" ]; then
   rm -rf raylib-src
