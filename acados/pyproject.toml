@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=64", "wheel", 'tomli; python_version < "3.11"']
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "acados"
+version = "0.2.2"
+description = "acados solvers + Python interface, with a slimmed casadi vendored alongside (pre-built)"
+requires-python = ">=3.8"
+dependencies = ["numpy"]
+
+[tool.setuptools]
+packages = ["acados", "casadi"]
+
+[tool.setuptools.package-data]
+acados = ["*.so", "acados_template/**/*", "install/**/*"]
+casadi = ["**/*"]
+
+[tool.shim]
+repo_url = "https://github.com/commaai/dependencies"
+tag = "acados/v0.2.2"
+datadir = "install"
