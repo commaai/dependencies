@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=64", "wheel", 'tomli; python_version < "3.11"']
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "raylib"
+version = "6.0.0.1"
+description = "raylib + pyray Python bindings (commaai fork) (pre-built)"
+requires-python = ">=3.8"
+dependencies = ["cffi>=1.17.1"]
+
+[tool.setuptools]
+packages = ["raylib", "pyray"]
+
+[tool.setuptools.package-data]
+raylib = ["*.so", "_raylib_cffi*.so", "install/include/*.h", "install/lib/*.a"]
+pyray = ["**/*"]
+
+[tool.shim]
+repo_url = "https://github.com/commaai/dependencies"
+tag = "raylib/v6.0.0.1"
+datadir = "_raylib_cffi*.so"
