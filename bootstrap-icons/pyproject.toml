@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64", "wheel", 'tomli; python_version < "3.11"']
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bootstrap-icons"
+version = "1.10.5.0"
+description = "Bootstrap Icons SVG sprite and TTF font (pre-built)"
+requires-python = ">=3.8"
+
+[tool.setuptools]
+packages = ["bootstrap_icons"]
+
+[tool.setuptools.package-data]
+bootstrap_icons = ["*.so", "install/**/*"]
+
+[tool.shim]
+repo_url = "https://github.com/commaai/dependencies"
+tag = "bootstrap-icons/v1.10.5.0"
+datadir = "install"
