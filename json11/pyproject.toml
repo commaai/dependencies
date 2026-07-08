@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64", "wheel", 'tomli; python_version < "3.11"']
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "json11"
+version = "20170411.0"
+description = "json11 JSON parser library (static build) (pre-built)"
+requires-python = ">=3.8"
+
+[tool.setuptools]
+packages = ["json11"]
+
+[tool.setuptools.package-data]
+json11 = ["*.so", "install/**/*"]
+
+[tool.shim]
+repo_url = "https://github.com/commaai/dependencies"
+tag = "json11/v20170411.0"
+datadir = "install"
