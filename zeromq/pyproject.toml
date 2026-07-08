@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64", "wheel", 'tomli; python_version < "3.11"']
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zeromq"
+version = "4.3.5"
+description = "ZeroMQ messaging library (static build) (pre-built)"
+requires-python = ">=3.8"
+
+[tool.setuptools]
+packages = ["zeromq"]
+
+[tool.setuptools.package-data]
+zeromq = ["*.so", "install/**/*"]
+
+[tool.shim]
+repo_url = "https://github.com/commaai/dependencies"
+tag = "zeromq/v4.3.5"
+datadir = "install"
