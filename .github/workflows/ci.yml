@@ -23,7 +23,7 @@ jobs:
             runs-on: macos-latest
             runs-on-namespace: namespace-profile-macos-8x14
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # full history for `git rev-list --count` versioning
       - name: Select Xcode 16
@@ -34,7 +34,7 @@ jobs:
             echo "Selected: $XCODE"
             sudo xcode-select -s "$XCODE"
           fi
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           key: build-cache-v2-${{ matrix.platform }}-${{ hashFiles('build.sh', 'setup.sh', '*/pyproject.toml', '*/setup.py', '*/build.sh') }}
           restore-keys: build-cache-v2-${{ matrix.platform }}-
@@ -51,7 +51,7 @@ jobs:
           UV_CACHE_DIR: ${{ github.workspace }}/.uv-cache
           BUILD_SH_REUSE_MANYLINUX_ARTIFACTS: "1"
         run: ./build.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: wheels-${{ matrix.platform }}
           path: dist/*.whl
@@ -80,8 +80,8 @@ jobs:
             runs-on: ubuntu-24.04-arm
           # TODO: add musl test
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           name: ${{ contains(matrix.runs-on, 'arm') && 'wheels-linux-arm64' || 'wheels-linux-x86_64' }}
           path: dist/
@@ -93,8 +93,8 @@ jobs:
     needs: [build, test]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           pattern: wheels-*
           merge-multiple: true
