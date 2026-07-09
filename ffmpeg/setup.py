@@ -1,5 +1,6 @@
 import os
 import platform
+import shutil
 import subprocess
 
 from setuptools.command.build_py import build_py
@@ -18,6 +19,8 @@ class BuildFFmpeg(build_py):
     build_script = os.path.join(pkg_dir, "build.sh")
     subprocess.check_call(["bash", build_script], cwd=pkg_dir)
 
+    # build_lib may hold files from a previous build's install/ layout
+    shutil.rmtree(os.path.join(self.build_lib, "ffmpeg"), ignore_errors=True)
     super().run()
 
 
@@ -37,7 +40,9 @@ if bdist_wheel is not None:
       machine = platform.machine()
 
       if system == "Linux":
-        plat = f"linux_{machine}"
+        # manylinux images set AUDITWHEEL_PLAT (e.g. manylinux_2_28_x86_64);
+        # PyPI rejects bare linux_* tags, so use it when building in one.
+        plat = os.environ.get("AUDITWHEEL_PLAT", f"linux_{machine}")
       elif system == "Darwin":
         plat = "macosx_11_0_arm64"
       else:

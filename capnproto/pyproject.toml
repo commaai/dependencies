@@ -3,15 +3,14 @@ requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "capnproto"
+name = "comma-deps-capnproto"
 version = "1.0.1"
 description = "Cap'n Proto serialization library and compiler"
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 
 [project.scripts]
 capnp = "capnproto:_run_capnp"
 capnpc = "capnproto:_run_capnpc"
-"capnpc-c++" = "capnproto:_run_capnpc_cpp"
 
 [tool.setuptools.packages.find]
 include = ["capnproto*"]

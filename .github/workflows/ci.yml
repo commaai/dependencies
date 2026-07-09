@@ -24,6 +24,8 @@ jobs:
             runs-on-namespace: namespace-profile-macos-8x14
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # full history for `git rev-list --count` versioning
       - name: Select Xcode 16
         if: runner.os == 'macOS'
         run: |
@@ -62,11 +64,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: debian:bookworm-slim
+          - image: debian:trixie-slim
             runs-on: ubuntu-latest
           - image: ubuntu:24.04
-            runs-on: ubuntu-latest
-          - image: ubuntu:20.04
             runs-on: ubuntu-latest
           - image: fedora:41
             runs-on: ubuntu-latest
@@ -76,7 +76,7 @@ jobs:
             runs-on: ubuntu-latest
           - image: ghcr.io/void-linux/void-glibc:latest
             runs-on: ubuntu-latest
-          - image: debian:bookworm-slim
+          - image: debian:trixie-slim
             runs-on: ubuntu-24.04-arm
           # TODO: add musl test
     steps:
@@ -92,8 +92,6 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: [build, test]
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v6
       - uses: actions/download-artifact@v4
@@ -101,16 +99,8 @@ jobs:
           pattern: wheels-*
           merge-multiple: true
           path: dist
-      - uses: actions/cache/restore@v4
-        with:
-          key: build-cache-v2-${{ matrix.platform }}-${{ hashFiles('build.sh', 'setup.sh', '*/pyproject.toml', '*/setup.py', '*/build.sh') }}
-          restore-keys: build-cache-v2-${{ matrix.platform }}-
-          path: |
-            .uv-cache
-            */*/install
-            */*/toolchain
-            */*/bin
-      - name: Publish wheels and shims
+      - name: Publish wheels to PyPI
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: ./release.sh --publish-only
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_PAT }}
+        run: ./release.sh

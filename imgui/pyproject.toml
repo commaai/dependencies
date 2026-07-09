@@ -3,10 +3,10 @@ requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "imgui"
+name = "comma-deps-imgui"
 version = "1.92.7"
 description = "Dear ImGui + ImPlot + GLFW 3.4 (static)"
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 
 [tool.setuptools]
 packages = ["imgui"]

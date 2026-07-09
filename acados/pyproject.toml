@@ -3,10 +3,10 @@ requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "acados"
+name = "comma-deps-acados"
 version = "0.2.2"
 description = "acados solvers + Python interface, with a slimmed casadi vendored alongside"
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 dependencies = [
   # the vendored casadi.py shim imports numpy at module load time
   "numpy",

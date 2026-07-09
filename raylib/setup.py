@@ -53,7 +53,9 @@ class PlatformWheel(bdist_wheel):
   def get_tag(self):
     _, _, plat_tag = super().get_tag()
     if platform.system() == "Linux":
-      plat_tag = f"linux_{platform.machine()}"
+      # manylinux images set AUDITWHEEL_PLAT (e.g. manylinux_2_28_x86_64);
+      # PyPI rejects bare linux_* tags, so use it when building in one.
+      plat_tag = os.environ.get("AUDITWHEEL_PLAT", f"linux_{platform.machine()}")
     elif platform.system() == "Darwin":
       plat_tag = "macosx_11_0_arm64"
     return "py3", "none", plat_tag
