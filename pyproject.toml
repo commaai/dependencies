@@ -13,7 +13,6 @@ members = [
   "imgui",
   "json11",
   "libusb",
-  "libyuv",
   "ncurses",
   "raylib",
   "zeromq",
