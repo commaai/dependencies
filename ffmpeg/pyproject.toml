@@ -13,7 +13,7 @@ ffmpeg = "ffmpeg:_run_ffmpeg"
 ffprobe = "ffmpeg:_run_ffprobe"
 
 [tool.setuptools.packages.find]
-include = ["ffmpeg*"]
+include = ["ffmpeg"]
 
 [tool.setuptools.package-data]
 ffmpeg = ["install/**/*"]
