@@ -116,10 +116,20 @@ git -C ffmpeg-src checkout --force FETCH_HEAD
 git -C ffmpeg-src clean -xffd
 
 cd ffmpeg-src
+make distclean >/dev/null 2>&1 || true
 
 # Platform-specific hardware acceleration flags
 HW_FLAGS=()
+LOADER_FLAGS=()
+FFMPEG_LDEXEFLAGS=
+FFMPEG_LDSOFLAGS=
 if [ "$PLATFORM" = "Linux" ]; then
+  # rpath so ffmpeg/ffprobe find sibling libs in ../lib and the libs find each
+  # other in the same dir. LDSOFLAGS needs twice the $-escaping of LDEXEFLAGS
+  # because ffmpeg expands it through an extra make recipe ($$(LD)) substitution.
+  FFMPEG_LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/../lib -Wl,-z,origin'
+  FFMPEG_LDSOFLAGS='-Wl,-rpath,\$$$$ORIGIN -Wl,-z,origin'
+
   HW_FLAGS+=(
     # NVIDIA CUDA/NVDEC (uses dlopen at runtime)
     --enable-ffnvcodec --enable-cuda --enable-cuvid --enable-nvdec
@@ -141,6 +151,11 @@ if [ "$PLATFORM" = "Linux" ]; then
     --enable-encoder=h264_vulkan,hevc_vulkan
   )
 elif [ "$PLATFORM" = "Darwin" ]; then
+  FFMPEG_LDEXEFLAGS='-Wl,-rpath,@loader_path/../lib'
+  LOADER_FLAGS+=(
+    --install-name-dir=@rpath
+  )
+
   HW_FLAGS+=(
     # VideoToolbox (Apple Silicon / macOS)
     --enable-videotoolbox
@@ -150,12 +165,14 @@ elif [ "$PLATFORM" = "Darwin" ]; then
 fi
 
 PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
+LDEXEFLAGS="$FFMPEG_LDEXEFLAGS" \
+LDSOFLAGS="$FFMPEG_LDSOFLAGS" \
 ./configure \
   --cc="${CC:-cc}" \
   --prefix="$PREFIX" \
   --enable-gpl \
-  --enable-static \
-  --disable-shared \
+  --disable-static \
+  --enable-shared \
   --enable-zlib \
   --enable-libx264 \
   --enable-pic \
@@ -174,6 +191,7 @@ PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
   --enable-bsf=extract_extradata,h264_mp4toannexb,hevc_mp4toannexb \
   --extra-cflags="-I$PREFIX/include" \
   --extra-ldflags="-L$PREFIX/lib" \
+  "${LOADER_FLAGS[@]}" \
   "${HW_FLAGS[@]}"
 make -j"$NJOBS"
 make install
@@ -187,22 +205,55 @@ mkdir -p "$INSTALL_DIR"/{bin,lib,include}
 cp "$PREFIX/bin/ffmpeg" "$INSTALL_DIR/bin/"
 cp "$PREFIX/bin/ffprobe" "$INSTALL_DIR/bin/"
 
-# Libraries
-LIBS="libavformat.a libavcodec.a libavutil.a libswresample.a libx264.a libz.a"
+# Shared libraries only (x264/zlib/libva/libdrm stay static and are linked in).
+# Ship the SONAME file and an INPUT linker script for the unversioned name so
+# consumers can -lavcodec without packaging real symlinks in the wheel.
+FFMPEG_LIBS=(avdevice avfilter avformat avcodec postproc swresample swscale avutil)
+
+copy_linux_ffmpeg_lib() {
+  local lib="$1"
+  local so="$PREFIX/lib/lib${lib}.so"
+  local soname
+
+  [ -e "$so" ] || return 0
+  soname="$(readelf -d "$so" | sed -n 's/.*Library soname: \[\(.*\)\]/\1/p')"
+  [ -n "$soname" ] || { echo "error: could not find SONAME for lib${lib}.so" >&2; exit 1; }
+
+  cp -L "$PREFIX/lib/$soname" "$INSTALL_DIR/lib/$soname"
+  printf 'INPUT(%s)\n' "$soname" > "$INSTALL_DIR/lib/lib${lib}.so"
+}
+
+copy_darwin_ffmpeg_lib() {
+  local lib="$1"
+  local dylib_path="$PREFIX/lib/lib${lib}.dylib"
+  local dylib
+
+  [ -e "$dylib_path" ] || return 0
+  dylib="$(otool -D "$dylib_path" | sed -n '2s|.*/||p')"
+  [ -n "$dylib" ] || { echo "error: could not find install name for lib${lib}.dylib" >&2; exit 1; }
+
+  cp -L "$PREFIX/lib/$dylib" "$INSTALL_DIR/lib/$dylib"
+  ln -sfn "$dylib" "$INSTALL_DIR/lib/lib${lib}.dylib"
+}
+
 if [ "$PLATFORM" = "Linux" ]; then
-  LIBS="$LIBS libva.a libva-drm.a libdrm.a"
+  for lib in "${FFMPEG_LIBS[@]}"; do
+    copy_linux_ffmpeg_lib "$lib"
+  done
+elif [ "$PLATFORM" = "Darwin" ]; then
+  for lib in "${FFMPEG_LIBS[@]}"; do
+    copy_darwin_ffmpeg_lib "$lib"
+  done
 fi
-for lib in $LIBS; do
-  cp "$PREFIX/lib/$lib" "$INSTALL_DIR/lib/"
-done
 
 # Headers
 for dir in libavformat libavcodec libavutil libswresample; do
   cp -r "$PREFIX/include/$dir" "$INSTALL_DIR/include/"
 done
 
-# Strip binaries
+# Strip binaries and shared libraries
 strip "$INSTALL_DIR/bin/ffmpeg" "$INSTALL_DIR/bin/ffprobe" 2>/dev/null || true
+strip "$INSTALL_DIR/lib/"*.so.* "$INSTALL_DIR/lib/"*.dylib 2>/dev/null || true
 
 echo "Installed ffmpeg to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"
