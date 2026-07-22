@@ -4,7 +4,6 @@ members = [
   "bzip2",
   "bootstrap-icons",
   "capnproto",
-  "catch2",
   "cppcheck",
   "eigen",
   "ffmpeg",
