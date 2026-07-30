@@ -5,7 +5,7 @@ import shutil
 import subprocess
 import sys
 
-from setuptools import setup
+from setuptools import Distribution, setup
 from setuptools.command.build_py import build_py
 from setuptools.command.bdist_wheel import bdist_wheel
 
@@ -61,4 +61,12 @@ class PlatformWheel(bdist_wheel):
     return "py3", "none", plat_tag
 
 
-setup(cmdclass={"build_py": BuildRaylib, "bdist_wheel": PlatformWheel})
+class BinaryDistribution(Distribution):
+  def has_ext_modules(self):
+    return True
+
+
+setup(
+  cmdclass={"build_py": BuildRaylib, "bdist_wheel": PlatformWheel},
+  distclass=BinaryDistribution,
+)

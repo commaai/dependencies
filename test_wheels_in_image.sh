@@ -36,6 +36,7 @@ docker run --rm -v "$PWD:/work" -w /work wheeltest bash -lc '
     module="$(basename "$(dirname "$toml")" | tr "-" "_")"
     python -c "import $module; $module.smoketest()" && echo "$module: OK"
   done
+  RAYLIB_BACKEND=headless python -c "import raylib; raylib.smoketest()"
 '
 
 echo

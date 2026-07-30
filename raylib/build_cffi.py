@@ -4,6 +4,7 @@
 import os
 import platform
 import re
+import shutil
 import subprocess
 import sys
 
@@ -15,7 +16,7 @@ RAYLIB_INCLUDE_PATH = os.path.join(PACKAGE_DIR, "install", "include")
 RAYLIB_LIB_PATH = os.path.join(PACKAGE_DIR, "install", "lib")
 
 sys.path.insert(0, PACKAGE_DIR)
-from _backend import BACKEND_ARCHIVES, BACKEND_CFFI_MODULES, BACKEND_LINK_ARGS, detect_backend  # noqa: E402
+from _backend import BACKEND_ARCHIVES, BACKEND_CFFI_MODULES, BACKEND_LINK_ARGS, DESKTOP, detect_backend  # noqa: E402
 from validate_bindings import validate_static_bindings  # noqa: E402
 
 RAYLIB_BACKEND = detect_backend()
@@ -29,6 +30,26 @@ def _raylib_archive():
   if not os.path.isfile(archive):
     raise FileNotFoundError(f"{archive} not found. Please run build.sh first.")
   return archive
+
+
+def _private_desktop_libs():
+  private_libs = {}
+  for soname in ("libGL.so.1", "libGLX.so.0", "libX11.so.6", "libXext.so.6"):
+    source = subprocess.check_output(["gcc", f"-print-file-name={soname}"], text=True).strip()
+    if source == soname or not os.path.isfile(source):
+      raise FileNotFoundError(f"{soname} not found")
+
+    private_soname = soname.replace(".so", "-comma.so", 1)
+    target = os.path.join(RAYLIB_LIB_PATH, private_soname)
+    shutil.copy2(source, target)
+    subprocess.check_call(["patchelf", "--set-soname", private_soname, target])
+    private_libs[soname] = target
+
+  for target in private_libs.values():
+    for soname, dependency in private_libs.items():
+      subprocess.check_call(["patchelf", "--replace-needed", soname, os.path.basename(dependency), target])
+
+  return private_libs["libGL.so.1"], private_libs["libX11.so.6"]
 
 
 def pre_process_header(filename, remove_function_bodies=False):
@@ -87,10 +108,15 @@ def build_ffi():
     extra_compile_args = ["-Wno-error=incompatible-function-pointer-types"]
   else:
     print("BUILDING FOR LINUX")
+    backend_link_args = BACKEND_LINK_ARGS[RAYLIB_BACKEND]
+    if RAYLIB_BACKEND == DESKTOP and os.environ.get("AUDITWHEEL_PLAT"):
+      backend_link_args = _private_desktop_libs()
+
     extra_link_args = [
       raylib_archive,
-      '-lm', '-lpthread', '-lrt', '-ldl', '-latomic',
-      *BACKEND_LINK_ARGS[RAYLIB_BACKEND],
+      '-lm', '-lpthread', '-lrt', '-ldl',
+      '-Wl,-Bstatic', '-latomic', '-Wl,-Bdynamic',
+      *backend_link_args,
     ]
     extra_compile_args = ["-Wno-incompatible-pointer-types"]
 

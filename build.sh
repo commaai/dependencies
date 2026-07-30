@@ -84,6 +84,14 @@ uv build --all-packages --wheel --out-dir dist --no-create-gitignore
 restore_build_versions
 
 if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
+  mkdir -p dist/unrepaired/
+  mv dist/comma_deps_raylib-*.whl dist/unrepaired/
+  auditwheel repair \
+    --ldpaths "$ROOT_DIR/raylib/raylib/install/lib:/usr/lib64:/lib64" \
+    --wheel-dir dist/ dist/unrepaired/comma_deps_raylib-*.whl
+fi
+
+if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
   VENV_DIR="$ROOT_DIR/.venv-manylinux"
 else
   VENV_DIR="$ROOT_DIR/.venv"
