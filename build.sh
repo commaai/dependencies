@@ -54,7 +54,7 @@ if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
   if command -v dnf &>/dev/null; then
     dnf install -y -q \
       libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel \
-      mesa-libGL-devel mesa-libEGL-devel mesa-libGLES-devel \
+      mesa-libGL-devel mesa-libEGL-devel mesa-libGLES-devel mesa-dri-drivers \
       wayland-devel wayland-protocols-devel libxkbcommon-devel
   fi
 fi
@@ -89,6 +89,7 @@ if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
   auditwheel repair \
     --ldpaths "$ROOT_DIR/raylib/raylib/install/lib:/usr/lib64:/lib64" \
     --wheel-dir dist/ dist/unrepaired/comma_deps_raylib-*.whl
+  bash "$ROOT_DIR/raylib/vendor_headless_gl.sh" dist/comma_deps_raylib-*.whl
 fi
 
 if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then

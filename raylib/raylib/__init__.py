@@ -1,5 +1,23 @@
 import importlib
+import json
 import os
+
+
+def _setup_headless_gl():
+  if os.environ.get("RAYLIB_BACKEND", "").lower() != "headless":
+    return
+  libs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "comma_deps_raylib.libs")
+  mesa_egl = os.path.join(libs_dir, "libEGL_mesa.so.0")
+  if os.path.isdir(libs_dir) and os.path.isfile(mesa_egl):
+    vendor_json = os.path.join(libs_dir, "egl_vendor.json")
+    with open(vendor_json, "w") as f:
+      json.dump({"file_format_version": "1.0.0", "ICD": {"library_path": "libEGL_mesa.so.0"}}, f)
+    os.environ["__EGL_VENDOR_LIBRARY_FILENAMES"] = vendor_json
+    os.environ.setdefault("LIBGL_DRIVERS_PATH", libs_dir)
+    os.environ["GALLIUM_DRIVER"] = "softpipe"
+
+
+_setup_headless_gl()
 
 from ._backend import BACKEND_ARCHIVES, BACKEND_CFFI_MODULES, detect_backend, host_backends
 from .version import __version__
