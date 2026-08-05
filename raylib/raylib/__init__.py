@@ -14,7 +14,7 @@ def _setup_headless_gl():
       json.dump({"file_format_version": "1.0.0", "ICD": {"library_path": "libEGL_mesa.so.0"}}, f)
     os.environ["__EGL_VENDOR_LIBRARY_FILENAMES"] = vendor_json
     os.environ.setdefault("LIBGL_DRIVERS_PATH", libs_dir)
-    os.environ["GALLIUM_DRIVER"] = "softpipe"
+    os.environ["GALLIUM_DRIVER"] = "llvmpipe"
 
 
 _setup_headless_gl()
