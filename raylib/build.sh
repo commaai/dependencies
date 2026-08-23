@@ -99,24 +99,24 @@ if [ "$(uname)" == "Linux" ] && [[ " $BACKENDS " == *" headless "* ]]; then
       | tar xJ --wildcards "llvm-project-$LLVM_VERSION.src/llvm/*" "llvm-project-$LLVM_VERSION.src/cmake/*" "llvm-project-$LLVM_VERSION.src/third-party/*"
     mv "llvm-project-$LLVM_VERSION.src" llvm-src
   fi
-  cmake -S llvm-src/llvm -B build/llvm -G Ninja -DCMAKE_MAKE_PROGRAM="$(command -v ninja)" -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX="$DIR/build/llvm-prefix" \
+  cmake -S llvm-src/llvm -B llvm-src/build -G Ninja -DCMAKE_MAKE_PROGRAM="$(command -v ninja)" -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX="$DIR/llvm-src/prefix" \
     -DLLVM_TARGETS_TO_BUILD=Native -DLLVM_BUILD_TOOLS=OFF -DLLVM_TOOL_LLVM_CONFIG_BUILD=ON -DLLVM_INCLUDE_TESTS=OFF \
     -DLLVM_INCLUDE_EXAMPLES=OFF -DLLVM_INCLUDE_BENCHMARKS=OFF -DLLVM_INCLUDE_DOCS=OFF -DLLVM_ENABLE_BINDINGS=OFF \
     -DLLVM_ENABLE_ZLIB=OFF -DLLVM_ENABLE_ZSTD=OFF -DLLVM_ENABLE_LIBXML2=OFF -DLLVM_ENABLE_FFI=OFF -DLLVM_ENABLE_LIBEDIT=OFF \
     -DLLVM_ENABLE_ASSERTIONS=OFF -DLLVM_ENABLE_UNWIND_TABLES=OFF \
     -DCMAKE_C_FLAGS="-ffunction-sections -fdata-sections" -DCMAKE_CXX_FLAGS="-ffunction-sections -fdata-sections" >/dev/null
-  ninja -C build/llvm install llvm-config >/dev/null
-  cp build/llvm/bin/llvm-config build/llvm-prefix/bin/
+  ninja -C llvm-src/build install llvm-config >/dev/null
+  cp llvm-src/build/bin/llvm-config llvm-src/prefix/bin/
 
   [ -d mesa-src ] || git clone --depth 1 -b "mesa-$MESA_VERSION" https://gitlab.freedesktop.org/mesa/mesa.git mesa-src
-  PATH="$DIR/build/llvm-prefix/bin:$PATH" meson setup mesa-src build/mesa --reconfigure --prefix="$DIR/build/mesa/prefix" --libdir=lib \
+  PATH="$DIR/llvm-src/prefix/bin:$PATH" meson setup mesa-src mesa-src/build --reconfigure --prefix="$DIR/mesa-src/build/prefix" --libdir=lib \
     -Db_ndebug=true -Dcpp_rtti=false -Dc_link_args=-Wl,--gc-sections -Dcpp_link_args=-Wl,--gc-sections \
     -Dplatforms= -Degl=enabled -Dgles1=disabled -Dgles2=enabled -Dopengl=false -Dglx=disabled \
     -Dgbm=disabled -Dglvnd=disabled -Dgallium-drivers=llvmpipe -Dvulkan-drivers= -Dshared-llvm=disabled \
     -Dlibunwind=disabled -Dzstd=disabled -Dvalgrind=disabled -Dbuild-tests=false \
     -Dxmlconfig=disabled -Dexpat=disabled -Dshader-cache=disabled >/dev/null
-  ninja -C build/mesa install >/dev/null
-  cp build/mesa/prefix/lib/{libEGL.so.1,libGLESv2.so.2,libgallium-$MESA_VERSION.so} "$INSTALL_DIR/lib/"
+  ninja -C mesa-src/build install >/dev/null
+  cp mesa-src/build/prefix/lib/{libEGL.so.1,libGLESv2.so.2,libgallium-$MESA_VERSION.so} "$INSTALL_DIR/lib/"
   cp -L "$(cc -print-file-name=libdrm.so.2)" "$INSTALL_DIR/lib/"
   patchelf --set-rpath '$ORIGIN' "$INSTALL_DIR"/lib/{libEGL.so.1,libGLESv2.so.2,libgallium-$MESA_VERSION.so}
   strip "$INSTALL_DIR"/lib/*.so*
