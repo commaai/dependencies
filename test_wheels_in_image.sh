@@ -34,7 +34,8 @@ docker run --rm -v "$PWD:/work" -w /work wheeltest bash -lc '
   pip install dist/*.whl
   for toml in */pyproject.toml; do
     module="$(basename "$(dirname "$toml")" | tr "-" "_")"
-    python -c "import $module; $module.smoketest()" && echo "$module: OK"
+    RAYLIB_BACKEND=headless python -c "import $module; $module.smoketest()" || exit 1
+    echo "$module: OK"
   done
 '
 

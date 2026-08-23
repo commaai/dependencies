@@ -91,6 +91,29 @@ for backend in $BACKENDS; do
   build_raylib "$(backend_platform "$backend")" "libraylib_${backend}.a"
 done
 
+# Headless needs EGL + GLES2 with a software rasterizer; bundle mesa so the wheel
+# has no runtime GL deps (dri/swrast_dri.so is found via LIBGL_DRIVERS_PATH, see __init__.py)
+if [ "$(uname)" == "Linux" ] && [[ " $BACKENDS " == *" headless "* ]]; then
+  MESA_VERSION="24.0.9"
+  if [ ! -d "mesa-src" ]; then
+    curl -fsSL "https://archive.mesa3d.org/mesa-$MESA_VERSION.tar.xz" | tar xJ
+    mv "mesa-$MESA_VERSION" mesa-src
+  fi
+  [ -d build/mesa ] || meson setup mesa-src build/mesa --prefix="$DIR/build/mesa/prefix" --libdir=lib -Db_ndebug=true \
+    -Dplatforms= -Degl=enabled -Dgles1=disabled -Dgles2=enabled -Dopengl=false -Dglx=disabled \
+    -Dgbm=disabled -Dglvnd=false -Dgallium-drivers=swrast -Dvulkan-drivers= -Dllvm=disabled \
+    -Dlibunwind=disabled -Dzstd=disabled -Dvalgrind=disabled -Dbuild-tests=false \
+    -Dxmlconfig=disabled -Dexpat=disabled -Dshader-cache=disabled
+  ninja -C build/mesa install >/dev/null
+  mkdir -p "$INSTALL_DIR/lib/dri"
+  cp build/mesa/prefix/lib/{libEGL.so.1,libGLESv2.so.2,libglapi.so.0} "$INSTALL_DIR/lib/"
+  cp build/mesa/prefix/lib/dri/swrast_dri.so "$INSTALL_DIR/lib/dri/"
+  cp -L "$(cc -print-file-name=libdrm.so.2)" "$INSTALL_DIR/lib/"  # swrast links the build image's libdrm
+  patchelf --set-rpath '$ORIGIN' "$INSTALL_DIR"/lib/{libEGL.so.1,libGLESv2.so.2}
+  patchelf --set-rpath '$ORIGIN/..' "$INSTALL_DIR/lib/dri/swrast_dri.so"
+  strip "$INSTALL_DIR"/lib/*.so* "$INSTALL_DIR"/lib/dri/*.so
+fi
+
 # Download raygui header
 RAYGUI_COMMIT="1e03efca48c50c5ea4b4a053d5bf04bad58d3e43"
 curl -fsSLo "$INSTALL_DIR/include/raygui.h" \

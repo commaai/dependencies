@@ -1,7 +1,7 @@
 import importlib
 import os
 
-from ._backend import BACKEND_ARCHIVES, BACKEND_CFFI_MODULES, detect_backend, host_backends
+from ._backend import BACKEND_ARCHIVES, BACKEND_CFFI_MODULES, HEADLESS, detect_backend, host_backends
 from .version import __version__
 
 DIR = os.path.join(os.path.dirname(__file__), "install")
@@ -9,6 +9,8 @@ INCLUDE_DIR = os.path.join(DIR, "include")
 LIB_DIR = os.path.join(DIR, "lib")
 
 _BACKEND = detect_backend()
+if _BACKEND == HEADLESS:
+  os.environ["LIBGL_DRIVERS_PATH"] = os.path.join(LIB_DIR, "dri")  # bundled mesa swrast
 
 
 def _expected_archives():
@@ -25,6 +27,12 @@ def smoketest():
     assert os.path.isfile(os.path.join(INCLUDE_DIR, header)), f"{header} not found"
   for archive in _expected_archives():
     assert os.path.isfile(os.path.join(LIB_DIR, archive)), f"{archive} not found"
+  if _BACKEND == HEADLESS:
+    rl.InitWindow(64, 64, b"")
+    rl.BeginDrawing()
+    rl.ClearBackground((0, 0, 0, 255))
+    rl.EndDrawing()
+    rl.CloseWindow()
 
 
 def _load_cffi():

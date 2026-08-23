@@ -1,3 +1,4 @@
 raylib-src/
 raylib/install/
 raylib/_raylib_cffi*
+build/

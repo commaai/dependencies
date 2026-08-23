@@ -22,7 +22,7 @@ BACKEND_ARCHIVES = {
 BACKEND_LINK_ARGS = {
   DESKTOP: ("-lGL", "-lX11"),
   COMMA: ("-lGLESv2", "-lEGL", "-lgbm", "-ldrm"),
-  HEADLESS: ("-lGLESv2", "-lEGL"),
+  HEADLESS: ("-lGLESv2", "-lEGL", "-Wl,-rpath,$ORIGIN/install/lib"),  # bundled mesa
 }
 
 COMMA_DEVICE_MARKERS = ("/AGNOS", "/TICI")
