@@ -10,7 +10,7 @@ LIB_DIR = os.path.join(DIR, "lib")
 
 _BACKEND = detect_backend()
 if _BACKEND == HEADLESS:
-  os.environ["LIBGL_DRIVERS_PATH"] = os.path.join(LIB_DIR, "dri")  # bundled mesa swrast
+  os.environ["LIBGL_DRIVERS_PATH"] = os.path.join(LIB_DIR, "dri")
 
 
 def _expected_archives():
