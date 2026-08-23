@@ -26,7 +26,6 @@ BACKEND_LINK_ARGS = {
 }
 
 COMMA_DEVICE_MARKERS = ("/AGNOS", "/TICI")
-DESKTOP_DISPLAY_VARS = ("DISPLAY",)
 
 
 def host_backends():
@@ -51,6 +50,6 @@ def detect_backend(environ=None, exists=os.path.exists):
 
   if any(exists(marker) for marker in COMMA_DEVICE_MARKERS):
     return COMMA
-  if HEADLESS in host_backends() and not any(environ.get(var) for var in DESKTOP_DISPLAY_VARS):
+  if HEADLESS in host_backends() and not environ.get("DISPLAY"):
     return HEADLESS
   return DEFAULT_BACKEND
