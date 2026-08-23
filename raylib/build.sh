@@ -93,10 +93,7 @@ for backend in $BACKENDS; do
 done
 
 if [ "$(uname)" == "Linux" ] && [[ " $BACKENDS " == *" headless "* ]]; then
-  if [ ! -d "mesa-src" ]; then
-    curl -fsSL "https://archive.mesa3d.org/mesa-$MESA_VERSION.tar.xz" | tar xJ
-    mv "mesa-$MESA_VERSION" mesa-src
-  fi
+  [ -d mesa-src ] || git clone --depth 1 -b "mesa-$MESA_VERSION" https://gitlab.freedesktop.org/mesa/mesa.git mesa-src
   [ -d build/mesa ] || meson setup mesa-src build/mesa --prefix="$DIR/build/mesa/prefix" --libdir=lib -Db_ndebug=true \
     -Dplatforms= -Degl=enabled -Dgles1=disabled -Dgles2=enabled -Dopengl=false -Dglx=disabled \
     -Dgbm=disabled -Dglvnd=false -Dgallium-drivers=swrast -Dvulkan-drivers= -Dllvm=disabled \
