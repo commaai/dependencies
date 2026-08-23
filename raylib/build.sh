@@ -35,6 +35,7 @@ esac
 
 # Clone and build raylib C library
 RAYLIB_COMMIT="caa64e15ac20a47804a8048029c921ac091fef12"
+MESA_VERSION="24.0.9"
 
 if [ ! -d "raylib-src/.git" ]; then
   rm -rf raylib-src
@@ -92,7 +93,6 @@ for backend in $BACKENDS; do
 done
 
 if [ "$(uname)" == "Linux" ] && [[ " $BACKENDS " == *" headless "* ]]; then
-  MESA_VERSION="24.0.9"
   if [ ! -d "mesa-src" ]; then
     curl -fsSL "https://archive.mesa3d.org/mesa-$MESA_VERSION.tar.xz" | tar xJ
     mv "mesa-$MESA_VERSION" mesa-src
