@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=70.1", "cffi>=1.17.1", "meson", "ninja", "mako"]
+requires = ["setuptools>=70.1", "cffi>=1.17.1", "meson", "ninja", "mako", "pyyaml"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -17,4 +17,4 @@ include = ["raylib", "pyray"]
 namespaces = false
 
 [tool.setuptools.package-data]
-raylib = ["_raylib_cffi*.so", "install/include/*.h", "install/lib/*.a", "install/lib/*.so*", "install/lib/dri/*.so"]
+raylib = ["_raylib_cffi*.so", "install/include/*.h", "install/lib/*.a", "install/lib/*.so*"]
