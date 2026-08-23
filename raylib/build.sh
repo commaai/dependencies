@@ -114,7 +114,7 @@ if [ "$(uname)" == "Linux" ] && [[ " $BACKENDS " == *" headless "* ]]; then
     -Dplatforms= -Degl=enabled -Dgles1=disabled -Dgles2=enabled -Dopengl=false -Dglx=disabled \
     -Dgbm=disabled -Dglvnd=disabled -Dgallium-drivers=llvmpipe -Dvulkan-drivers= -Dshared-llvm=disabled \
     -Dlibunwind=disabled -Dzstd=disabled -Dvalgrind=disabled -Dbuild-tests=false \
-    -Dxmlconfig=disabled -Dexpat=disabled -Dshader-cache=disabled >/dev/null
+    -Dxmlconfig=disabled -Dexpat=disabled -Dshader-cache=disabled
   ninja -C mesa-src/build install >/dev/null
   cp mesa-src/build/prefix/lib/{libEGL.so.1,libGLESv2.so.2,libgallium-$MESA_VERSION.so} "$INSTALL_DIR/lib/"
   cp -L "$(cc -print-file-name=libdrm.so.2)" "$INSTALL_DIR/lib/"
