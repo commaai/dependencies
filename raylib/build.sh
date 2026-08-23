@@ -94,10 +94,12 @@ for backend in $BACKENDS; do
 done
 
 if [ "$(uname)" == "Linux" ] && [[ " $BACKENDS " == *" headless "* ]]; then
-  if [ ! -d llvm-src ]; then
+  if [ "$(cat llvm-src/.version 2>/dev/null)" != "$LLVM_VERSION" ]; then
+    rm -rf llvm-src
     curl -fsSL "https://github.com/llvm/llvm-project/releases/download/llvmorg-$LLVM_VERSION/llvm-project-$LLVM_VERSION.src.tar.xz" \
       | tar xJ --wildcards "llvm-project-$LLVM_VERSION.src/llvm/*" "llvm-project-$LLVM_VERSION.src/cmake/*" "llvm-project-$LLVM_VERSION.src/third-party/*"
     mv "llvm-project-$LLVM_VERSION.src" llvm-src
+    echo "$LLVM_VERSION" > llvm-src/.version
   fi
   cmake -S llvm-src/llvm -B llvm-src/build -G Ninja -DCMAKE_MAKE_PROGRAM="$(command -v ninja)" -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX="$DIR/llvm-src/prefix" \
     -DLLVM_TARGETS_TO_BUILD=Native -DLLVM_BUILD_TOOLS=OFF -DLLVM_TOOL_LLVM_CONFIG_BUILD=ON -DLLVM_INCLUDE_TESTS=OFF \
@@ -108,7 +110,8 @@ if [ "$(uname)" == "Linux" ] && [[ " $BACKENDS " == *" headless "* ]]; then
   ninja -C llvm-src/build install llvm-config >/dev/null
   cp llvm-src/build/bin/llvm-config llvm-src/prefix/bin/
 
-  [ -d mesa-src ] || git clone --depth 1 -b "mesa-$MESA_VERSION" https://gitlab.freedesktop.org/mesa/mesa.git mesa-src
+  [ -d mesa-src/.git ] || git clone --depth 1 -b "mesa-$MESA_VERSION" https://gitlab.freedesktop.org/mesa/mesa.git mesa-src
+  git -C mesa-src fetch --depth 1 origin "mesa-$MESA_VERSION" && git -C mesa-src checkout -q --force FETCH_HEAD
   PATH="$DIR/llvm-src/prefix/bin:$PATH" meson setup mesa-src mesa-src/build --reconfigure --prefix="$DIR/mesa-src/build/prefix" --libdir=lib \
     -Db_ndebug=true -Dcpp_rtti=false -Dc_link_args=-Wl,--gc-sections -Dcpp_link_args=-Wl,--gc-sections \
     -Dplatforms= -Degl=enabled -Dgles1=disabled -Dgles2=enabled -Dopengl=false -Dglx=disabled \
