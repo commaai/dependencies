@@ -50,5 +50,6 @@ def detect_backend(environ=None, exists=os.path.exists):
 
   if any(exists(marker) for marker in COMMA_DEVICE_MARKERS):
     return COMMA
-
+  if HEADLESS in host_backends() and not environ.get("DISPLAY"):
+    return HEADLESS
   return DEFAULT_BACKEND

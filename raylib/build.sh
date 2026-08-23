@@ -99,7 +99,7 @@ if [ "$(uname)" == "Linux" ] && [[ " $BACKENDS " == *" headless "* ]]; then
       | tar xJ --wildcards "llvm-project-$LLVM_VERSION.src/llvm/*" "llvm-project-$LLVM_VERSION.src/cmake/*" "llvm-project-$LLVM_VERSION.src/third-party/*"
     mv "llvm-project-$LLVM_VERSION.src" llvm-src
   fi
-  cmake -S llvm-src/llvm -B build/llvm -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX="$DIR/build/llvm-prefix" \
+  cmake -S llvm-src/llvm -B build/llvm -G Ninja -DCMAKE_MAKE_PROGRAM="$(command -v ninja)" -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX="$DIR/build/llvm-prefix" \
     -DLLVM_TARGETS_TO_BUILD=Native -DLLVM_BUILD_TOOLS=OFF -DLLVM_TOOL_LLVM_CONFIG_BUILD=ON -DLLVM_INCLUDE_TESTS=OFF \
     -DLLVM_INCLUDE_EXAMPLES=OFF -DLLVM_INCLUDE_BENCHMARKS=OFF -DLLVM_INCLUDE_DOCS=OFF -DLLVM_ENABLE_BINDINGS=OFF \
     -DLLVM_ENABLE_ZLIB=OFF -DLLVM_ENABLE_ZSTD=OFF -DLLVM_ENABLE_LIBXML2=OFF -DLLVM_ENABLE_FFI=OFF -DLLVM_ENABLE_LIBEDIT=OFF \
