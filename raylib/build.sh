@@ -69,6 +69,13 @@ build_raylib() {
   cd "$DIR"
 }
 
+# a re-checkout of an already pinned tree rewrites mtimes and rebuilds everything
+checkout_tag() {  # <dir> <tag>
+  [ "$(git -C "$1" describe --tags --exact-match 2>/dev/null)" = "$2" ] && return
+  git -C "$1" fetch --depth 1 origin tag "$2"
+  git -C "$1" checkout -q --force "$2"
+}
+
 backend_platform() {
   case "$1" in
     desktop) echo PLATFORM_DESKTOP ;;
@@ -94,8 +101,9 @@ for backend in $BACKENDS; do
 done
 
 if [ "$(uname)" == "Linux" ] && [[ " $BACKENDS " == *" headless "* ]]; then
-  [ -d llvm-src/.git ] || { git clone --depth 1 --filter=blob:none --sparse -b "llvmorg-$LLVM_VERSION" https://github.com/llvm/llvm-project.git llvm-src && git -C llvm-src sparse-checkout set llvm cmake third-party; }
-  [ "$(git -C llvm-src describe --tags --exact-match 2>/dev/null)" = "llvmorg-$LLVM_VERSION" ] || { git -C llvm-src fetch --depth 1 origin tag "llvmorg-$LLVM_VERSION" && git -C llvm-src checkout -q --force "llvmorg-$LLVM_VERSION"; }
+  [ -d llvm-src/.git ] || git clone --depth 1 --filter=blob:none --sparse -b "llvmorg-$LLVM_VERSION" https://github.com/llvm/llvm-project.git llvm-src
+  git -C llvm-src sparse-checkout set llvm cmake third-party
+  checkout_tag llvm-src "llvmorg-$LLVM_VERSION"
   cmake -S llvm-src/llvm -B llvm-src/build -G Ninja -DCMAKE_MAKE_PROGRAM="$(command -v ninja)" -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX="$DIR/llvm-src/prefix" \
     -DLLVM_TARGETS_TO_BUILD=Native -DLLVM_BUILD_TOOLS=OFF -DLLVM_TOOL_LLVM_CONFIG_BUILD=ON -DLLVM_INCLUDE_TESTS=OFF \
     -DLLVM_INCLUDE_EXAMPLES=OFF -DLLVM_INCLUDE_BENCHMARKS=OFF -DLLVM_INCLUDE_DOCS=OFF -DLLVM_ENABLE_BINDINGS=OFF \
@@ -106,7 +114,7 @@ if [ "$(uname)" == "Linux" ] && [[ " $BACKENDS " == *" headless "* ]]; then
   cp llvm-src/build/bin/llvm-config llvm-src/prefix/bin/
 
   [ -d mesa-src/.git ] || git clone --depth 1 -b "mesa-$MESA_VERSION" https://gitlab.freedesktop.org/mesa/mesa.git mesa-src
-  [ "$(git -C mesa-src describe --tags --exact-match 2>/dev/null)" = "mesa-$MESA_VERSION" ] || { git -C mesa-src fetch --depth 1 origin tag "mesa-$MESA_VERSION" && git -C mesa-src checkout -q --force "mesa-$MESA_VERSION"; }
+  checkout_tag mesa-src "mesa-$MESA_VERSION"
   PATH="$DIR/llvm-src/prefix/bin:$PATH" meson setup mesa-src mesa-src/build --reconfigure --prefix="$DIR/mesa-src/build/prefix" --libdir=lib \
     -Db_ndebug=true -Dcpp_rtti=false -Dc_link_args=-Wl,--gc-sections -Dcpp_link_args=-Wl,--gc-sections \
     -Dplatforms= -Degl=enabled -Dgles1=disabled -Dgles2=enabled -Dopengl=false -Dglx=disabled \
