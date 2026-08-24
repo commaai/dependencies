@@ -20,7 +20,7 @@ RUN if command -v apk >/dev/null; then \
     elif command -v pacman >/dev/null; then \
       pacman -Sy --noconfirm python python-pip; \
     elif command -v zypper >/dev/null; then \
-      zypper install -y python3 python3-pip; \
+      sed -i 's|http://download.opensuse.org|https://cdn.opensuse.org|' /etc/zypp/repos.d/*.repo && zypper install -y python3 python3-pip; \
     elif command -v xbps-install >/dev/null; then \
       xbps-install -Sy python3 python3-pip bash; \
     fi
