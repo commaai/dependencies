@@ -35,8 +35,8 @@ esac
 
 # Clone and build raylib C library
 RAYLIB_COMMIT="caa64e15ac20a47804a8048029c921ac091fef12"
-MESA_VERSION="25.3.6"
-LLVM_VERSION="21.1.8"
+MESA_VERSION="26.2.1"
+LLVM_VERSION="22.1.8"
 
 if [ ! -d "raylib-src/.git" ]; then
   rm -rf raylib-src
@@ -94,13 +94,9 @@ for backend in $BACKENDS; do
 done
 
 if [ "$(uname)" == "Linux" ] && [[ " $BACKENDS " == *" headless "* ]]; then
-  if [ "$(cat llvm-src/.version 2>/dev/null)" != "$LLVM_VERSION" ]; then
-    rm -rf llvm-src
-    curl -fsSL "https://github.com/llvm/llvm-project/releases/download/llvmorg-$LLVM_VERSION/llvm-project-$LLVM_VERSION.src.tar.xz" \
-      | tar xJ --wildcards "llvm-project-$LLVM_VERSION.src/llvm/*" "llvm-project-$LLVM_VERSION.src/cmake/*" "llvm-project-$LLVM_VERSION.src/third-party/*"
-    mv "llvm-project-$LLVM_VERSION.src" llvm-src
-    echo "$LLVM_VERSION" > llvm-src/.version
-  fi
+  [ -d llvm-src/.git ] || git clone --depth 1 --filter=blob:none --sparse -b "llvmorg-$LLVM_VERSION" https://github.com/llvm/llvm-project.git llvm-src
+  git -C llvm-src sparse-checkout set llvm cmake third-party
+  git -C llvm-src fetch --depth 1 origin "llvmorg-$LLVM_VERSION" && git -C llvm-src checkout -q --force FETCH_HEAD
   cmake -S llvm-src/llvm -B llvm-src/build -G Ninja -DCMAKE_MAKE_PROGRAM="$(command -v ninja)" -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX="$DIR/llvm-src/prefix" \
     -DLLVM_TARGETS_TO_BUILD=Native -DLLVM_BUILD_TOOLS=OFF -DLLVM_TOOL_LLVM_CONFIG_BUILD=ON -DLLVM_INCLUDE_TESTS=OFF \
     -DLLVM_INCLUDE_EXAMPLES=OFF -DLLVM_INCLUDE_BENCHMARKS=OFF -DLLVM_INCLUDE_DOCS=OFF -DLLVM_ENABLE_BINDINGS=OFF \
