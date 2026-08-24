@@ -94,7 +94,7 @@ for backend in $BACKENDS; do
 done
 
 if [ "$(uname)" == "Linux" ] && [[ " $BACKENDS " == *" headless "* ]]; then
-  [ -d llvm-src/.git ] || git clone --depth 1 --filter=blob:none --sparse -b "llvmorg-$LLVM_VERSION" https://github.com/llvm/llvm-project.git llvm-src
+  [ -d llvm-src/.git ] || { rm -rf llvm-src && git clone --depth 1 --filter=blob:none --sparse -b "llvmorg-$LLVM_VERSION" https://github.com/llvm/llvm-project.git llvm-src; }
   git -C llvm-src sparse-checkout set llvm cmake third-party
   git -C llvm-src fetch --depth 1 origin "llvmorg-$LLVM_VERSION" && git -C llvm-src checkout -q --force FETCH_HEAD
   cmake -S llvm-src/llvm -B llvm-src/build -G Ninja -DCMAKE_MAKE_PROGRAM="$(command -v ninja)" -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX="$DIR/llvm-src/prefix" \
