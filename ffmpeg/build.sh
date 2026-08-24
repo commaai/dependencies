@@ -13,7 +13,7 @@ LIBVA_VERSION="2.22.0"
 INSTALL_DIR="$DIR/ffmpeg/install"
 
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
-CC="ccache ${CC:-cc}"
+export CC="ccache ${CC:-cc}"
 PREFIX="$DIR/build/prefix"
 mkdir -p "$DIR/build"
 rm -rf "$PREFIX"
