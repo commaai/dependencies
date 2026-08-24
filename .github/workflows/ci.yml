@@ -40,6 +40,7 @@ jobs:
           restore-keys: build-cache-v2-${{ matrix.platform }}-
           path: |
             .uv-cache
+            .ccache
             */*/install
             */*/toolchain
             */*/bin

@@ -24,6 +24,7 @@ if [[ "$USE_MANYLINUX" == "1" && -z "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
     -e BUILD_SH_HOST_GID="$(id -g)" \
     -e HOME=/tmp \
     -e UV_CACHE_DIR=/work/.uv-cache \
+    -e CCACHE_DIR=/work/.ccache \
     -e UV_PYTHON=/opt/python/cp312-cp312/bin/python3 \
     -v "$ROOT_DIR:/work" \
     -v "$UV_BIN:/usr/local/bin/uv:ro" \
@@ -61,6 +62,7 @@ fi
 
 export CMAKE_C_COMPILER_LAUNCHER=ccache
 export CMAKE_CXX_COMPILER_LAUNCHER=ccache
+export CCACHE_DIR="${CCACHE_DIR:-$ROOT_DIR/.ccache}"
 
 restore_build_versions() {
   python3 build_versions.py restore */pyproject.toml

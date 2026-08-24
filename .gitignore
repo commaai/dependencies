@@ -1,6 +1,7 @@
 .git/
 repo/
 .venv/
+.ccache/
 __pycache__/
 uv.lock
 
