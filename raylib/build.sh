@@ -8,9 +8,9 @@ INSTALL_DIR="$DIR/raylib/install"
 
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 if command -v ccache &>/dev/null; then
-  CC="ccache ${CC:-cc}"
+  CC="ccache ${CC:-cc}" CXX="ccache ${CXX:-c++}"
 else
-  CC="${CC:-cc}"
+  CC="${CC:-cc}" CXX="${CXX:-c++}"
 fi
 
 is_linux_aarch64() {
@@ -116,7 +116,7 @@ if [ "$(uname)" == "Linux" ] && [[ " $BACKENDS " == *" headless "* ]]; then
   fi
   git -C mesa-src fetch --depth 1 origin "mesa-$MESA_VERSION"
   git -C mesa-src checkout --force FETCH_HEAD
-  PATH="$DIR/llvm-src/prefix/bin:$PATH" meson setup mesa-src mesa-src/build --reconfigure --prefix="$DIR/mesa-src/build/prefix" --libdir=lib \
+  CC="$CC" CXX="$CXX" PATH="$DIR/llvm-src/prefix/bin:$PATH" meson setup mesa-src mesa-src/build --reconfigure --prefix="$DIR/mesa-src/build/prefix" --libdir=lib \
     -Db_ndebug=true -Dcpp_rtti=false -Dc_link_args=-Wl,--gc-sections -Dcpp_link_args=-Wl,--gc-sections \
     -Dplatforms= -Degl=enabled -Dgles1=disabled -Dgles2=enabled -Dopengl=false -Dglx=disabled \
     -Dgbm=disabled -Dglvnd=disabled -Dgallium-drivers=llvmpipe -Dvulkan-drivers= -Dshared-llvm=disabled \
