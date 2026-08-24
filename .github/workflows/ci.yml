@@ -36,16 +36,16 @@ jobs:
           fi
       - uses: actions/cache@v6
         with:
-          key: build-cache-v2-${{ matrix.platform }}-${{ hashFiles('build.sh', 'setup.sh', '*/pyproject.toml', '*/setup.py', '*/build.sh') }}
-          restore-keys: build-cache-v2-${{ matrix.platform }}-
+          key: ccache-${{ matrix.platform }}-${{ github.run_id }}
+          restore-keys: ccache-${{ matrix.platform }}-
+          path: .ccache
+      - uses: actions/cache@v6
+        with:
+          key: downloads-${{ matrix.platform }}-${{ hashFiles('gcc-arm-none-eabi/build.sh', 'git-lfs/build.sh') }}
           path: |
             .uv-cache
-            .ccache
-            */*/install
             */*/toolchain
             */*/bin
-            */*-src
-            */build
       - name: Build wheels
         env:
           MANYLINUX: ${{ runner.os == 'Linux' && '1' || '0' }}
