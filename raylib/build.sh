@@ -91,10 +91,5 @@ for backend in $BACKENDS; do
   build_raylib "$(backend_platform "$backend")" "libraylib_${backend}.a"
 done
 
-# Download raygui header
-RAYGUI_COMMIT="1e03efca48c50c5ea4b4a053d5bf04bad58d3e43"
-curl -fsSLo "$INSTALL_DIR/include/raygui.h" \
-  "https://raw.githubusercontent.com/raysan5/raygui/$RAYGUI_COMMIT/src/raygui.h"
-
 echo "Installed raylib to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"

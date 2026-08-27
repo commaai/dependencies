@@ -74,7 +74,7 @@ def _read_c_enums(header_texts):
 
 def validate_static_bindings(package_dir, include_dir):
   headers = {}
-  for name in ("raylib.h", "rlgl.h", "raygui.h"):
+  for name in ("raylib.h", "rlgl.h"):
     with open(os.path.join(include_dir, name), "r") as f:
       headers[name] = _strip_c_comments(f.read())
 
@@ -94,7 +94,7 @@ def validate_static_bindings(package_dir, include_dir):
         raise ValueError(f"{name} in defines.py is {actual}, expected {expected}")
 
   py_enums = _read_python_enums(os.path.join(package_dir, "enums.py"))
-  c_enums = _read_c_enums((headers["raylib.h"], headers["raygui.h"]))
+  c_enums = _read_c_enums((headers["raylib.h"],))
   missing_classes = sorted(set(c_enums) - set(py_enums) - {"bool"})
   extra_classes = sorted(set(py_enums) - set(c_enums))
   if missing_classes or extra_classes:

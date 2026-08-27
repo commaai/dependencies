@@ -37,7 +37,7 @@ def pre_process_header(filename, remove_function_bodies=False):
     filetext = "".join([line for line in f if '#include' not in line])
   command = ['gcc', '-CC', '-P', '-undef', '-nostdinc', '-DRL_MATRIX_TYPE',
              '-DRL_QUATERNION_TYPE', '-DRL_VECTOR4_TYPE', '-DRL_VECTOR3_TYPE', '-DRL_VECTOR2_TYPE',
-             '-DRLAPI=', '-DPHYSACDEF=', '-DRAYGUIDEF=', '-DRMAPI=',
+             '-DRLAPI=', '-DPHYSACDEF=', '-DRMAPI=',
              '-dDI', '-E', '-']
   filetext = subprocess.run(command, text=True, input=filetext, stdout=subprocess.PIPE, check=True).stdout
   filetext = filetext.replace("va_list", "void *")
@@ -52,9 +52,8 @@ def build_ffi():
   raylib_h = os.path.join(RAYLIB_INCLUDE_PATH, "raylib.h")
   rlgl_h = os.path.join(RAYLIB_INCLUDE_PATH, "rlgl.h")
   raymath_h = os.path.join(RAYLIB_INCLUDE_PATH, "raymath.h")
-  raygui_h = os.path.join(RAYLIB_INCLUDE_PATH, "raygui.h")
 
-  for header in (raylib_h, rlgl_h, raymath_h, raygui_h):
+  for header in (raylib_h, rlgl_h, raymath_h):
     if not os.path.isfile(header):
       raise FileNotFoundError(f"{header} not found. Please run build.sh first.")
 
@@ -62,15 +61,11 @@ def build_ffi():
     #include "raylib.h"
     #include "rlgl.h"
     #include "raymath.h"
-    #define RAYGUI_IMPLEMENTATION
-    #define RAYGUI_SUPPORT_RICONS
-    #include "raygui.h"
   """
 
   ffibuilder.cdef(pre_process_header(raylib_h))
   ffibuilder.cdef(pre_process_header(rlgl_h))
   ffibuilder.cdef(pre_process_header(raymath_h, True))
-  ffibuilder.cdef(pre_process_header(raygui_h))
 
   validate_static_bindings(PACKAGE_DIR, RAYLIB_INCLUDE_PATH)
 
