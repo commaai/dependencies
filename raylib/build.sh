@@ -124,11 +124,5 @@ if [ "$(uname)" == "Linux" ] && [[ " $BACKENDS " == *" headless "* ]]; then
   patchelf --set-rpath '$ORIGIN' "$INSTALL_DIR"/lib/{libEGL.so.1,libGLESv2.so.2,libgallium-$MESA_VERSION.so}
   strip "$INSTALL_DIR"/lib/*.so*
 fi
-
-# Download raygui header
-RAYGUI_COMMIT="1e03efca48c50c5ea4b4a053d5bf04bad58d3e43"
-curl -fsSLo "$INSTALL_DIR/include/raygui.h" \
-  "https://raw.githubusercontent.com/raysan5/raygui/$RAYGUI_COMMIT/src/raygui.h"
-
 echo "Installed raylib to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"

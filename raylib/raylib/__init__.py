@@ -21,7 +21,7 @@ def _expected_archives():
 def smoketest():
   assert ffi is not None
   assert rl is not None
-  for header in ("raylib.h", "raymath.h", "rlgl.h", "raygui.h"):
+  for header in ("raylib.h", "raymath.h", "rlgl.h"):
     assert os.path.isfile(os.path.join(INCLUDE_DIR, header)), f"{header} not found"
   for archive in _expected_archives():
     assert os.path.isfile(os.path.join(LIB_DIR, archive)), f"{archive} not found"
