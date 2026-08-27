@@ -22,7 +22,7 @@ BACKEND_ARCHIVES = {
 BACKEND_LINK_ARGS = {
   DESKTOP: ("-lGL", "-lX11"),
   COMMA: ("-lGLESv2", "-lEGL", "-lgbm", "-ldrm"),
-  HEADLESS: ("-lGLESv2", "-lEGL"),
+  HEADLESS: ("-lGLESv2", "-lEGL", "-Wl,-rpath,$ORIGIN/install/lib"),
 }
 
 COMMA_DEVICE_MARKERS = ("/AGNOS", "/TICI")
@@ -50,5 +50,6 @@ def detect_backend(environ=None, exists=os.path.exists):
 
   if any(exists(marker) for marker in COMMA_DEVICE_MARKERS):
     return COMMA
-
+  if HEADLESS in host_backends() and not environ.get("DISPLAY"):
+    return HEADLESS
   return DEFAULT_BACKEND

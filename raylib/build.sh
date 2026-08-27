@@ -7,11 +7,7 @@ cd "$DIR"
 INSTALL_DIR="$DIR/raylib/install"
 
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
-if command -v ccache &>/dev/null; then
-  CC="ccache ${CC:-cc}"
-else
-  CC="${CC:-cc}"
-fi
+CC="ccache ${CC:-cc}" CXX="ccache ${CXX:-c++}"
 
 is_linux_aarch64() {
   [[ "$(uname)" == "Linux" && ( "$(uname -m)" == "aarch64" || "$(uname -m)" == "arm64" ) ]]
@@ -35,6 +31,8 @@ esac
 
 # Clone and build raylib C library
 RAYLIB_COMMIT="caa64e15ac20a47804a8048029c921ac091fef12"
+MESA_VERSION="26.2.1"
+LLVM_VERSION="22.1.8"
 
 if [ ! -d "raylib-src/.git" ]; then
   rm -rf raylib-src
@@ -91,5 +89,40 @@ for backend in $BACKENDS; do
   build_raylib "$(backend_platform "$backend")" "libraylib_${backend}.a"
 done
 
+if [ "$(uname)" == "Linux" ] && [[ " $BACKENDS " == *" headless "* ]]; then
+  if [ ! -d "llvm-src/.git" ]; then
+    rm -rf llvm-src
+    git clone --depth 1 --filter=blob:none --sparse https://github.com/llvm/llvm-project.git llvm-src
+    git -C llvm-src sparse-checkout set llvm cmake third-party
+  fi
+  git -C llvm-src fetch --depth 1 origin "llvmorg-$LLVM_VERSION"
+  git -C llvm-src checkout --force FETCH_HEAD
+  cmake -S llvm-src/llvm -B llvm-src/build -G Ninja -DCMAKE_MAKE_PROGRAM="$(command -v ninja)" -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX="$DIR/llvm-src/prefix" \
+    -DLLVM_TARGETS_TO_BUILD=Native -DLLVM_BUILD_TOOLS=OFF -DLLVM_TOOL_LLVM_CONFIG_BUILD=ON -DLLVM_INCLUDE_TESTS=OFF \
+    -DLLVM_INCLUDE_EXAMPLES=OFF -DLLVM_INCLUDE_BENCHMARKS=OFF -DLLVM_INCLUDE_DOCS=OFF -DLLVM_ENABLE_BINDINGS=OFF \
+    -DLLVM_ENABLE_ZLIB=OFF -DLLVM_ENABLE_ZSTD=OFF -DLLVM_ENABLE_LIBXML2=OFF -DLLVM_ENABLE_FFI=OFF -DLLVM_ENABLE_LIBEDIT=OFF \
+    -DLLVM_ENABLE_ASSERTIONS=OFF -DLLVM_ENABLE_UNWIND_TABLES=OFF \
+    -DCMAKE_C_FLAGS="-ffunction-sections -fdata-sections" -DCMAKE_CXX_FLAGS="-ffunction-sections -fdata-sections" >/dev/null
+  ninja -C llvm-src/build install llvm-config >/dev/null
+  cp llvm-src/build/bin/llvm-config llvm-src/prefix/bin/
+
+  if [ ! -d "mesa-src/.git" ]; then
+    rm -rf mesa-src
+    git clone --depth 1 https://gitlab.freedesktop.org/mesa/mesa.git mesa-src
+  fi
+  git -C mesa-src fetch --depth 1 origin "mesa-$MESA_VERSION"
+  git -C mesa-src checkout --force FETCH_HEAD
+  CC="$CC" CXX="$CXX" PATH="$DIR/llvm-src/prefix/bin:$PATH" meson setup mesa-src mesa-src/build --reconfigure --prefix="$DIR/mesa-src/build/prefix" --libdir=lib \
+    -Db_ndebug=true -Dcpp_rtti=false -Dc_link_args=-Wl,--gc-sections -Dcpp_link_args=-Wl,--gc-sections \
+    -Dplatforms= -Degl=enabled -Dgles1=disabled -Dgles2=enabled -Dopengl=false -Dglx=disabled \
+    -Dgbm=disabled -Dglvnd=disabled -Dgallium-drivers=llvmpipe -Dvulkan-drivers= -Dshared-llvm=disabled \
+    -Dlibunwind=disabled -Dzstd=disabled -Dvalgrind=disabled -Dbuild-tests=false \
+    -Dxmlconfig=disabled -Dexpat=disabled -Dshader-cache=disabled
+  ninja -C mesa-src/build install >/dev/null
+  cp mesa-src/build/prefix/lib/{libEGL.so.1,libGLESv2.so.2,libgallium-$MESA_VERSION.so} "$INSTALL_DIR/lib/"
+  cp -L "$(cc -print-file-name=libdrm.so.2)" "$INSTALL_DIR/lib/"
+  patchelf --set-rpath '$ORIGIN' "$INSTALL_DIR"/lib/{libEGL.so.1,libGLESv2.so.2,libgallium-$MESA_VERSION.so}
+  strip "$INSTALL_DIR"/lib/*.so*
+fi
 echo "Installed raylib to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"
