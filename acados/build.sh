@@ -16,9 +16,8 @@ NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 # pick BLAS target per host arch
 ARCH="$(uname -m)"
 if [[ "$OSTYPE" == "darwin"* ]]; then
-  # this BLASFEO version doesn't have an Apple Silicon target; Cortex-A57
-  # baseline ARMv8 SIMD compiles and runs fine on M1+.
-  BLAS_TARGET="ARMV8A_ARM_CORTEX_A57"
+  # Cortex-A57 kernels produce incorrect results on Apple Silicon; use the portable C fallback.
+  BLAS_TARGET="GENERIC"
 elif [[ "$ARCH" == "aarch64" ]]; then
   # Cortex-A57 = TICI baseline; safe for any modern aarch64
   BLAS_TARGET="ARMV8A_ARM_CORTEX_A57"
