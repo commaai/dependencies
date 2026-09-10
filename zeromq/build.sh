@@ -21,7 +21,11 @@ git -C libzmq-src checkout --force FETCH_HEAD
 PREFIX="$DIR/build/prefix"
 mkdir -p "$DIR/build"
 
+IPC=ON
+case "$(uname -s)" in MINGW*|MSYS*) IPC=OFF ;; esac  # libzmq only knows afunix.h under _MSC_VER; openpilot uses tcp:// on Windows
+
 cmake -S libzmq-src -B "$DIR/build" \
+  -DZMQ_HAVE_IPC=$IPC \
   -DCMAKE_BUILD_TYPE=MinSizeRel \
   -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \

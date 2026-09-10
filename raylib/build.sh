@@ -59,7 +59,7 @@ build_raylib() {
   local output="$2"
 
   cd "$DIR/raylib-src/src"
-  make clean
+  make clean PLATFORM_SHELL=sh  # the Makefile's Windows clean goes through cmd.exe, which MSYS2 lacks
   make -j"$NJOBS" PLATFORM="$platform" CC="${CC:-gcc}"
   cp libraylib.a "$INSTALL_DIR/lib/$output"
   cd "$DIR"

@@ -5,16 +5,20 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 cd "$DIR"
 
 PLATFORM="$(uname -s)"
+case "$PLATFORM" in MINGW*|MSYS*) PLATFORM="Windows" ;; esac
 FFMPEG_VERSION="7.1"
 ZLIB_VERSION="da607da739fa6047df13e66a2af6b8bec7c2a498"  # v1.3.2
 X264_BRANCH="stable"
 LIBDRM_VERSION="libdrm-2.4.124"
 LIBVA_VERSION="2.22.0"
 INSTALL_DIR="$DIR/ffmpeg/install"
+EXE=""
+[ "$PLATFORM" = "Windows" ] && EXE=".exe"
 
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 export CC="ccache ${CC:-cc}"
 PREFIX="$DIR/build/prefix"
+[ "$PLATFORM" = "Windows" ] && PREFIX="$(cygpath -m "$PREFIX")"  # C:/ form: the native pkgconf and clang cannot read MSYS /c/ paths
 mkdir -p "$DIR/build"
 rm -rf "$PREFIX"
 mkdir -p "$PREFIX"
@@ -150,6 +154,10 @@ if [ "$PLATFORM" = "Linux" ]; then
     --enable-hwaccel=h264_vulkan,hevc_vulkan
     --enable-encoder=h264_vulkan,hevc_vulkan
   )
+elif [ "$PLATFORM" = "Windows" ]; then
+  # static libs, so consumers need no DLL search path handling; the network layer would only add a winsock dependency
+  LOADER_FLAGS+=(--enable-static --disable-shared --disable-network)
+  unset PKG_CONFIG_PATH  # the native pkgconf splits on ";", the inherited MSYS2 list is ":"-separated
 elif [ "$PLATFORM" = "Darwin" ]; then
   FFMPEG_LDEXEFLAGS='-Wl,-rpath,@loader_path/../lib'
   LOADER_FLAGS+=(
@@ -202,8 +210,8 @@ rm -rf "$INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"/{bin,lib,include}
 
 # Binaries
-cp "$PREFIX/bin/ffmpeg" "$INSTALL_DIR/bin/"
-cp "$PREFIX/bin/ffprobe" "$INSTALL_DIR/bin/"
+cp "$PREFIX/bin/ffmpeg$EXE" "$INSTALL_DIR/bin/"
+cp "$PREFIX/bin/ffprobe$EXE" "$INSTALL_DIR/bin/"
 
 # Shared libraries only (x264/zlib/libva/libdrm stay static and are linked in).
 # Ship the SONAME file and an INPUT linker script for the unversioned name so
@@ -244,6 +252,9 @@ elif [ "$PLATFORM" = "Darwin" ]; then
   for lib in "${FFMPEG_LIBS[@]}"; do
     copy_darwin_ffmpeg_lib "$lib"
   done
+elif [ "$PLATFORM" = "Windows" ]; then
+  # static: ship ffmpeg plus the x264/zlib archives it was linked against
+  cp "$PREFIX"/lib/*.a "$INSTALL_DIR/lib/"
 fi
 
 # Headers
@@ -252,7 +263,7 @@ for dir in libavformat libavcodec libavutil libswresample; do
 done
 
 # Strip binaries and shared libraries
-strip "$INSTALL_DIR/bin/ffmpeg" "$INSTALL_DIR/bin/ffprobe" 2>/dev/null || true
+strip "$INSTALL_DIR/bin/ffmpeg$EXE" "$INSTALL_DIR/bin/ffprobe$EXE" 2>/dev/null || true
 strip "$INSTALL_DIR/lib/"*.so.* "$INSTALL_DIR/lib/"*.dylib 2>/dev/null || true
 
 echo "Installed ffmpeg to $INSTALL_DIR"

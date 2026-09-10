@@ -11,6 +11,28 @@ VERSION_FILE="$DIR/ncurses-src/.version"
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 export CC="ccache ${CC:-cc}"
 
+case "$(uname -s)" in
+  MINGW*|MSYS*)
+    # ncurses does not build cleanly for the Windows console with mingw; ship PDCurses'
+    # console port under the ncurses names instead, it covers the curses API replay uses
+    PDCURSES_VERSION="3.9"
+    if [ ! -d "pdcurses-src/.git" ]; then
+      rm -rf pdcurses-src
+      git clone --depth 1 --branch "$PDCURSES_VERSION" https://github.com/wmcbrine/PDCurses.git pdcurses-src
+    fi
+    make -C pdcurses-src/wincon clean
+    make -C pdcurses-src/wincon -j"$NJOBS" WIDE=Y UTF8=Y CC="${CC:-cc}"
+    rm -rf "$INSTALL_DIR"
+    mkdir -p "$INSTALL_DIR"/{lib,include}
+    cp pdcurses-src/wincon/pdcurses.a "$INSTALL_DIR/lib/libncurses.a"
+    cp pdcurses-src/curses.h pdcurses-src/panel.h "$INSTALL_DIR/include/"
+    echo '#include "curses.h"' > "$INSTALL_DIR/include/ncurses.h"
+    echo "Installed PDCurses (as ncurses) to $INSTALL_DIR"
+    du -sh "$INSTALL_DIR"
+    exit 0
+    ;;
+esac
+
 # Download tarball (v6.5 tag doesn't exist on the GitHub mirror)
 if [ ! -f "$VERSION_FILE" ] || [ "$(cat "$VERSION_FILE")" != "$VERSION" ]; then
   rm -rf ncurses-src

@@ -9,6 +9,9 @@ jobs:
   build:
     name: build (${{ matrix.platform }})
     runs-on: ${{ (github.repository == 'commaai/dependencies' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == 'commaai/dependencies')) && matrix.runs-on-namespace || matrix.runs-on }}
+    defaults:
+      run:
+        shell: ${{ matrix.shell || 'bash -e {0}' }} # the implicit default; a bare `bash` would add pipefail
     strategy:
       fail-fast: false
       matrix:
@@ -22,6 +25,9 @@ jobs:
           - platform: macos
             runs-on: macos-latest
             runs-on-namespace: namespace-profile-macos-8x14
+          - platform: windows-x86_64
+            runs-on: windows-latest
+            shell: msys2 {0} # the CLANG64 shell from setup-msys2 below
     steps:
       - uses: actions/checkout@v7
         with:
@@ -34,6 +40,10 @@ jobs:
             echo "Selected: $XCODE"
             sudo xcode-select -s "$XCODE"
           fi
+      - uses: msys2/setup-msys2@v2
+        if: runner.os == 'Windows'
+        with:
+          msystem: CLANG64
       - uses: actions/cache@v6
         with:
           key: ccache-${{ matrix.platform }}-${{ github.run_id }}
@@ -46,6 +56,9 @@ jobs:
             .uv-cache
             */*/toolchain
             */*/bin
+      - name: Install MSYS2 build dependencies
+        if: runner.os == 'Windows'
+        run: ./setup.sh
       - name: Build wheels
         env:
           MANYLINUX: ${{ runner.os == 'Linux' && '1' || '0' }}
@@ -88,10 +101,35 @@ jobs:
           path: dist/
       - run: ./test_wheels_in_image.sh "${{ matrix.image }}"
 
+  test-windows:
+    name: test windows
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: wheels-windows-x86_64
+          path: dist/
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install the wheels into a clean venv and run the smoketests
+        # a stock Python with no MSYS2 on PATH: catches a wheel that still depends on the toolchain's DLLs
+        shell: bash
+        run: |
+          python -m venv venv
+          source venv/Scripts/activate
+          pip install dist/*.whl
+          for toml in */pyproject.toml; do
+            module="$(basename "$(dirname "$toml")" | tr "-" "_")"
+            python -c "import $module; $module.smoketest()"
+          done
+
   publish:
     name: publish wheels
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    needs: [build, test]
+    needs: [build, test, test-windows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

@@ -4,7 +4,7 @@ DIR = os.path.join(os.path.dirname(__file__), "install")
 INCLUDE_DIR = os.path.join(DIR, "include")
 LIB_DIR = os.path.join(DIR, "lib")
 BIN_DIR = os.path.join(DIR, "bin")
-TERA_PATH = os.path.join(BIN_DIR, "t_renderer")
+TERA_PATH = os.path.join(BIN_DIR, "t_renderer" + (".exe" if os.name == "nt" else ""))
 
 TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "acados_template")
 
@@ -12,7 +12,7 @@ TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "acados_template")
 def smoketest():
   import sys
 
-  lib_ext = ".dylib" if sys.platform == "darwin" else ".so"
+  lib_ext = {"darwin": ".dylib", "win32": ".a"}.get(sys.platform, ".so")  # acados builds static on Windows
   for lib in ("libacados", "libblasfeo", "libhpipm", "libqpOASES_e"):
     path = os.path.join(LIB_DIR, lib + lib_ext)
     assert os.path.isfile(path), f"missing lib: {path}"

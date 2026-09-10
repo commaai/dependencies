@@ -4,6 +4,7 @@
 import os
 import platform
 import re
+import shlex
 import subprocess
 import sys
 
@@ -35,7 +36,8 @@ def pre_process_header(filename, remove_function_bodies=False):
   print("Pre-processing " + filename)
   with open(filename, "r") as f:
     filetext = "".join([line for line in f if '#include' not in line])
-  command = ['gcc', '-CC', '-P', '-undef', '-nostdinc', '-DRL_MATRIX_TYPE',
+  cc = shlex.split(os.environ.get("CC", "gcc"))
+  command = [*cc, '-CC', '-P', '-undef', '-nostdinc', '-DRL_MATRIX_TYPE',
              '-DRL_QUATERNION_TYPE', '-DRL_VECTOR4_TYPE', '-DRL_VECTOR3_TYPE', '-DRL_VECTOR2_TYPE',
              '-DRLAPI=', '-DPHYSACDEF=', '-DRMAPI=',
              '-dDI', '-E', '-']
@@ -80,6 +82,10 @@ def build_ffi():
       '-framework', 'CoreVideo',
     ]
     extra_compile_args = ["-Wno-error=incompatible-function-pointer-types"]
+  elif platform.system() == "Windows":
+    print("BUILDING FOR WINDOWS")
+    extra_link_args = [raylib_archive, '-lopengl32', '-lgdi32', '-lwinmm', '-lshell32']
+    extra_compile_args = ["-Wno-incompatible-pointer-types"]
   else:
     print("BUILDING FOR LINUX")
     extra_link_args = [
@@ -100,5 +106,8 @@ def build_ffi():
 
 
 if __name__ == "__main__":
+  if platform.system() == "Windows":  # setuptools defaults to MSVC; the config selects the MSYS2 clang64 toolchain
+    os.environ["DIST_EXTRA_CONFIG"] = os.path.join(ROOT, "build_cffi_mingw.cfg")
+    os.environ.setdefault("CC", "clang")
   build_ffi()
   ffibuilder.compile(verbose=True, tmpdir=ROOT)

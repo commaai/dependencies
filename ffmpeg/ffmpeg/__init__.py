@@ -1,4 +1,5 @@
 import os
+import subprocess
 import sys
 
 DIR = os.path.join(os.path.dirname(__file__), "install")
@@ -7,9 +8,12 @@ LIB_DIR = os.path.join(DIR, "lib")
 INCLUDE_DIR = os.path.join(DIR, "include")
 
 
+EXE = ".exe" if os.name == "nt" else ""
+
+
 def _run(name):
-  binary = os.path.join(BIN_DIR, name)
-  os.execvp(binary, [binary] + sys.argv[1:])
+  binary = os.path.join(BIN_DIR, name + EXE)
+  sys.exit(subprocess.call([binary] + sys.argv[1:]))
 
 
 def _run_ffmpeg():
@@ -21,9 +25,7 @@ def _run_ffprobe():
 
 
 def smoketest():
-  import subprocess
-
-  ffmpeg = os.path.join(BIN_DIR, "ffmpeg")
-  ffprobe = os.path.join(BIN_DIR, "ffprobe")
+  ffmpeg = os.path.join(BIN_DIR, "ffmpeg" + EXE)
+  ffprobe = os.path.join(BIN_DIR, "ffprobe" + EXE)
   subprocess.run([ffmpeg, "-version"], check=True)
   subprocess.run([ffprobe, "-version"], check=True)

@@ -67,6 +67,11 @@ to add a new package:
 * `./build.sh` builds all packages, `./test_wheels_in_image.sh` tests the built wheels in a range of distros
 *  on pushes to `master`, wheels are built for our target platforms, tested, and published to PyPI
 
+### Windows
+
+`./build.sh` builds the win_amd64 wheels from an [MSYS2](https://www.msys2.org/) CLANG64 shell; `./setup.sh`
+installs the pacman packages, git and uv included, so nothing outside MSYS2 is needed.
+
 > [!NOTE]
 > PyPI does not allow overwriting an uploaded file, so every master commit publishes
 > fresh versions as `<package version>.postN`, where `N` is `git rev-list --count HEAD`

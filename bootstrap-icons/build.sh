@@ -18,7 +18,7 @@ rm -rf "$INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"
 cp icons-src/bootstrap-icons.svg "$INSTALL_DIR/"
 
-python3 - <<'PY'
+"${PYTHON:-python3}" - <<'PY'
 from fontTools.ttLib import TTFont
 
 font = TTFont("icons-src/font/fonts/bootstrap-icons.woff")

@@ -6,6 +6,10 @@ cd "$DIR"
 
 VERSION="1.0.1"
 INSTALL_DIR="$DIR/capnproto/install"
+EXE=""
+EXE_LINKER_FLAGS=""
+# static libc++ so the tools run outside an MSYS2 shell (no libc++.dll on PATH)
+case "$(uname -s)" in MINGW*|MSYS*) EXE=".exe"; EXE_LINKER_FLAGS="-static" ;; esac
 
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
@@ -31,7 +35,8 @@ cmake -S capnproto-src -B "$DIR/build" \
   -DCMAKE_CXX_FLAGS="-fPIC" \
   -DWITH_OPENSSL=OFF \
   -DBUILD_TESTING=OFF \
-  -DBUILD_SHARED_LIBS=OFF
+  -DBUILD_SHARED_LIBS=OFF \
+  -DCMAKE_EXE_LINKER_FLAGS="$EXE_LINKER_FLAGS"
 
 cmake --build "$DIR/build" -j"$NJOBS"
 cmake --install "$DIR/build"
@@ -41,9 +46,9 @@ rm -rf "$INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"/{bin,lib,include}
 
 # Binaries
-cp "$PREFIX/bin/capnp" "$INSTALL_DIR/bin/"
-cp "$PREFIX/bin/capnpc-c++" "$INSTALL_DIR/bin/"
-ln -sf capnp "$INSTALL_DIR/bin/capnpc"
+cp "$PREFIX/bin/capnp$EXE" "$INSTALL_DIR/bin/"
+cp "$PREFIX/bin/capnpc-c++$EXE" "$INSTALL_DIR/bin/"
+ln -sf "capnp$EXE" "$INSTALL_DIR/bin/capnpc$EXE"  # a copy under MSYS2, which has no symlinks by default
 
 # Libraries (only the ones openpilot needs)
 cp "$PREFIX/lib/libcapnp.a" "$INSTALL_DIR/lib/"
@@ -54,7 +59,7 @@ cp -r "$PREFIX/include/capnp" "$INSTALL_DIR/include/"
 cp -r "$PREFIX/include/kj" "$INSTALL_DIR/include/"
 
 # Strip binaries and libs
-strip "$INSTALL_DIR/bin/capnp" "$INSTALL_DIR/bin/capnpc-c++" 2>/dev/null || true
+strip "$INSTALL_DIR/bin/capnp$EXE" "$INSTALL_DIR/bin/capnpc-c++$EXE" 2>/dev/null || true
 
 # Strip unused kj objects from libkj.a (not needed by openpilot)
 for obj in filesystem.c++.o main.c++.o test-helpers.c++.o; do

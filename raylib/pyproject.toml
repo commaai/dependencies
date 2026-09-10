@@ -17,4 +17,4 @@ include = ["raylib", "pyray"]
 namespaces = false
 
 [tool.setuptools.package-data]
-raylib = ["_raylib_cffi*.so", "install/include/*.h", "install/lib/*.a", "install/lib/*.so*"]
+raylib = ["_raylib_cffi*.so", "_raylib_cffi*.pyd", "install/include/*.h", "install/lib/*.a", "install/lib/*.so*"]

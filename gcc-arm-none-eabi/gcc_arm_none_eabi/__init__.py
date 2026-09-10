@@ -1,12 +1,15 @@
 import os
+import subprocess
 import sys
 
 TOOLCHAIN_DIR = os.path.join(os.path.dirname(__file__), "toolchain")
+BIN_DIR = os.path.join(TOOLCHAIN_DIR, "bin")
+EXE = ".exe" if os.name == "nt" else ""
 
 
 def _run(name):
-  binary = os.path.join(TOOLCHAIN_DIR, "bin", name)
-  os.execvp(binary, [binary] + sys.argv[1:])
+  binary = os.path.join(BIN_DIR, name + EXE)
+  sys.exit(subprocess.call([binary] + sys.argv[1:]))
 
 
 def _run_gcc():
@@ -22,6 +25,5 @@ def _run_size():
 
 
 def smoketest():
-  import subprocess
-  gcc = os.path.join(TOOLCHAIN_DIR, "bin", "arm-none-eabi-gcc")
+  gcc = os.path.join(BIN_DIR, "arm-none-eabi-gcc" + EXE)
   subprocess.run([gcc, "--version"], check=True)
