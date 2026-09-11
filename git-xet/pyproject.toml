@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "comma-deps-git-xet"
-version = "0.2.2.dev1"
+version = "0.2.2"
 description = "Native Git LFS Xet upload and download transfer agent"
 requires-python = ">=3.12"
 

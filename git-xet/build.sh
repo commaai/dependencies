@@ -4,7 +4,7 @@ set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 cd "$DIR"
 
-VERSION="0.2.2.dev1"
+VERSION="0.2.2"
 REVISION="3cb5b2bf8e34bca2423a29d3110bb03c22a4a581"
 SOURCE_URL="https://github.com/haraschax/xet-core.git"
 RUST_VERSION="1.95.0"
