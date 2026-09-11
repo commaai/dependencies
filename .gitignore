@@ -29,6 +29,10 @@ gcc-arm-none-eabi/gcc_arm_none_eabi/toolchain/
 # downloaded git-lfs
 git-lfs/git_lfs/bin/
 
+# built git-xet and its build toolchain
+git-xet/git_xet/bin/
+git-xet/git_xet/toolchain/
+
 # downloaded mdbook
 mdbook/mdbook/bin/
 
