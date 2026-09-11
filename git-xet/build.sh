@@ -4,9 +4,10 @@ set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 cd "$DIR"
 
-VERSION="0.2.1"
-REVISION="23f68bb7987e1d9c337f89628b58161d1468870e"
-RUST_VERSION="1.93.1"
+VERSION="0.2.2.dev1"
+REVISION="3cb5b2bf8e34bca2423a29d3110bb03c22a4a581"
+SOURCE_URL="https://github.com/haraschax/xet-core.git"
+RUST_VERSION="1.95.0"
 INSTALL_DIR="$DIR/git_xet/bin"
 
 if [ -f "$INSTALL_DIR/LICENSE" ] && [ -f "$INSTALL_DIR/.version" ] && [ "$(cat "$INSTALL_DIR/.version")" = "$REVISION" ]; then
@@ -21,11 +22,12 @@ export PATH="$CARGO_HOME/bin:$PATH"
 if [ ! -x "$CARGO_HOME/bin/rustup" ]; then
   curl -fsSL https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal --default-toolchain "$RUST_VERSION"
 fi
+rustup toolchain install "$RUST_VERSION" --profile minimal
 
 if [ ! -d "xet-core-src/.git" ]; then
-  git clone --filter=blob:none --no-checkout https://github.com/huggingface/xet-core.git xet-core-src
+  git clone --filter=blob:none --no-checkout "$SOURCE_URL" xet-core-src
 fi
-git -C xet-core-src fetch --depth 1 origin "$REVISION"
+git -C xet-core-src fetch --depth 1 "$SOURCE_URL" "$REVISION"
 git -C xet-core-src checkout --force --detach FETCH_HEAD
 
 cd xet-core-src
