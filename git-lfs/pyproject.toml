@@ -5,14 +5,16 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "comma-deps-git-lfs"
 version = "3.6.1"
-description = "Git Large File Storage extension"
+description = "Git Large File Storage extension with native Xet transfers"
 requires-python = ">=3.12"
 
 [project.scripts]
 git-lfs = "git_lfs:_run"
+git-xet = "git_lfs:_run_xet"
 
-[tool.setuptools.packages.find]
-include = ["git_lfs*"]
+[tool.setuptools]
+packages = ["git_lfs"]
+include-package-data = false
 
 [tool.setuptools.package-data]
 git_lfs = ["bin/**/*"]
