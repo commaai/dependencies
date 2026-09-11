@@ -3,6 +3,7 @@ set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 cd "$DIR"
+bash "$DIR/build_xet.sh"
 
 VERSION="3.6.1"
 INSTALL_DIR="$DIR/git_lfs/bin"

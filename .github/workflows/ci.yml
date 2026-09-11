@@ -41,7 +41,7 @@ jobs:
           path: .ccache
       - uses: actions/cache@v6
         with:
-          key: downloads-${{ matrix.platform }}-${{ hashFiles('gcc-arm-none-eabi/build.sh', 'git-lfs/build.sh', 'git-xet/build.sh') }}
+          key: downloads-${{ matrix.platform }}-${{ hashFiles('gcc-arm-none-eabi/build.sh', 'git-lfs/build.sh', 'git-lfs/build_xet.sh') }}
           path: |
             .uv-cache
             */*/toolchain

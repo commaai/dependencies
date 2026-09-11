@@ -8,7 +8,6 @@ members = [
   "ffmpeg",
   "gcc-arm-none-eabi",
   "git-lfs",
-  "git-xet",
   "imgui",
   "json11",
   "libusb",

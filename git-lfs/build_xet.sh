@@ -4,20 +4,20 @@ set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 cd "$DIR"
 
-VERSION="0.2.2"
+VERSION="0.2.2-dev.1"
 REVISION="3cb5b2bf8e34bca2423a29d3110bb03c22a4a581"
 SOURCE_URL="https://github.com/haraschax/xet-core.git"
 RUST_VERSION="1.95.0"
-INSTALL_DIR="$DIR/git_xet/bin"
+INSTALL_DIR="$DIR/git_lfs/bin"
 
-if [ -f "$INSTALL_DIR/LICENSE" ] && [ -f "$INSTALL_DIR/.version" ] && [ "$(cat "$INSTALL_DIR/.version")" = "$REVISION" ]; then
+if [ -f "$INSTALL_DIR/XET_LICENSE" ] && [ -f "$INSTALL_DIR/.xet-version" ] && [ "$(cat "$INSTALL_DIR/.xet-version")" = "$REVISION" ]; then
   echo "git-xet $VERSION already present, skipping."
   exit 0
 fi
 
 # Build OpenSSL into the executable; upstream's Linux binaries require system OpenSSL 3.
-export CARGO_HOME="$DIR/git_xet/toolchain/cargo"
-export RUSTUP_HOME="$DIR/git_xet/toolchain/rustup"
+export CARGO_HOME="$DIR/git_lfs/toolchain/cargo"
+export RUSTUP_HOME="$DIR/git_lfs/toolchain/rustup"
 export PATH="$CARGO_HOME/bin:$PATH"
 if [ ! -x "$CARGO_HOME/bin/rustup" ]; then
   curl -fsSL https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal --default-toolchain "$RUST_VERSION"
@@ -36,7 +36,7 @@ CARGO_PROFILE_RELEASE_DEBUG=0 CARGO_PROFILE_RELEASE_STRIP=symbols \
 
 mkdir -p "$INSTALL_DIR"
 cp target/release/git-xet "$INSTALL_DIR/"
-cp LICENSE "$INSTALL_DIR/"
-echo "$REVISION" > "$INSTALL_DIR/.version"
+cp LICENSE "$INSTALL_DIR/XET_LICENSE"
+echo "$REVISION" > "$INSTALL_DIR/.xet-version"
 echo "Installed git-xet $VERSION to $INSTALL_DIR"
 du -sh "$INSTALL_DIR"
