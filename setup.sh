@@ -16,6 +16,15 @@ run_as_root() {
 
 if [ "$(uname)" = "Darwin" ]; then
   brew install nasm pkg-config ccache autoconf automake libtool
+elif [ "${MSYSTEM:-}" = "CLANG64" ]; then
+  pacman -S --needed --noconfirm \
+    "$MINGW_PACKAGE_PREFIX-toolchain" "$MINGW_PACKAGE_PREFIX-cmake" "$MINGW_PACKAGE_PREFIX-ninja" \
+    "$MINGW_PACKAGE_PREFIX-pkgconf" "$MINGW_PACKAGE_PREFIX-ccache" "$MINGW_PACKAGE_PREFIX-nasm" \
+    "$MINGW_PACKAGE_PREFIX-git" "$MINGW_PACKAGE_PREFIX-uv" \
+    make autotools patch  # native git: MSYS2's Cygwin-style git hands git-lfs POSIX paths it mis-resolves
+elif [ -n "${MSYSTEM:-}" ]; then
+  echo "error: the Windows wheels are built with clang, lld and libc++ from an MSYS2 CLANG64 shell, not $MSYSTEM" >&2
+  exit 1
 elif command -v dnf &>/dev/null; then
   dnf install -y \
     nasm cmake gcc-c++ pkgconfig git perl-IPC-Cmd ccache autoconf automake libtool \
