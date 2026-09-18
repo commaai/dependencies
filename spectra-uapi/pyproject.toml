@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "comma-deps-spectra-uapi"
+version = "1.0.0"
+description = "Pinned AGNOS and camera_kt Spectra camera headers"
+requires-python = ">=3.12"
+
+[tool.setuptools.packages.find]
+include = ["spectra_uapi*"]
+
+[tool.setuptools.package-data]
+spectra_uapi = ["install/**/*"]
