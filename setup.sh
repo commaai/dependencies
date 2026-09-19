@@ -15,16 +15,18 @@ run_as_root() {
 }
 
 if [ "$(uname)" = "Darwin" ]; then
-  brew install nasm pkg-config ccache autoconf automake libtool
+  brew install nasm pkg-config ccache autoconf automake libtool bison flex boost eigen
 elif command -v dnf &>/dev/null; then
   dnf install -y \
     nasm cmake gcc-c++ pkgconfig git perl-IPC-Cmd ccache autoconf automake libtool \
+    bison flex boost-devel boost-static eigen3-devel glibc-static libstdc++-static \
     libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel \
     mesa-libGL-devel libdrm-devel mesa-libgbm-devel mesa-libEGL-devel mesa-libGLES-devel
 elif command -v apt-get &>/dev/null; then
   run_as_root apt-get update
   run_as_root apt-get install -y \
     nasm cmake g++ pkg-config curl ccache autoconf automake libtool \
+    bison flex libboost-program-options-dev libboost-iostreams-dev libboost-thread-dev libeigen3-dev \
     libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libgl-dev \
     libdrm-dev libgbm-dev libgles2-mesa-dev libegl1-mesa-dev
 fi

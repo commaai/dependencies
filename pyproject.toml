@@ -13,6 +13,7 @@ members = [
   "libusb",
   "ncurses",
   "raylib",
+  "yosys",
   "zeromq",
   "zstd",
 ]
