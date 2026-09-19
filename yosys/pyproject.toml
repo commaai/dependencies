@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64", "wheel", "cmake>=3.25,<4", "apycula==0.33"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "comma-deps-yosys"
+version = "0.63"
+description = "Yosys and nextpnr toolchain for Gowin 5-series FPGAs"
+requires-python = ">=3.12"
+dependencies = ["apycula==0.33"]
+
+[project.scripts]
+yosys = "yosys:_run_yosys"
+nextpnr-himbaechel = "yosys:_run_nextpnr"
+
+[tool.setuptools]
+packages = ["yosys"]
+
+[tool.setuptools.package-data]
+yosys = ["install/**/*"]
