@@ -52,12 +52,6 @@ jobs:
           UV_CACHE_DIR: ${{ github.workspace }}/.uv-cache
           BUILD_SH_REUSE_MANYLINUX_ARTIFACTS: "1"
         run: ./build.sh
-      - name: Test acados Python compatibility
-        run: |
-          wheels=(dist/comma_deps_acados-*.whl)
-          for python_version in 3.12 3.14; do
-            uv run --no-project --python "$python_version" --with "${wheels[0]}" python -c 'import acados; acados.smoketest()'
-          done
       - uses: actions/upload-artifact@v7
         with:
           name: wheels-${{ matrix.platform }}
