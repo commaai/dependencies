@@ -57,7 +57,7 @@ cd "$DIR"
 if [ "$PLATFORM" = "Linux" ]; then
   if [ ! -d "nv-codec-headers-src/.git" ]; then
     rm -rf nv-codec-headers-src
-    git clone --depth 1 https://git.videolan.org/git/ffmpeg/nv-codec-headers.git nv-codec-headers-src
+    git clone --depth 1 https://github.com/FFmpeg/nv-codec-headers.git nv-codec-headers-src
   fi
   make -C nv-codec-headers-src PREFIX="$PREFIX" install
 fi

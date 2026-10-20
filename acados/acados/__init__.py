@@ -27,16 +27,12 @@ def smoketest():
   assert os.path.isfile(os.path.join(TEMPLATE_DIR, "acados_layout.json"))
   assert os.path.isdir(os.path.join(TEMPLATE_DIR, "c_templates_tera"))
 
-  # the vendored slim casadi shipped in this wheel is built against cpython 3.12
-  # and pulls in numpy; only exercise it when both are available (real consumers
-  # like openpilot install via the shim, which declares numpy as a dep).
+  # The vendored stable-ABI CasADi extension works across supported Python versions.
+  # It imports numpy, which consumers install through the package dependencies.
   try:
     import numpy  # noqa: F401
   except ImportError:
     return
-  if sys.version_info[:2] != (3, 12):
-    return
-
   from casadi import SX, MX, DM, Function, CasadiMeta, vertcat, jacobian, sin, cos, n_nodes  # noqa: F401
 
   x = SX.sym("x")

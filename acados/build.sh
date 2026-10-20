@@ -9,7 +9,7 @@ VERSION="8af9b0ad180940ef611884574a0b27a43504311d"
 INSTALL_DIR="$DIR/acados/install"
 TEMPLATE_DIR="$DIR/acados/acados_template"
 CASADI_DIR="$DIR/casadi"
-CASADI_VERSION="3.6.7"
+CASADI_VERSION="3.8.1"
 
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
 
@@ -105,19 +105,19 @@ fi
 
 cd "$DIR"
 
-# vendor a slim casadi: install the upstream wheel into a throwaway cp312 venv
-# (uv resolves the right platform wheel automatically), then move the casadi/
-# tree out and slim it.
+# Vendor the stable-ABI CasADi wheel, which supports Python 3.12 and newer.
+# Install into a throwaway venv, then move the casadi/ tree out and slim it.
 echo "vendoring casadi $CASADI_VERSION ..."
 rm -rf "$CASADI_DIR" casadi-venv
 uv venv --python 3.12 --quiet casadi-venv
 uv pip install --python casadi-venv/bin/python --no-deps --quiet "casadi==$CASADI_VERSION"
 mv casadi-venv/lib/python3.12/site-packages/casadi "$CASADI_DIR"
 rm -rf casadi-venv
+mv "$CASADI_DIR/_casadi.so" "$CASADI_DIR/_casadi.abi3.so"
 
 # drop everything except the bits openpilot actually needs:
 #   - __init__.py, casadi.py, tools/  (Python wrapper)
-#   - _casadi.so                       (CPython extension; same name on linux+darwin)
+#   - _casadi.abi3.so                  (stable-ABI extension)
 #   - libcasadi.{so,dylib}*            (the C++ runtime that _casadi.so links to)
 # openpilot only uses symbolic SX/MX/Function/jacobian etc., which live in
 # libcasadi + _casadi. Solver plugins (conic_*, nlpsol_*, integrator_*, ...)
@@ -126,7 +126,7 @@ rm -rf casadi-venv
 cd "$CASADI_DIR"
 shopt -s extglob
 # libc++.*.dylib only exists on darwin and is needed by _casadi.so via @rpath
-rm -rf !(__init__.py|casadi.py|_casadi.so|tools|libcasadi.*|libc++.*)
+rm -rf !(__init__.py|casadi.py|_casadi.abi3.so|tools|libcasadi.*|libc++.*)
 shopt -u extglob
 
 cd "$DIR"
