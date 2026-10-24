@@ -26,18 +26,6 @@ we target the following platforms:
 
 contributions welcome for other platforms!
 
-<!--
-## packages
-
-| package           | description                                                              |
-|-------------------|--------------------------------------------------------------------------|
-| gcc-arm-none-eabi | builds [panda](https://github.com/commaai/panda) firmware for STM32 MCUs |
-| capnproto         | message serialization for openpilot                                      |
-| ffmpeg            | video encode and decode for openpilot                                    |
-| git-lfs           | for tracking large files in openpilot                                    |
-| zeromq            | bridging the openpilot IPC between different hosts                       |
--->
-
 ## usage
 
 pre-built wheels are published to PyPI under the `comma-deps-` prefix. the import name

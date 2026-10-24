@@ -13,6 +13,5 @@ members = [
   "libusb",
   "ncurses",
   "raylib",
-  "zeromq",
   "zstd",
 ]
