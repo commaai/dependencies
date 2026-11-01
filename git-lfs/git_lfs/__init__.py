@@ -13,3 +13,9 @@ def smoketest():
   import subprocess
   binary = os.path.join(BIN_DIR, "git-lfs")
   subprocess.run([binary, "--version"], check=True)
+  subprocess.run([os.path.join(BIN_DIR, "git-xet"), "--version"], check=True)
+
+
+def _run_xet():
+  binary = os.path.join(BIN_DIR, "git-xet")
+  os.execvp(binary, [binary] + sys.argv[1:])

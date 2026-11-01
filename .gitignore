@@ -29,6 +29,9 @@ gcc-arm-none-eabi/gcc_arm_none_eabi/toolchain/
 # downloaded git-lfs
 git-lfs/git_lfs/bin/
 
+# build toolchain for the Xet transfer agent
+git-lfs/git_lfs/toolchain/
+
 # downloaded mdbook
 mdbook/mdbook/bin/
 

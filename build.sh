@@ -56,7 +56,7 @@ if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
     dnf install -y -q \
       libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel \
       mesa-libGL-devel mesa-libEGL-devel mesa-libGLES-devel bison flex \
-      wayland-devel wayland-protocols-devel libxkbcommon-devel
+      wayland-devel wayland-protocols-devel libxkbcommon-devel perl-Time-Piece
   fi
 fi
 
