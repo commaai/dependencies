@@ -1,5 +1,7 @@
 import importlib
 import os
+import subprocess
+import sys
 
 from ._backend import BACKEND_ARCHIVES, BACKEND_CFFI_MODULES, HEADLESS, detect_backend, host_backends
 from .version import __version__
@@ -19,6 +21,17 @@ def _expected_archives():
 
 
 def smoketest():
+  subprocess.check_call([sys.executable, "-c", """
+import raylib_nb as rl
+assert rl.check_collision_point_rec(rl.Vector2(1, 1), rl.Rectangle(0, 0, 2, 2))
+import os
+if os.environ["RAYLIB_BACKEND"] == "headless":
+  rl.init_window(64, 64, "nanobind smoketest")
+  rl.begin_drawing()
+  rl.clear_background(rl.BLACK)
+  rl.end_drawing()
+  rl.close_window()
+"""], env=dict(os.environ, RAYLIB_BACKEND=_BACKEND))
   assert ffi is not None
   assert rl is not None
   for header in ("raylib.h", "raymath.h", "rlgl.h"):
