@@ -30,7 +30,7 @@ case "$RAYLIB_BACKEND" in
 esac
 
 # Clone and build raylib C library
-RAYLIB_COMMIT="caa64e15ac20a47804a8048029c921ac091fef12"
+RAYLIB_COMMIT="4ccc0b9d4e62513d1d70381b863f6d1ae1dac382"
 MESA_VERSION="26.2.1"
 LLVM_VERSION="22.1.8"
 
