@@ -64,6 +64,9 @@ export CMAKE_C_COMPILER_LAUNCHER=ccache
 export CMAKE_CXX_COMPILER_LAUNCHER=ccache
 export CCACHE_DIR="${CCACHE_DIR:-$ROOT_DIR/.ccache}"
 
+# MSYS2 puts its own mingw CPython first on PATH; the wheels target the MSVC CPython that uv manages
+case "$(uname -s)" in MINGW*|MSYS*) export UV_PYTHON="${UV_PYTHON:-3.12}" ;; esac
+
 restore_build_versions() {
   python3 build_versions.py restore */pyproject.toml
 }
@@ -95,12 +98,14 @@ echo
 echo "Running smoketests"
 
 uv venv --allow-existing --quiet "$VENV_DIR"
-uv pip install --python "$VENV_DIR/bin/python" --quiet "cffi>=1.17.1" >/dev/null
-uv pip install --python "$VENV_DIR/bin/python" --reinstall --no-deps --quiet dist/*.whl >/dev/null
+VENV_PYTHON="$VENV_DIR/bin/python"
+[[ -e "$VENV_PYTHON" ]] || VENV_PYTHON="$VENV_DIR/Scripts/python.exe"  # Windows venv layout
+uv pip install --python "$VENV_PYTHON" --quiet "cffi>=1.17.1" >/dev/null
+uv pip install --python "$VENV_PYTHON" --reinstall --no-deps --quiet dist/*.whl >/dev/null
 
 for toml in */pyproject.toml; do
   module="$(basename "$(dirname "$toml")" | tr '-' '_')"
-  "$VENV_DIR/bin/python" -c "import $module; $module.smoketest()" >/dev/null
+  "$VENV_PYTHON" -c "import $module; $module.smoketest()" >/dev/null
 done
 
 du -hs dist/* | sort -hr
