@@ -7,7 +7,6 @@ members = [
   "eigen",
   "ffmpeg",
   "gcc-arm-none-eabi",
-  "git-lfs",
   "imgui",
   "json11",
   "libusb",
