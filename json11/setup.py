@@ -16,7 +16,8 @@ class BuildJson11(build_py):
   def run(self):
     pkg_dir = os.path.dirname(os.path.abspath(__file__))
     build_script = os.path.join(pkg_dir, "build.sh")
-    subprocess.check_call(["bash", build_script], cwd=pkg_dir)
+    if "json11" not in os.environ.get("DEPENDENCIES_PREBUILT", "").split(","):
+      subprocess.check_call(["bash", build_script], cwd=pkg_dir)
 
     super().run()
 

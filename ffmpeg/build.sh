@@ -7,9 +7,11 @@ cd "$DIR"
 PLATFORM="$(uname -s)"
 FFMPEG_VERSION="7.1"
 ZLIB_VERSION="da607da739fa6047df13e66a2af6b8bec7c2a498"  # v1.3.2
-X264_BRANCH="stable"
+X264_VERSION="b35605ace3ddf7c1a5d67a2eb553f034aef41d55"  # stable
 LIBDRM_VERSION="libdrm-2.4.124"
 LIBVA_VERSION="2.22.0"
+NV_CODEC_HEADERS_VERSION="f2053071ea93137255b6dcf42e9b4c9e0965a44e"
+VULKAN_HEADERS_VERSION="88487f687f3100ebe1d3559a8a34d971ee85b977"
 INSTALL_DIR="$DIR/ffmpeg/install"
 
 NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
@@ -22,7 +24,8 @@ mkdir -p "$PREFIX"
 # --- Build zlib (static) ---
 if [ ! -d "zlib-src/.git" ]; then
   rm -rf zlib-src
-  git clone --depth 1 https://github.com/madler/zlib.git zlib-src
+  git init zlib-src
+  git -C zlib-src remote add origin https://github.com/madler/zlib.git
 fi
 git -C zlib-src fetch --depth 1 origin "$ZLIB_VERSION"
 git -C zlib-src checkout --force "$ZLIB_VERSION"
@@ -36,9 +39,10 @@ cd "$DIR"
 # --- Build x264 (static) ---
 if [ ! -d "x264-src/.git" ]; then
   rm -rf x264-src
-  git clone --depth 1 https://code.videolan.org/videolan/x264.git x264-src
+  git init x264-src
+  git -C x264-src remote add origin https://code.videolan.org/videolan/x264.git
 fi
-git -C x264-src fetch --depth 1 origin "$X264_BRANCH"
+git -C x264-src fetch --depth 1 origin "$X264_VERSION"
 git -C x264-src checkout --force FETCH_HEAD
 
 cd x264-src
@@ -59,6 +63,8 @@ if [ "$PLATFORM" = "Linux" ]; then
     rm -rf nv-codec-headers-src
     git clone --depth 1 https://git.videolan.org/git/ffmpeg/nv-codec-headers.git nv-codec-headers-src
   fi
+  git -C nv-codec-headers-src fetch --depth 1 origin "$NV_CODEC_HEADERS_VERSION"
+  git -C nv-codec-headers-src checkout --force FETCH_HEAD
   make -C nv-codec-headers-src PREFIX="$PREFIX" install
 fi
 
@@ -68,6 +74,8 @@ if [ "$PLATFORM" = "Linux" ]; then
     rm -rf vulkan-headers-src
     git clone --depth 1 https://github.com/KhronosGroup/Vulkan-Headers.git vulkan-headers-src
   fi
+  git -C vulkan-headers-src fetch --depth 1 origin "$VULKAN_HEADERS_VERSION"
+  git -C vulkan-headers-src checkout --force FETCH_HEAD
   cmake -S vulkan-headers-src -B vulkan-headers-src/build -DCMAKE_INSTALL_PREFIX="$PREFIX" >/dev/null
   cmake --install vulkan-headers-src/build >/dev/null
 fi
@@ -109,7 +117,8 @@ fi
 # --- Build FFmpeg ---
 if [ ! -d "ffmpeg-src/.git" ]; then
   rm -rf ffmpeg-src
-  git clone --depth 1 https://github.com/FFmpeg/FFmpeg.git ffmpeg-src
+  git init ffmpeg-src
+  git -C ffmpeg-src remote add origin https://github.com/FFmpeg/FFmpeg.git
 fi
 git -C ffmpeg-src fetch --depth 1 origin "n${FFMPEG_VERSION}"
 git -C ffmpeg-src checkout --force FETCH_HEAD
@@ -164,10 +173,13 @@ elif [ "$PLATFORM" = "Darwin" ]; then
   )
 fi
 
+# fixed probe paths keep configure's test compiles cacheable by ccache
+HOSTNAME=ffmpeg \
 PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
 LDEXEFLAGS="$FFMPEG_LDEXEFLAGS" \
 LDSOFLAGS="$FFMPEG_LDSOFLAGS" \
 ./configure \
+  --tempprefix=./ffconf \
   --cc="${CC:-cc}" \
   --prefix="$PREFIX" \
   --enable-gpl \
@@ -194,7 +206,7 @@ LDSOFLAGS="$FFMPEG_LDSOFLAGS" \
   "${LOADER_FLAGS[@]}" \
   "${HW_FLAGS[@]}"
 make -j"$NJOBS"
-make install
+make -j"$NJOBS" install
 cd "$DIR"
 
 # Copy to package install dir

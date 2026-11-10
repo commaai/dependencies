@@ -40,7 +40,7 @@ curl -fSL -o "$TARBALL" "$URL"
 
 # Extract (use Python's lzma to avoid requiring xz-utils on the host)
 echo "Extracting ..."
-python3 -c "import lzma, tarfile; tarfile.open(fileobj=lzma.open('$TARBALL')).extractall()"
+python3 -c "import lzma, tarfile; tarfile.open(fileobj=lzma.open('$TARBALL'), mode='r|').extractall()"
 EXTRACT_DIR=$(ls -d arm-gnu-toolchain-*-${PLATFORM_SUFFIX}-arm-none-eabi)
 
 SRC="$DIR/$EXTRACT_DIR"

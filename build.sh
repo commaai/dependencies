@@ -12,24 +12,42 @@ fi
 USE_MANYLINUX="${MANYLINUX:-0}"
 
 if [[ -z "${BUILD_SH_IN_MANYLINUX:-}" ]] && ! command -v uv >/dev/null 2>&1; then
-  ./setup.sh
+  if [[ "$USE_MANYLINUX" == "1" ]]; then
+    ./setup.sh --uv-only
+  else
+    ./setup.sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
 fi
 
 if [[ "$USE_MANYLINUX" == "1" && -z "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
   UV_BIN="$(command -v uv)"
+  # pinned so the image (and everything cached against it) doesn't change under us daily
+  MANYLINUX_IMAGE="${MANYLINUX_IMAGE:-quay.io/pypa/manylinux_2_28_$(uname -m):2026.11.07-1}"
+  # a git worktree's .git points outside the repo, so mount both at their host paths
+  WORK=/work
+  GIT_MOUNT=()
+  GIT_COMMON_DIR="$(git rev-parse --path-format=absolute --git-common-dir)"
+  if [[ "$GIT_COMMON_DIR" != "$ROOT_DIR/.git" ]]; then
+    WORK="$ROOT_DIR"
+    GIT_MOUNT=(-v "$GIT_COMMON_DIR:$GIT_COMMON_DIR:ro")
+  fi
   docker run --rm \
     -e BUILD_SH_IN_MANYLINUX=1 \
+    -e DEPENDENCIES_NATIVE_CACHE="${DEPENDENCIES_NATIVE_CACHE:-}" \
+    -e DEPENDENCIES_BUILDER_ID="$MANYLINUX_IMAGE" \
     -e BUILD_SH_REUSE_MANYLINUX_ARTIFACTS="${BUILD_SH_REUSE_MANYLINUX_ARTIFACTS:-}" \
     -e BUILD_SH_HOST_UID="$(id -u)" \
     -e BUILD_SH_HOST_GID="$(id -g)" \
     -e HOME=/tmp \
-    -e UV_CACHE_DIR=/work/.uv-cache \
-    -e CCACHE_DIR=/work/.ccache \
+    -e UV_CACHE_DIR="$WORK/.uv-cache" \
+    -e CCACHE_DIR="$WORK/.ccache" \
     -e UV_PYTHON=/opt/python/cp312-cp312/bin/python3 \
-    -v "$ROOT_DIR:/work" \
+    -v "$ROOT_DIR:$WORK" \
     -v "$UV_BIN:/usr/local/bin/uv:ro" \
-    -w /work \
-    "quay.io/pypa/manylinux_2_28_$(uname -m)" \
+    "${GIT_MOUNT[@]}" \
+    -w "$WORK" \
+    "$MANYLINUX_IMAGE" \
     bash build.sh
   exit 0
 fi
@@ -40,8 +58,6 @@ if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
   # cached *-src repos may be owned by the host runner user; tell git to trust them
   git config --global --add safe.directory '*'
 
-  ./setup.sh
-
   if [[ -z "${BUILD_SH_REUSE_MANYLINUX_ARTIFACTS:-}" ]]; then
     for toml in */pyproject.toml; do
       pkg="${toml%/pyproject.toml}"
@@ -49,14 +65,21 @@ if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
       rm -rf "$pkg/$module/install" "$pkg/$module/toolchain" "$pkg/$module/bin"
     done
   fi
+fi
 
-  # Install all manylinux system deps upfront — individual build.sh scripts
-  # run in parallel via uv, so concurrent dnf calls would race on the cache.
-  if command -v dnf &>/dev/null; then
-    dnf install -y -q \
-      libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel \
-      mesa-libGL-devel mesa-libEGL-devel \
-      wayland-devel wayland-protocols-devel libxkbcommon-devel
+# CI only: reuse native build outputs of packages whose inputs haven't changed
+unset DEPENDENCIES_PREBUILT
+if [[ -n "${DEPENDENCIES_NATIVE_CACHE:-}" ]]; then
+  DEPENDENCIES_PREBUILT="$(python3 build_native_cache.py restore "$DEPENDENCIES_NATIVE_CACHE")"
+  export DEPENDENCIES_PREBUILT
+fi
+
+# build deps are only needed if something actually gets built
+if [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
+  PACKAGES=(*/pyproject.toml)
+  IFS=, read -ra PREBUILT <<< "${DEPENDENCIES_PREBUILT:-}"
+  if [[ "${#PREBUILT[@]}" -ne "${#PACKAGES[@]}" ]]; then
+    ./setup.sh
   fi
 fi
 
@@ -102,6 +125,10 @@ for toml in */pyproject.toml; do
   module="$(basename "$(dirname "$toml")" | tr '-' '_')"
   "$VENV_DIR/bin/python" -c "import $module; $module.smoketest()" >/dev/null
 done
+
+if [[ -n "${DEPENDENCIES_NATIVE_CACHE:-}" ]]; then
+  python3 build_native_cache.py save "$DEPENDENCIES_NATIVE_CACHE"
+fi
 
 du -hs dist/* | sort -hr
 

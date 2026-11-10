@@ -79,7 +79,7 @@ def build_ffi():
       '-framework', 'CoreFoundation',
       '-framework', 'CoreVideo',
     ]
-    extra_compile_args = ["-Wno-error=incompatible-function-pointer-types"]
+    extra_compile_args = ["-g0", "-Wno-error=incompatible-function-pointer-types"]
   else:
     print("BUILDING FOR LINUX")
     extra_link_args = [
@@ -87,7 +87,7 @@ def build_ffi():
       '-lm', '-lpthread', '-lrt', '-ldl', '-latomic',
       *BACKEND_LINK_ARGS[RAYLIB_BACKEND],
     ]
-    extra_compile_args = ["-Wno-incompatible-pointer-types"]
+    extra_compile_args = ["-g0", "-Wno-incompatible-pointer-types"]
 
   print("extra_link_args: " + str(extra_link_args))
   ffibuilder.set_source(RAYLIB_CFFI_MODULE,
