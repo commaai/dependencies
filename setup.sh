@@ -14,19 +14,29 @@ run_as_root() {
   fi
 }
 
-if [ "$(uname)" = "Darwin" ]; then
+if [[ "${1:-}" == "--uv-only" ]]; then
+  : # e.g. the host side of a MANYLINUX=1 build; everything else happens in the container
+elif [[ -n "${BUILD_SH_IN_MANYLINUX:-}" ]]; then
+  # the manylinux image already has the compilers, cmake, git, autotools, and GL/DRM headers
+  packages=(ccache libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel
+            wayland-devel wayland-protocols-devel libxkbcommon-devel)
+  [[ "$(uname -m)" != "x86_64" ]] || packages+=(nasm)
+  dnf install -y -q "${packages[@]}"
+elif [ "$(uname)" = "Darwin" ]; then
   brew install nasm pkg-config ccache autoconf automake libtool
 elif command -v dnf &>/dev/null; then
   dnf install -y \
     nasm cmake gcc-c++ pkgconfig git perl-IPC-Cmd ccache autoconf automake libtool \
     libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel \
-    mesa-libGL-devel libdrm-devel mesa-libEGL-devel
+    mesa-libGL-devel libdrm-devel mesa-libEGL-devel \
+    wayland-devel wayland-protocols-devel libxkbcommon-devel
 elif command -v apt-get &>/dev/null; then
   run_as_root apt-get update
   run_as_root apt-get install -y \
     nasm cmake g++ pkg-config curl ccache autoconf automake libtool \
     libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libgl-dev \
-    libdrm-dev libegl1-mesa-dev
+    libdrm-dev libegl1-mesa-dev \
+    libwayland-dev wayland-protocols libxkbcommon-dev
 fi
 
 if ! command -v uv &>/dev/null; then

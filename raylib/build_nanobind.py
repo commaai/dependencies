@@ -29,7 +29,7 @@ setup(
     include_dirs=[str(SOURCE / "src"), str(NB / "include"), str(NB / "ext" / "robin_map" / "include")],
     define_macros=[("RAYLIB_MODULE", f"_raylib_{BACKEND}"), ("Py_LIMITED_API", "0x030C0000")],
     extra_objects=[str(LIB / BACKEND_ARCHIVES[BACKEND])],
-    extra_compile_args=["-std=c++17", "-fvisibility=hidden"],
+    extra_compile_args=["-g0", "-std=c++17", "-fvisibility=hidden"],
     extra_link_args=link_args,
     py_limited_api=True,
     language="c++",

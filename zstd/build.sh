@@ -19,9 +19,12 @@ git -C zstd-src checkout --force FETCH_HEAD
 
 # Build
 PREFIX="$DIR/build/prefix"
-mkdir -p "$DIR/build"
+# not $DIR/build itself: zstd's CMake tree has a lib/ dir that would collide with
+# setuptools' build/lib and get packaged into the wheel
+BUILD_DIR="$DIR/build/cmake"
+mkdir -p "$BUILD_DIR"
 
-cmake -S zstd-src/build/cmake -B "$DIR/build" \
+cmake -S zstd-src/build/cmake -B "$BUILD_DIR" \
   -DCMAKE_BUILD_TYPE=MinSizeRel \
   -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \
@@ -34,8 +37,8 @@ cmake -S zstd-src/build/cmake -B "$DIR/build" \
   -DZSTD_BUILD_SHARED=OFF \
   -DZSTD_BUILD_STATIC=ON
 
-cmake --build "$DIR/build" -j"$NJOBS"
-cmake --install "$DIR/build"
+cmake --build "$BUILD_DIR" -j"$NJOBS"
+cmake --install "$BUILD_DIR"
 
 # Copy to package install dir
 rm -rf "$INSTALL_DIR"

@@ -27,6 +27,7 @@ fi
 
 ACADOS_FLAGS=(
   -DACADOS_WITH_QPOASES=ON
+  -DBLASFEO_EXAMPLES=OFF
   -UBLASFEO_TARGET
   -DBLASFEO_TARGET="$BLAS_TARGET"
   -DACADOS_INSTALL_DIR="$INSTALL_DIR"
@@ -47,14 +48,19 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   )
 fi
 
-# clone/update source
+# Fetch only the pinned source and the dependencies enabled above.
 if [ ! -d "acados-src/.git" ]; then
   rm -rf acados-src
-  git clone https://github.com/acados/acados.git acados-src
+  git init acados-src
+  git -C acados-src remote add origin https://github.com/acados/acados.git
 fi
-git -C acados-src fetch --all --tags
-git -C acados-src checkout --force "$VERSION"
-git -C acados-src submodule update --init --recursive --depth=1
+if ! git -C acados-src cat-file -e "$VERSION^{commit}" 2>/dev/null; then
+  git -C acados-src fetch --depth=1 origin "$VERSION"
+fi
+git -C acados-src checkout --force --detach "$VERSION"
+git -C acados-src submodule update --init --depth=1 -- \
+  external/blasfeo external/hpipm external/qpoases \
+  interfaces/acados_template/tera_renderer
 
 # build acados
 mkdir -p build

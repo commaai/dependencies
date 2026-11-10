@@ -37,3 +37,6 @@ acados/acados/acados_template/
 acados/casadi/
 acados/casadi-venv/
 acados/casadi-wheel/
+
+# CI cache of native build outputs (build_native_cache.py)
+.native-cache/

@@ -4,6 +4,7 @@ import platform
 import shutil
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from importlib.metadata import distribution
 from pathlib import Path
 
@@ -26,14 +27,19 @@ class BuildRaylib(build_py):
     env["RAYLIB_CFFI_MODULE"] = f"raylib.{BACKEND_CFFI_MODULES[backend]}"
     subprocess.check_call([sys.executable, "build_cffi.py"], cwd=PKG_DIR, env=env)
 
+  @staticmethod
+  def _build_nanobind_backend(backend):
+    env = dict(os.environ, RAYLIB_BACKEND=backend)
+    subprocess.check_call([sys.executable, "build_nanobind.py", "build_ext", "--inplace", "--force",
+                           "--build-temp", os.path.join("build", f"temp-nanobind-{backend}")], cwd=PKG_DIR, env=env)
+
   def _build_nanobind(self, backends):
     source = Path(PKG_DIR) / "raylib-src"
     package = source / "python" / "raylib_nb"
     for old in package.glob("_raylib*.so"):
       old.unlink()
-    for backend in backends:
-      env = dict(os.environ, RAYLIB_BACKEND=backend)
-      subprocess.check_call([sys.executable, "build_nanobind.py", "build_ext", "--inplace", "--force"], cwd=PKG_DIR, env=env)
+    with ThreadPoolExecutor(len(backends)) as pool:
+      list(pool.map(self._build_nanobind_backend, backends))
     target = Path(self.build_lib) / "raylib_nb"
     shutil.copytree(package, target, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     notices = target / "licenses"
@@ -49,15 +55,18 @@ class BuildRaylib(build_py):
     subprocess.check_call([sys.executable, "-m", "unittest", "discover", "-s", str(source / "python" / "tests"), "-v"], env=env)
 
   def run(self):
-    subprocess.check_call(["bash", "build.sh"], cwd=PKG_DIR)
+    # CI's native cache (build_native_cache.py) already restored the compiled artifacts
+    prebuilt = "raylib" in os.environ.get("DEPENDENCIES_PREBUILT", "").split(",")
+    if not prebuilt:
+      subprocess.check_call(["bash", "build.sh"], cwd=PKG_DIR)
 
-    # Always regenerate CFFI extensions: the cached raylib source pin may have changed.
-    for old_cffi in glob.glob(os.path.join(PKG_DIR, "raylib", "_raylib_cffi*")):
-      os.remove(old_cffi)
-    # explicit RAYLIB_BACKEND builds only that backend (matches build.sh)
-    backends = (detect_backend(),) if os.environ.get("RAYLIB_BACKEND") else host_backends()
-    for backend in backends:
-      self._build_cffi(backend)
+      # Always regenerate CFFI extensions: the cached raylib source pin may have changed.
+      for old_cffi in glob.glob(os.path.join(PKG_DIR, "raylib", "_raylib_cffi*")):
+        os.remove(old_cffi)
+      # explicit RAYLIB_BACKEND builds only that backend (matches build.sh)
+      backends = (detect_backend(),) if os.environ.get("RAYLIB_BACKEND") else host_backends()
+      with ThreadPoolExecutor(len(backends)) as pool:
+        list(pool.map(self._build_cffi, backends))
 
     # Wipe build_lib package dirs so deleted/renamed files (e.g. old _raylib_cffi*
     # backends, removed modules) don't get packaged from the cached build/ tree.
@@ -65,7 +74,15 @@ class BuildRaylib(build_py):
       shutil.rmtree(os.path.join(self.build_lib, package), ignore_errors=True)
 
     super().run()
-    self._build_nanobind(backends)
+
+    # raylib_nb/ in the package dir holds the last built nanobind package for the native cache
+    nb_cache = Path(PKG_DIR) / "raylib_nb"
+    if prebuilt:
+      shutil.copytree(nb_cache, Path(self.build_lib) / "raylib_nb")
+    else:
+      self._build_nanobind(backends)
+      shutil.rmtree(nb_cache, ignore_errors=True)
+      shutil.copytree(Path(self.build_lib) / "raylib_nb", nb_cache)
 
 
 class PlatformWheel(bdist_wheel):

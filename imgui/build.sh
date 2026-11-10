@@ -39,19 +39,6 @@ fi
 git -C glfw-src fetch --depth 1 origin "$GLFW_COMMIT"
 git -C glfw-src checkout --force "$GLFW_COMMIT"
 
-# Install GLFW build dependencies (manylinux deps installed centrally in build.sh)
-if [[ "$(uname)" == "Linux" ]]; then
-  if command -v apt-get &>/dev/null; then
-    if [ "$(id -u)" -eq 0 ]; then
-      apt-get update && apt-get install -y libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libgl-dev \
-                                           libwayland-dev wayland-protocols libxkbcommon-dev
-    else
-      sudo apt-get update && sudo apt-get install -y libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libgl-dev \
-                                                     libwayland-dev wayland-protocols libxkbcommon-dev
-    fi
-  fi
-fi
-
 # Build GLFW static library
 cmake -B glfw-src/build -S glfw-src \
   -DCMAKE_BUILD_TYPE=Release \
@@ -95,7 +82,7 @@ IMGUI_SRCS=(
 OBJ_DIR="$(mktemp -d)"
 for src in "${IMGUI_SRCS[@]}"; do
   obj="$OBJ_DIR/$(basename "${src%.cpp}.o")"
-  c++ -c -O2 -fPIC -I"$INSTALL_DIR/include" "$src" -o "$obj" &
+  ccache ${CXX:-c++} -c -O2 -fPIC -I"$INSTALL_DIR/include" "$src" -o "$obj" &
 done
 wait
 ar rcs "$INSTALL_DIR/lib/libimgui.a" "$OBJ_DIR"/*.o
