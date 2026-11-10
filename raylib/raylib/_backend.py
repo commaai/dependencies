@@ -19,10 +19,11 @@ BACKEND_ARCHIVES = {
   HEADLESS: "libraylib_headless.a",
 }
 
+# every backend draws on the CPU. desktop's RGFW window still links GL, though nothing draws with it
 BACKEND_LINK_ARGS = {
-  DESKTOP: ("-lGL", "-lX11"),
-  COMMA: ("-lGLESv2", "-lEGL", "-lgbm", "-ldrm"),
-  HEADLESS: ("-lGLESv2", "-lEGL", "-Wl,-rpath,$ORIGIN/install/lib"),
+  DESKTOP: ("-lGL", "-lX11", "-lXrandr"),
+  COMMA: ("-ldrm",),
+  HEADLESS: (),
 }
 
 COMMA_DEVICE_MARKERS = ("/AGNOS", "/TICI")
@@ -31,7 +32,7 @@ COMMA_DEVICE_MARKERS = ("/AGNOS", "/TICI")
 def host_backends():
   """Backends built into this host's wheels."""
   if platform.system() != "Linux":
-    return (DESKTOP,)  # headless needs EGL, which macOS doesn't have
+    return (DESKTOP,)
   if platform.machine() in ("aarch64", "arm64"):
     return (DESKTOP, COMMA, HEADLESS)
   return (DESKTOP, HEADLESS)

@@ -45,7 +45,7 @@ class BuildRaylib(build_py):
     (notices / "LICENSE.robin-map").write_text(header.read_text().split("*/", 1)[0] + "*/\n")
     env = dict(os.environ, PYTHONPATH=str(Path(self.build_lib).resolve()),
                RAYLIB_BACKEND="headless" if platform.system() == "Linux" and "headless" in backends else backends[0],
-               EGL_PLATFORM="surfaceless", RAYLIB_TEST_RENDER="1" if platform.system() == "Linux" else "0")
+               RAYLIB_TEST_RENDER="1" if platform.system() == "Linux" else "0")
     subprocess.check_call([sys.executable, "-m", "unittest", "discover", "-s", str(source / "python" / "tests"), "-v"], env=env)
 
   def run(self):
