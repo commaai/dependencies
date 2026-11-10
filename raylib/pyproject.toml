@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=70.1", "cffi>=1.17.1", "nanobind==3.1.0", "meson", "ninja", "mako", "pyyaml"]
+requires = ["setuptools>=70.1", "cffi>=1.17.1", "nanobind==3.1.0", "numpy"]  # numpy for raylib_nb's tests
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -17,4 +17,4 @@ include = ["raylib", "pyray"]
 namespaces = false
 
 [tool.setuptools.package-data]
-raylib = ["_raylib_cffi*.so", "install/include/*.h", "install/lib/*.a", "install/lib/*.so*"]
+raylib = ["_raylib_cffi*.so", "install/include/*.h", "install/lib/*.a"]

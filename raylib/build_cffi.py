@@ -83,7 +83,7 @@ def build_ffi():
   else:
     print("BUILDING FOR LINUX")
     extra_link_args = [
-      raylib_archive, f'-L{RAYLIB_LIB_PATH}', '-Wl,--as-needed',
+      raylib_archive,
       '-lm', '-lpthread', '-lrt', '-ldl', '-latomic',
       *BACKEND_LINK_ARGS[RAYLIB_BACKEND],
     ]
