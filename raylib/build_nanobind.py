@@ -19,7 +19,7 @@ if platform.system() == "Darwin":
   link_args = [flag for framework in ("OpenGL", "Cocoa", "IOKit", "CoreAudio", "CoreVideo")
                for flag in ("-framework", framework)]
 else:
-  link_args = ["-lm", "-lpthread", "-lrt", "-ldl", "-latomic", *BACKEND_LINK_ARGS[BACKEND]]
+  link_args = ["-Wl,--as-needed", "-lm", "-lpthread", "-lrt", "-ldl", "-latomic", *BACKEND_LINK_ARGS[BACKEND]]
 
 setup(
   package_dir={"raylib_nb": str(SOURCE / "python" / "raylib_nb")},
