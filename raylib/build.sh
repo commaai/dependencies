@@ -30,7 +30,7 @@ case "$RAYLIB_BACKEND" in
 esac
 
 # Clone and build raylib C library
-RAYLIB_COMMIT="b9dd5bb71f83ea1c3d32a7ba5a8ec9e211983679"
+RAYLIB_COMMIT="eed079308644246c9655b74422c1a4cec26d65c1"
 
 if [ ! -d "raylib-src/.git" ]; then
   rm -rf raylib-src
