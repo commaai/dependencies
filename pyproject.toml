@@ -1,6 +1,5 @@
 [tool.uv.workspace]
 members = [
-  "acados",
   "bootstrap-icons",
   "capnproto",
   "cppcheck",
