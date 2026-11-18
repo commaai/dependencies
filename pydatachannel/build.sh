@@ -38,7 +38,11 @@ if [ ! -f "$OPENSSL_PREFIX/.version" ] || [ "$(cat "$OPENSSL_PREFIX/.version")" 
   git -C openssl-src clean -fdxq
 
   cd openssl-src
-  CC="ccache ${CC:-cc}" ./Configure no-shared no-module no-engine no-apps no-tests no-docs \
+  OPENSSL_CC="${CC:-cc}"
+  if command -v ccache >/dev/null 2>&1; then
+    OPENSSL_CC="ccache $OPENSSL_CC"  # optional: only speeds up rebuilds
+  fi
+  CC="$OPENSSL_CC" ./Configure no-shared no-module no-engine no-apps no-tests no-docs \
     --prefix="$OPENSSL_PREFIX" --libdir=lib -fPIC
   make -j"$NJOBS" build_libs
   make install_dev
