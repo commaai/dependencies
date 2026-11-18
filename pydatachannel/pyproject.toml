@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "comma-deps-pydatachannel"
-version = "0.2.1"
+version = "0.3.0"
 description = "Minimal asyncio bindings for libdatachannel: data channels, H264 video and Opus audio, no Python on library threads"
 requires-python = ">=3.12"
 

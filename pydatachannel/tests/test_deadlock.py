@@ -3,6 +3,7 @@ The binding must never deadlock. These tests have no interesting assertions: the
 by the watchdog in conftest.py, which also checks after every test that libdatachannel could shut down completely.
 """
 import asyncio
+import os
 import threading
 import time
 
@@ -88,8 +89,8 @@ def test_calls_and_close_from_inside_callbacks():
         b.close()
         done.set_result(None)
 
-    chan_a.on_message(on_message)
-    chan_b.on_message(chan_b.send)  # echo
+    chan_a.on_message = on_message
+    chan_b.on_message = chan_b.send  # echo
     chan_a.send("0")
     await done
 
@@ -114,7 +115,7 @@ def test_close_while_threads_call_in_and_events_flood(sync):
   rounds(scenario)
 
 
-# libdatachannel-py deadlocks here, see compare_libdatachannel_py.py
+# callbacks are plain attributes: replacing one while events flood must be safe (libdatachannel-py deadlocks here)
 def test_replace_callbacks_while_events_flood():
   async def scenario():
     a, b, chan_a, chan_b, _, _ = await connect()
@@ -122,7 +123,7 @@ def test_replace_callbacks_while_events_flood():
     received = []
     deadline = time.monotonic() + 1
     while time.monotonic() < deadline:
-      chan_a.on_message(received.append)
+      chan_a.on_message = received.append
       await asyncio.sleep(0)
     stop()
     assert received
@@ -156,3 +157,17 @@ def test_never_closed():
     stop()  # the peers are destroyed by the garbage collector, still connected and with events pending
 
   rounds(scenario)
+
+
+def test_close_releases_fds_without_gc():
+  async def scenario():
+    kept = []  # closed peers stay referenced, as when an application holds on to them
+    for i in range(21):
+      if i == 1:  # after the first round initialized libdatachannel's global threads and sockets
+        before = len(os.listdir("/dev/fd"))
+      a, b, *_ = await connect()
+      await asyncio.gather(a.aclose(), b.aclose())
+      kept.append((a, b))
+    assert len(os.listdir("/dev/fd")) - before < 10
+
+  asyncio.run(scenario())

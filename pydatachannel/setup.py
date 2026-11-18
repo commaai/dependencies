@@ -1,6 +1,5 @@
 import os
 import platform
-import shutil
 import subprocess
 import sys
 
@@ -16,25 +15,21 @@ class BuildPydatachannel(build_py):
 
   def run(self):
     subprocess.check_call(["bash", "build.sh"], cwd=PKG_DIR, env=dict(os.environ, PYTHON=sys.executable))
-
-    # Wipe the cached build_lib package so a stale _rtc*.so doesn't get packaged.
-    shutil.rmtree(os.path.join(self.build_lib, "pydatachannel"), ignore_errors=True)
     super().run()
-
     # cwd=build_lib so `import pydatachannel` resolves to the built package
     subprocess.check_call([sys.executable, "-m", "pytest", os.path.join(PKG_DIR, "tests"), "-n", "auto", "-p", "no:cacheprovider"],
                           cwd=os.path.abspath(self.build_lib), env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
 
 
 class BinaryDistribution(Distribution):
-  """The extension is built by build.sh, not setuptools: still install it to platlib."""
+  """The extension is built by build.sh, not setuptools: still a platform wheel, installed to platlib."""
 
   def has_ext_modules(self):
     return True
 
 
 class PlatformWheel(bdist_wheel):
-  """Produce one cp312-abi3 wheel per platform."""
+  """One cp312-abi3 wheel per platform."""
 
   def get_tag(self):
     _, _, plat_tag = super().get_tag()

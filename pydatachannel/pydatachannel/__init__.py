@@ -8,6 +8,7 @@ import asyncio
 import logging
 from typing import Callable, Dict, List, Optional, Union
 
+from pydatachannel._rtc import cleanup, parse_sdp
 from pydatachannel import _rtc
 
 __all__ = ["PeerConnection", "DataChannel", "Track", "Message", "parse_sdp", "cleanup"]
@@ -19,30 +20,23 @@ CLOCK_RATE = {"video": 90000, "audio": 48000}
 
 
 class _Channel:
-  """A data channel or track: a native id plus callbacks keyed by event kind."""
+  """A data channel or track. Callbacks are plain attributes: an event "x" calls self.on_x if it is set."""
 
   def __init__(self, pc: "PeerConnection", oid: int):
     self._pc = pc
     self._id = oid
-    self._callbacks: Dict[str, Optional[Callable]] = {}
+    self.on_open: Optional[Callable[[], None]] = None
+    self.on_closed: Optional[Callable[[], None]] = None
 
   def is_open(self) -> bool:
     return self._pc._native.is_open(self._id)
-
-  def on_open(self, fn: Optional[Callable[[], None]]) -> None:
-    self._callbacks["open"] = fn
-
-  def on_closed(self, fn: Optional[Callable[[], None]]) -> None:
-    self._callbacks["closed"] = fn
 
 
 class DataChannel(_Channel):
   def __init__(self, pc: "PeerConnection", oid: int, label: str):
     super().__init__(pc, oid)
-    self._label = label
-
-  def label(self) -> str:
-    return self._label
+    self.label = label
+    self.on_message: Optional[Callable[[Message], None]] = None
 
   def send(self, data: Message) -> bool:
     return self._pc._native.send(self._id, data)
@@ -50,48 +44,30 @@ class DataChannel(_Channel):
   def max_message_size(self) -> int:
     return self._pc._native.max_message_size(self._id)
 
-  def on_message(self, fn: Optional[Callable[[Message], None]]) -> None:
-    self._callbacks["message"] = fn
-
 
 class Track(_Channel):
-  """An H264 video or Opus audio track, sending or receiving, or a track created by the remote's offer (see on_track)."""
+  """An H264 video or Opus audio track, sending or receiving."""
 
-  def __init__(self, pc: "PeerConnection", oid: int, mid: str, kind: str):
+  def __init__(self, pc: "PeerConnection", oid: int, mid: str, kind: str, ssrc: Optional[int]):
     super().__init__(pc, oid)
-    self._mid = mid
+    self.mid = mid
     self.kind = kind
-    self.ssrc: Optional[int] = None  # local SSRC, send tracks only
-
-  def mid(self) -> str:
-    return self._mid
-
-  # -- receive tracks
-
-  def on_frame(self, fn: Optional[Callable[[bytes, int], None]]) -> None:
-    """
-    fn(data, rtp_timestamp) for each H264 access unit (Annex B) or Opus packet. At most 8 frames per track wait for the
-    loop; when it falls behind, the oldest are dropped.
-    """
-    self._callbacks["frame"] = fn
+    self.ssrc = ssrc  # local SSRC, send tracks only
+    # raw RTCP from the remote: receiver reports on send tracks, sender reports on receive tracks
+    self.on_rtcp: Optional[Callable[[bytes], None]] = None
+    # receive tracks: fn(data, rtp_timestamp) for each H264 access unit (Annex B) or Opus packet. At most 8 frames per
+    # track wait for the loop; when it falls behind, newer frames are dropped.
+    self.on_frame: Optional[Callable[[bytes, int], None]] = None
+    # video send tracks: PLI/FIR from the remote
+    self.on_keyframe_request: Optional[Callable[[], None]] = None
 
   def request_keyframe(self) -> bool:
     """Send a PLI to the remote, video receive tracks only."""
     return not self._pc.is_closed() and self._pc._native.request_keyframe(self._id)
 
-  # -- send tracks
-
   def send_frame(self, data: bytes, pts: int) -> None:
     """One H264 access unit (Annex B) or Opus packet; pts in RTP clock units (video 90 kHz, audio 48 kHz)."""
     self._pc._native.send_frame(self._id, data, pts / CLOCK_RATE[self.kind])
-
-  def on_keyframe_request(self, fn: Optional[Callable[[], None]]) -> None:
-    """PLI/FIR from the remote, video send tracks only."""
-    self._callbacks["keyframe_request"] = fn
-
-  def on_rtcp(self, fn: Optional[Callable[[bytes], None]]) -> None:
-    """Raw RTCP (receiver reports etc.) from the remote."""
-    self._callbacks["message"] = fn
 
 
 class PeerConnection:
@@ -104,7 +80,6 @@ class PeerConnection:
     self.on_state_change: Optional[Callable[[str], None]] = None
     self.on_gathering_state_change: Optional[Callable[[str], None]] = None
     self.on_data_channel: Optional[Callable[[DataChannel], None]] = None
-    self.on_track: Optional[Callable[[Track], None]] = None  # tracks created by the remote's offer
 
     self._loop = asyncio.get_running_loop()
     self._fd = self._native.event_fd
@@ -118,10 +93,11 @@ class PeerConnection:
   def set_local_description(self, sdp_type: str) -> None:
     self._native.set_local_description(sdp_type)
 
-  def local_description(self):
+  def local_description(self) -> Optional[tuple]:
+    """(sdp, type), or None."""
     return self._native.local_description()
 
-  def remote_description(self):
+  def remote_description(self) -> Optional[tuple]:
     return self._native.remote_description()
 
   # State as of the last dispatched event, so callbacks see a view consistent with event order.
@@ -138,6 +114,7 @@ class PeerConnection:
     self._channels[channel._id] = channel
     return channel
 
+  # Every media section, ours or in the remote's offer (see parse_sdp), needs one of these: there is no on_track.
   def add_send_track(self, kind: str, mid: str, payload_type: int, track_id: str) -> Track:
     """kind "video": H264, kind "audio": Opus. The mid and payload type come from the remote's offer (see parse_sdp)."""
     return self._add_track(kind, True, mid, payload_type, track_id)
@@ -148,15 +125,7 @@ class PeerConnection:
 
   def _add_track(self, kind: str, send: bool, mid: str, payload_type: int, track_id: str) -> Track:
     oid, ssrc = self._native.add_track(kind, send, mid, payload_type, track_id)
-    track = self._track(oid, mid, kind)
-    track.ssrc = ssrc or None
-    return track
-
-  # A track created by the remote's offer and ours on the same mid share an id, and one Track object.
-  def _track(self, oid: int, mid: str, kind: str) -> Track:
-    track = self._channels.get(oid)
-    if not isinstance(track, Track):
-      track = self._channels[oid] = Track(self, oid, mid, kind)
+    track = self._channels[oid] = Track(self, oid, mid, kind, ssrc or None)
     return track
 
   # -- lifecycle
@@ -199,36 +168,18 @@ class PeerConnection:
   def _handle(self, kind: str, oid: int, args: list) -> None:
     if kind == "state":
       self._state = args[0]
-      if self.on_state_change is not None:
-        self.on_state_change(args[0])
+      fn = self.on_state_change
     elif kind == "gathering":
       self._gathering_state = args[0]
-      if self.on_gathering_state_change is not None:
-        self.on_gathering_state_change(args[0])
+      fn = self.on_gathering_state_change
     elif kind == "datachannel":
-      channel = self._channels[oid] = DataChannel(self, oid, args[0])
-      if self.on_data_channel is not None:
-        self.on_data_channel(channel)
-    elif kind == "track":
-      if oid not in self._channels:  # not a mid we added a track for ourselves
-        track = self._track(oid, args[0], args[1])
-        if self.on_track is not None:
-          self.on_track(track)
-    elif (target := self._channels.get(oid)) is not None and (fn := target._callbacks.get(kind)) is not None:
+      args = [DataChannel(self, oid, args[0])]
+      self._channels[oid] = args[0]
+      fn = self.on_data_channel
+    else:
+      fn = getattr(self._channels.get(oid), "on_" + kind, None)
+    if fn is not None:
       fn(*args)
-
-
-def parse_sdp(sdp: str) -> dict:
-  """{"media": [(kind, mid, direction, {payload_type: codec})], "has_application": bool}"""
-  return _rtc.parse_sdp(sdp)
-
-
-def cleanup(timeout: float = 10.0) -> bool:
-  """
-  Release libdatachannel's global threads (thread pool, usrsctp timer). Only completes once every PeerConnection has
-  been closed and destroyed; the next PeerConnection re-initializes the library.
-  """
-  return _rtc.cleanup(timeout)
 
 
 def smoketest() -> None:
@@ -238,10 +189,10 @@ def smoketest() -> None:
   async def run():
     a, b = PeerConnection([], 1 << 16), PeerConnection([], 1 << 16)
     echoed = asyncio.get_running_loop().create_future()
-    b.on_data_channel = lambda channel: channel.on_message(channel.send)  # echo
+    b.on_data_channel = lambda channel: setattr(channel, "on_message", channel.send)  # echo
     channel = a.create_data_channel("smoketest")
-    channel.on_open(lambda: channel.send(b"ping"))
-    channel.on_message(echoed.set_result)
+    channel.on_open = lambda: channel.send(b"ping")
+    channel.on_message = echoed.set_result
     for src, dst, sdp_type in ((a, b, "offer"), (b, a, "answer")):
       src.set_local_description(sdp_type)
       while src.gathering_state() != "complete":

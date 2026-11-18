@@ -3,7 +3,7 @@ project(pydatachannel LANGUAGES C CXX)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# libdatachannel (fetched by build.sh at a pinned commit), static, with only what the binding uses
+# libdatachannel (fetched by build.sh), static, with only what the binding uses
 set(BUILD_SHARED_LIBS OFF)
 set(NO_WEBSOCKET ON)
 set(NO_EXAMPLES ON)
@@ -12,6 +12,7 @@ set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)  # let the set()s above override libdatach
 add_subdirectory(libdatachannel-src EXCLUDE_FROM_ALL)
 
 find_package(Python 3.12 REQUIRED COMPONENTS Interpreter Development.Module Development.SABIModule)
+execute_process(COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE nanobind_ROOT)
 find_package(nanobind CONFIG REQUIRED)
 
 nanobind_add_module(_rtc STABLE_ABI NB_STATIC pydatachannel/_rtc.cpp)

@@ -5,8 +5,9 @@
 // Invariants:
 //  1. No code running on a libdatachannel thread calls the Python C-API or takes the GIL. This file never uses
 //     gil_scoped_acquire; the GIL is only ever *released* from functions called by Python.
-//  2. Native callback lambdas capture only shared_ptr<EventQueue> and integer ids. Never nb::object, never `this`.
-//  3. EventQueue::mutex is a leaf lock: nothing else is called while it is held.
+//  2. Native callback lambdas capture only shared_ptr<EventQueue>, integer ids and event kinds. Never nb::object, never
+//     `this`.
+//  3. EventQueue::mutex_ is a leaf lock: nothing but pipe syscalls happens while it is held.
 //  4. Every Python-callable function that may touch libdatachannel copies the shared_ptrs it needs while holding the
 //     GIL, then releases the GIL before calling into libdatachannel.
 //  5. C++ owns every rtc:: object in an id-keyed map; close() clears it. Python holds only ints. The map is only
@@ -31,8 +32,8 @@
 #include <mutex>
 #include <random>
 #include <sstream>
-#include <string_view>
 #include <unistd.h>
+#include <utility>
 
 namespace nb = nanobind;
 using namespace nb::literals;
@@ -41,8 +42,6 @@ namespace {
 
 constexpr auto GRACEFUL_CLOSE_TIMEOUT = std::chrono::seconds(2);
 constexpr size_t MAX_PENDING_FRAMES_PER_TRACK = 8;
-constexpr uint32_t VIDEO_CLOCK_RATE = 90000;
-constexpr uint32_t AUDIO_CLOCK_RATE = 48000;
 
 template <class T> std::string to_str(const T &v) {
   std::ostringstream s;
@@ -53,19 +52,24 @@ template <class T> std::string to_str(const T &v) {
 // ---------------------------------------------------------------------------------------------------------------------
 // Event queue: the only thing shared between libdatachannel threads and Python.
 
-// Delivered to Python by poll_events(). id 0 is the PeerConnection itself.
+// Delivered to Python by poll_events() as (kind, id, *args). id 0 is the PeerConnection itself.
 //   ("state", 0, str)  ("gathering", 0, str)
-//   ("datachannel", id, label)  ("track", id, mid, "audio" | "video")   created by the remote
-//   ("open", id)  ("closed", id)  ("message", id, bytes | str)          data channels; on a send track, the remote's RTCP
-//   ("keyframe_request", id)                                            PLI/FIR on a send track
-//   ("frame", id, bytes, rtp_timestamp)                                 receive tracks
+//   ("datachannel", id, label)                          created by the remote
+//   ("open", id)  ("closed", id)                        data channels and tracks
+//   ("message", id, bytes | str)                        data channels
+//   ("rtcp", id, bytes)                                 tracks: the remote's RTCP (receiver reports etc.)
+//   ("keyframe_request", id)                            send tracks: PLI/FIR from the remote
+//   ("frame", id, bytes, rtp_timestamp)                 receive tracks
+enum class Kind { State, Gathering, DataChannel, Open, Closed, Message, Rtcp, KeyframeRequest, Frame };
+constexpr const char *KIND_NAMES[] = {"state", "gathering", "datachannel", "open", "closed", "message", "rtcp",
+                                      "keyframe_request", "frame"};
+
 struct Event {
-  const char *kind;
+  Kind kind;
   int id = 0;
-  std::optional<rtc::message_variant> payload;  // str: state / label / mid / text message, bytes: message / RTCP / frame
-  std::shared_ptr<rtc::Channel> object;         // "datachannel" / "track": the remote-created object, adopted on the loop thread
+  std::optional<rtc::message_variant> payload;  // str: state / label / text message, bytes: message / RTCP / frame
+  std::shared_ptr<rtc::DataChannel> channel;    // "datachannel": the remote-created channel, adopted on the loop thread
   uint32_t timestamp = 0;                       // "frame": RTP timestamp
-  std::string media;                            // "track": "audio" | "video"
 };
 
 class EventQueue {
@@ -77,58 +81,33 @@ class EventQueue {
       ::fcntl(fd, F_SETFD, FD_CLOEXEC);
     }
   }
-
-  ~EventQueue() {
-    for (int fd : fds_) ::close(fd);
-  }
-
+  ~EventQueue() { close_pipe(); }
   EventQueue(const EventQueue &) = delete;
   EventQueue &operator=(const EventQueue &) = delete;
 
   int fd() const { return fds_[0]; }
   int next_id() { return next_id_++; }
 
-  // A remote offer creates a track (onTrack, on a library thread) before we add ours with the same mid, and
-  // libdatachannel reuses that underlying track, so both must share one id.
-  int id_for_mid(const std::string &mid) {
-    std::lock_guard lock(mutex_);
-    auto [it, inserted] = mid_ids_.try_emplace(mid, 0);
-    if (inserted) it->second = next_id();
-    return it->second;
-  }
-
   void push(Event ev) {
-    bool was_empty;
-    {
-      std::lock_guard lock(mutex_);
-      if (shut_) return;
-      if (std::string_view(ev.kind) == "frame" && pending_frames_[ev.id]++ >= MAX_PENDING_FRAMES_PER_TRACK) {
-        // the loop is behind: drop this track's oldest pending frame
-        for (auto it = events_.begin(); it != events_.end(); ++it) {
-          if (it->id == ev.id && std::string_view(it->kind) == "frame") {
-            events_.erase(it);
-            --pending_frames_[ev.id];
-            break;
-          }
-        }
-      }
-      if (std::string_view(ev.kind) == "state" && std::get<std::string>(*ev.payload) == "closed") {
-        closed_ = true;
-        closed_cv_.notify_all();
-      }
-      was_empty = events_.empty();
-      events_.push_back(std::move(ev));
+    std::lock_guard lock(mutex_);
+    if (shut_) return;
+    // the loop is behind: drop the frame
+    if (ev.kind == Kind::Frame && pending_frames_[ev.id]++ >= MAX_PENDING_FRAMES_PER_TRACK) return;
+    if (ev.kind == Kind::State && std::get<std::string>(*ev.payload) == "closed") {
+      closed_ = true;
+      closed_cv_.notify_all();
     }
     char one = 1;
-    if (was_empty) (void)!::write(fds_[1], &one, 1);
+    if (events_.empty()) (void)!::write(fds_[1], &one, 1);
+    events_.push_back(std::move(ev));
   }
 
   std::deque<Event> drain() {
+    std::deque<Event> out;
+    std::lock_guard lock(mutex_);
     char buf[64];
     while (::read(fds_[0], buf, sizeof(buf)) > 0) {
     }
-    std::deque<Event> out;
-    std::lock_guard lock(mutex_);
     out.swap(events_);
     pending_frames_.clear();
     return out;
@@ -140,39 +119,44 @@ class EventQueue {
     closed_cv_.wait_for(lock, timeout, [this] { return closed_; });
   }
 
-  // Stop accepting events and drop the undelivered ones (with any rtc:: objects they hold, outside the lock).
+  // Stop accepting events, close the pipe, and drop the undelivered events (with any rtc:: objects they hold, outside
+  // the lock). The fds are released now, not when the garbage collector gets to the Python object.
   void shutdown() {
-    {
-      std::lock_guard lock(mutex_);
-      shut_ = true;
-    }
-    drain();
+    std::deque<Event> dropped;
+    std::lock_guard lock(mutex_);
+    shut_ = true;
+    close_pipe();
+    dropped.swap(events_);
   }
 
  private:
-  int fds_[2];  // self-pipe: readable while events are pending
+  void close_pipe() {
+    for (int &fd : fds_) ::close(std::exchange(fd, -1));
+  }
+
+  int fds_[2];  // self-pipe: readable while events are pending. Only used with mutex_ held, so it is never written
+                // after it was closed.
   std::atomic<int> next_id_{1};
-  std::mutex mutex_;  // leaf lock
+  std::mutex mutex_;  // leaf lock: only pipe syscalls happen while it is held
   std::condition_variable closed_cv_;
   std::deque<Event> events_;
   std::map<int, size_t> pending_frames_;
-  std::map<std::string, int> mid_ids_;
   bool closed_ = false;
   bool shut_ = false;
 };
 
 using QueuePtr = std::shared_ptr<EventQueue>;
 
-// Every lambda here captures only `q` (shared_ptr<EventQueue>) and `id` (int).
-// messages=false drains a track's messages without delivering them (receive tracks: frames come from onFrame).
-void wire(rtc::Channel &ch, const QueuePtr &q, int id, bool messages = true) {
-  ch.onOpen([q, id] { q->push({"open", id}); });
-  ch.onClosed([q, id] { q->push({"closed", id}); });
-  if (messages) {
-    ch.onMessage([q, id](rtc::message_variant msg) { q->push({"message", id, std::move(msg)}); });
-  } else {
-    ch.onMessage([](rtc::message_variant) {});
-  }
+rtc::binary to_binary(const nb::bytes &data) {
+  auto *p = reinterpret_cast<const rtc::byte *>(data.c_str());
+  return {p, p + data.size()};
+}
+
+// "open", "closed", and each message as a `messages` event.
+void wire(rtc::Channel &ch, const QueuePtr &q, int id, Kind messages) {
+  ch.onOpen([q, id] { q->push({Kind::Open, id}); });
+  ch.onClosed([q, id] { q->push({Kind::Closed, id}); });
+  ch.onMessage([q, id, messages](rtc::message_variant msg) { q->push({messages, id, std::move(msg)}); });
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -190,20 +174,16 @@ class PeerConnection {
     nb::gil_scoped_release release;
     auto pc = std::make_shared<rtc::PeerConnection>(config);
     QueuePtr q = q_;
-    pc->onStateChange([q](rtc::PeerConnection::State s) { q->push({"state", 0, to_str(s)}); });
-    pc->onGatheringStateChange([q](rtc::PeerConnection::GatheringState s) { q->push({"gathering", 0, to_str(s)}); });
+    pc->onStateChange([q](rtc::PeerConnection::State s) { q->push({Kind::State, 0, to_str(s)}); });
+    pc->onGatheringStateChange([q](rtc::PeerConnection::GatheringState s) { q->push({Kind::Gathering, 0, to_str(s)}); });
     pc->onDataChannel([q](std::shared_ptr<rtc::DataChannel> dc) {
       int id = q->next_id();
-      wire(*dc, q, id);
-      q->push({"datachannel", id, dc->label(), dc});
+      wire(*dc, q, id, Kind::Message);
+      q->push({Kind::DataChannel, id, dc->label(), dc});
     });
-    pc->onTrack([q](std::shared_ptr<rtc::Track> t) {
-      int id = q->id_for_mid(t->mid());
-      wire(*t, q, id, false);
-      Event ev{"track", id, t->mid(), t};
-      ev.media = t->description().type();
-      q->push(std::move(ev));
-    });
+    // No onTrack: every media section gets a track from add_track(). A remote offer's tracks are created inside
+    // setRemoteDescription, and addTrack() on the same mid reuses them; without an onTrack callback libdatachannel never
+    // hands out a second wrapper whose destruction would reset our callbacks.
     pc_ = std::move(pc);
   }
 
@@ -214,15 +194,21 @@ class PeerConnection {
   nb::list poll_events() {
     nb::list out;
     for (auto &ev : q_->drain()) {
-      if (ev.object && pc_) adopt(ev.id, std::move(ev.object));
+      if (ev.channel && pc_) objects_[ev.id] = std::move(ev.channel);
+      const char *kind = KIND_NAMES[static_cast<int>(ev.kind)];
       if (!ev.payload) {
-        out.append(nb::make_tuple(ev.kind, ev.id));
-      } else if (auto *s = std::get_if<std::string>(&*ev.payload)) {
-        append(out, ev, *s);
+        out.append(nb::make_tuple(kind, ev.id));
+        continue;
+      }
+      nb::object payload;
+      if (auto *s = std::get_if<std::string>(&*ev.payload)) {
+        payload = nb::str(s->data(), s->size());
       } else {
         auto &b = std::get<rtc::binary>(*ev.payload);
-        append(out, ev, nb::bytes(reinterpret_cast<const char *>(b.data()), b.size()));
+        payload = nb::bytes(b.data(), b.size());
       }
+      if (ev.kind == Kind::Frame) out.append(nb::make_tuple(kind, ev.id, payload, ev.timestamp));
+      else out.append(nb::make_tuple(kind, ev.id, payload));
     }
     return out;
   }
@@ -251,56 +237,48 @@ class PeerConnection {
     if (!video && kind != "audio") throw std::invalid_argument("kind must be 'video' or 'audio'");
     auto pc = get_pc();
     QueuePtr q = q_;
-    int id = q->id_for_mid(mid);
+    int id = q->next_id();
+    uint32_t ssrc = send ? std::max<uint32_t>(1, std::random_device{}()) : 0;
     std::shared_ptr<rtc::Track> track;
-    uint32_t ssrc = 0;
     {
       nb::gil_scoped_release release;
       auto direction = send ? rtc::Description::Direction::SendOnly : rtc::Description::Direction::RecvOnly;
-      rtc::Description::Video video_media(mid, direction);
-      rtc::Description::Audio audio_media(mid, direction);
-      video_media.addH264Codec(payload_type);
-      audio_media.addOpusCodec(payload_type);
-      rtc::Description::Media &media = video ? static_cast<rtc::Description::Media &>(video_media) : audio_media;
-      if (send) {
-        ssrc = std::max<uint32_t>(1, std::random_device{}());
-        media.addSSRC(ssrc, "pydatachannel", track_id, track_id);
-      }
+      auto media = [&]() -> rtc::Description::Media {
+        if (video) {
+          rtc::Description::Video m(mid, direction);
+          m.addH264Codec(payload_type);
+          return m;
+        }
+        rtc::Description::Audio m(mid, direction);
+        m.addOpusCodec(payload_type);
+        return m;
+      }();
+      if (send) media.addSSRC(ssrc, "pydatachannel", track_id, track_id);
       track = pc->addTrack(media);
 
       std::shared_ptr<rtc::MediaHandler> handler;
       if (send) {
         // the config randomizes the initial sequence number and timestamp
         auto config = std::make_shared<rtc::RtpPacketizationConfig>(ssrc, "pydatachannel", static_cast<uint8_t>(payload_type),
-                                                                    video ? VIDEO_CLOCK_RATE : AUDIO_CLOCK_RATE);
+                                                                    video ? 90000 : 48000);
         if (video) handler = std::make_shared<rtc::H264RtpPacketizer>(rtc::NalUnit::Separator::LongStartSequence, config, 1200);
         else handler = std::make_shared<rtc::OpusRtpPacketizer>(config);
         handler->addToChain(std::make_shared<rtc::RtcpSrReporter>(config));
-        handler->addToChain(std::make_shared<rtc::PliHandler>([q, id] { q->push({"keyframe_request", id}); }));
+        handler->addToChain(std::make_shared<rtc::PliHandler>([q, id] { q->push({Kind::KeyframeRequest, id}); }));
         handler->addToChain(std::make_shared<rtc::RtcpNackResponder>());
       } else {
         if (video) handler = std::make_shared<rtc::H264RtpDepacketizer>(rtc::NalUnit::Separator::StartSequence);
         else handler = std::make_shared<rtc::OpusRtpDepacketizer>();
         handler->addToChain(std::make_shared<rtc::RtcpReceivingSession>());
         track->onFrame([q, id](rtc::binary data, rtc::FrameInfo info) {
-          Event ev{"frame", id, std::move(data)};
-          ev.timestamp = info.timestamp;
-          q->push(std::move(ev));
+          q->push({Kind::Frame, id, std::move(data), nullptr, info.timestamp});
         });
       }
       track->setMediaHandler(handler);
-      wire(*track, q, id, send);  // messages on a send track are the remote's RTCP (receiver reports etc.)
+      wire(*track, q, id, Kind::Rtcp);
     }
-    adopt(id, std::move(track), true);
+    objects_[id] = std::move(track);
     return {id, ssrc};
-  }
-
-  bool request_keyframe(int id) {
-    auto it = objects_.find(id);
-    auto track = it == objects_.end() ? nullptr : std::dynamic_pointer_cast<rtc::Track>(it->second);
-    if (!track) return false;
-    nb::gil_scoped_release release;
-    return track->requestKeyframe();
   }
 
   int create_data_channel(const std::string &label) {
@@ -311,7 +289,7 @@ class PeerConnection {
     {
       nb::gil_scoped_release release;
       dc = pc->createDataChannel(label);
-      wire(*dc, q, id);
+      wire(*dc, q, id, Kind::Message);
     }
     objects_[id] = std::move(dc);
     return id;
@@ -320,16 +298,20 @@ class PeerConnection {
   // video: one Annex B access unit, audio: one Opus packet. pts in seconds since the start of the stream.
   void send_frame(int id, nb::bytes data, double pts) {
     auto track = get<rtc::Track>(id);
-    const auto *p = reinterpret_cast<const rtc::byte *>(data.c_str());
-    rtc::binary buf(p, p + data.size());
+    auto buf = to_binary(data);
     nb::gil_scoped_release release;
     track->sendFrame(std::move(buf), rtc::FrameInfo(std::chrono::duration<double>(pts)));
   }
 
+  bool request_keyframe(int id) {
+    auto track = get<rtc::Track>(id);
+    nb::gil_scoped_release release;
+    return track->requestKeyframe();
+  }
+
   bool send_bytes(int id, nb::bytes data) {
     auto dc = get<rtc::DataChannel>(id);
-    const auto *p = reinterpret_cast<const rtc::byte *>(data.c_str());
-    rtc::binary buf(p, p + data.size());
+    auto buf = to_binary(data);
     nb::gil_scoped_release release;
     return dc->send(std::move(buf));
   }
@@ -358,10 +340,7 @@ class PeerConnection {
     // Take ownership of everything (GIL held, so the map is ours), then tear down with the GIL released.
     auto pc = std::move(pc_);
     if (!pc) return;
-    auto objects = std::move(objects_);
-    auto aliases = std::move(aliases_);
-    objects_.clear();
-    aliases_.clear();
+    auto objects = std::exchange(objects_, {});
     QueuePtr q = q_;
 
     nb::gil_scoped_release release;
@@ -370,34 +349,11 @@ class PeerConnection {
     // Dropping the wrappers drops our callbacks (~rtc::Channel resets them on the shared impl), so no lambda or queue
     // ref outlives the session. libdatachannel resets the PeerConnection's own callbacks when it reaches Closed.
     objects.clear();
-    aliases.clear();
     pc.reset();     // ~rtc::PeerConnection forces remote close if graceful close timed out
     q->shutdown();  // rtc:: objects in undelivered events are destroyed here, outside the queue lock
   }
 
  private:
-  template <class P> static void append(nb::list &out, const Event &ev, P payload) {
-    std::string_view kind(ev.kind);
-    if (kind == "frame") out.append(nb::make_tuple(ev.kind, ev.id, payload, ev.timestamp));
-    else if (kind == "track") out.append(nb::make_tuple(ev.kind, ev.id, payload, ev.media));
-    else out.append(nb::make_tuple(ev.kind, ev.id, payload));
-  }
-
-  // Own `obj` under `id`. A remote-created track and ours for the same mid are two wrappers over one libdatachannel
-  // track: ours (`replace`) takes the id, the other is kept alive in aliases_ until close(), because destroying any
-  // rtc::Track wrapper resets *all* callbacks on the shared track.
-  void adopt(int id, std::shared_ptr<rtc::Channel> obj, bool replace = false) {
-    auto &slot = objects_[id];
-    if (!slot) {
-      slot = std::move(obj);
-    } else if (replace) {
-      aliases_.push_back(std::move(slot));
-      slot = std::move(obj);
-    } else {
-      aliases_.push_back(std::move(obj));
-    }
-  }
-
   std::shared_ptr<rtc::PeerConnection> get_pc() {
     if (!pc_) throw std::runtime_error("PeerConnection is closed");
     return pc_;
@@ -425,12 +381,10 @@ class PeerConnection {
   QueuePtr q_;
   std::shared_ptr<rtc::PeerConnection> pc_;
   std::map<int, std::shared_ptr<rtc::Channel>> objects_;  // data channels and tracks
-  std::vector<std::shared_ptr<rtc::Channel>> aliases_;
 };
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-// {"media": [(kind, mid, direction, {pt: codec})], "has_application": bool}
 nb::dict parse_sdp(const std::string &sdp) {
   rtc::Description desc(sdp);
   nb::list media_list;
@@ -444,10 +398,7 @@ nb::dict parse_sdp(const std::string &sdp) {
     }
     nb::dict codecs;
     for (int pt : (*media)->payloadTypes()) {
-      try {
-        codecs[nb::int_(pt)] = (*media)->rtpMap(pt)->format;
-      } catch (const std::exception &) {  // payload type without an rtpmap line
-      }
+      if ((*media)->hasPayloadType(pt)) codecs[nb::int_(pt)] = (*media)->rtpMap(pt)->format;  // has an rtpmap line
     }
     media_list.append(nb::make_tuple((*media)->type(), (*media)->mid(), to_str((*media)->direction()), codecs));
   }
@@ -479,13 +430,16 @@ NB_MODULE(_rtc, m) {
       .def("add_track", &PeerConnection::add_track, "kind"_a, "send"_a, "mid"_a, "payload_type"_a, "track_id"_a)
       .def("create_data_channel", &PeerConnection::create_data_channel, "label"_a)
       .def("send_frame", &PeerConnection::send_frame, "oid"_a, "data"_a, "pts"_a)
+      .def("request_keyframe", &PeerConnection::request_keyframe, "oid"_a)
       .def("send", &PeerConnection::send_bytes, "oid"_a, "data"_a)
       .def("send", &PeerConnection::send_str, "oid"_a, "data"_a)
       .def("max_message_size", &PeerConnection::max_message_size, "oid"_a)
-      .def("request_keyframe", &PeerConnection::request_keyframe, "oid"_a)
       .def("is_open", &PeerConnection::is_open, "oid"_a)
       .def("close", &PeerConnection::close);
 
-  m.def("parse_sdp", &parse_sdp, "sdp"_a);
-  m.def("cleanup", &cleanup, "timeout"_a = 10.0);
+  m.def("parse_sdp", &parse_sdp, "sdp"_a,
+        R"(The media sections of an SDP: {"media": [(kind, mid, direction, {payload_type: codec})], "has_application": bool})");
+  m.def("cleanup", &cleanup, "timeout"_a = 10.0,
+        "Release libdatachannel's global threads (thread pool, usrsctp timer). Only completes once every PeerConnection "
+        "has been closed and destroyed; the next PeerConnection re-initializes the library.");
 }
