@@ -16,13 +16,17 @@ fetch() {
 fetch libdatachannel-src paullouisageneau/libdatachannel v0.24.6
 git -C libdatachannel-src submodule update -q --init --depth 1 deps/plog deps/usrsctp deps/libjuice deps/libsrtp
 
-# OpenSSL, linked statically: the wheel needs no system libssl, whatever its version
-fetch openssl-src openssl/openssl openssl-3.5.8
-if [ ! -f openssl-src/libssl.a ]; then
-  (cd openssl-src && CC="$(command -v ccache || true) ${CC:-cc}" ./Configure no-shared no-module no-engine no-apps no-tests no-docs no-autoload-config -fPIC &&
-   make -j"$NJOBS" build_libs)
+# OpenSSL, linked statically: the wheel needs no system libssl, whatever its version. Installed to a versioned prefix,
+# whose lib/ layout libdatachannel's CMake expects on macOS.
+OPENSSL=openssl-3.5.8
+fetch openssl-src openssl/openssl "$OPENSSL"
+if [ ! -f "build/$OPENSSL/lib/libssl.a" ]; then
+  (cd openssl-src && CC="$(command -v ccache || true) ${CC:-cc}" ./Configure no-shared no-module no-engine no-apps no-tests no-docs \
+     no-autoload-config -fPIC --prefix="$PWD/../build/$OPENSSL" --libdir=lib &&
+   make -j"$NJOBS" build_libs && make install_dev)
 fi
 
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPython_EXECUTABLE="${PYTHON:-python3}" -DOPENSSL_ROOT_DIR="$PWD/openssl-src" -DOPENSSL_USE_STATIC_LIBS=ON
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPython_EXECUTABLE="${PYTHON:-python3}" -DOPENSSL_ROOT_DIR="$PWD/build/$OPENSSL" \
+  -DOPENSSL_USE_STATIC_LIBS=ON
 cmake --build build -j"$NJOBS" --target _rtc
 cp build/_rtc*.so pydatachannel/

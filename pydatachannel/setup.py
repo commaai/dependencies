@@ -16,8 +16,9 @@ class BuildPydatachannel(build_py):
   def run(self):
     subprocess.check_call(["bash", "build.sh"], cwd=PKG_DIR, env=dict(os.environ, PYTHON=sys.executable))
     super().run()
+    # sequential: in parallel, CPU contention triggers a DTLS startup race in libdatachannel (#1657) and the tests flake.
     # cwd=build_lib so `import pydatachannel` resolves to the built package
-    subprocess.check_call([sys.executable, "-m", "pytest", os.path.join(PKG_DIR, "tests"), "-n", "auto", "-p", "no:cacheprovider"],
+    subprocess.check_call([sys.executable, "-m", "pytest", os.path.join(PKG_DIR, "tests"), "-p", "no:cacheprovider"],
                           cwd=os.path.abspath(self.build_lib), env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
 
 
