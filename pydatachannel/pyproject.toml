@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=70.1", "cmake>=3.19,<4", "nanobind==3.1.0", "pytest"]  # pytest for the tests run at build time
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "comma-deps-pydatachannel"
+version = "0.3.0"
+description = "Minimal asyncio bindings for libdatachannel: data channels, H264 video and Opus audio, no Python on library threads"
+requires-python = ">=3.12"
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+include = ["pydatachannel"]
+
+[tool.setuptools.package-data]
+pydatachannel = ["_rtc*.so", "py.typed"]

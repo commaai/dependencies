@@ -10,6 +10,7 @@ members = [
   "json11",
   "libusb",
   "ncurses",
+  "pydatachannel",
   "raylib",
   "zstd",
 ]
