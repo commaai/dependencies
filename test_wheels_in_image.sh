@@ -18,7 +18,7 @@ RUN if command -v apk >/dev/null; then \
     elif command -v dnf >/dev/null; then \
       dnf install -y python3 python3-pip; \
     elif command -v pacman >/dev/null; then \
-      pacman -Sy --noconfirm python python-pip; \
+      pacman -Syu --noconfirm python python-pip; \
     elif command -v zypper >/dev/null; then \
       zypper install -y python3 python3-pip; \
     elif command -v xbps-install >/dev/null; then \
