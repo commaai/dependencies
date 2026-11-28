@@ -47,6 +47,7 @@ class BuildRaylib(build_py):
                RAYLIB_BACKEND="headless" if platform.system() == "Linux" and "headless" in backends else backends[0],
                RAYLIB_TEST_RENDER="1" if platform.system() == "Linux" else "0")
     subprocess.check_call([sys.executable, "-m", "unittest", "discover", "-s", str(source / "python" / "tests"), "-v"], env=env)
+    subprocess.check_call([sys.executable, "gen_stubs.py", str(target.resolve())], cwd=PKG_DIR, env=env)
 
   def run(self):
     subprocess.check_call(["bash", "build.sh"], cwd=PKG_DIR)
