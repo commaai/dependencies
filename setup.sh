@@ -18,7 +18,7 @@ if [ "$(uname)" = "Darwin" ]; then
   brew install nasm pkg-config ccache autoconf automake libtool
 elif command -v dnf &>/dev/null; then
   dnf install -y \
-    nasm cmake gcc-c++ pkgconfig git perl-IPC-Cmd ccache autoconf automake libtool \
+    nasm cmake gcc-c++ pkgconfig git perl-IPC-Cmd perl-Time-Piece ccache autoconf automake libtool \
     libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel \
     mesa-libGL-devel libdrm-devel mesa-libEGL-devel
 elif command -v apt-get &>/dev/null; then
