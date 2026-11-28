@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "comma-deps-capnproto"
-version = "1.0.1"
+version = "1.4.0"
 description = "Cap'n Proto serialization library and compiler"
 requires-python = ">=3.12"
 
