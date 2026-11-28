@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Write type stubs into a built raylib_nb package.
 
 raylib_nb re-exports its native backend module through globals().update(), which
